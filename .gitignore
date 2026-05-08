@@ -1,0 +1,19 @@
+# Mono-repo root gitignore
+node_modules
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+vendor
+storage/*.key
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.vscode
+.idea
+.vercel
