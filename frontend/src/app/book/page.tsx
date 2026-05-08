@@ -23,7 +23,7 @@ const PaystackButton = dynamic(() => import("@/components/PaystackButton"), {
 });
 
 export default function BookingPage() {
-  const { services, isLoading } = useSetting();
+  const { services, getSetting, isLoading } = useSetting();
   const [mounted, setMounted] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
