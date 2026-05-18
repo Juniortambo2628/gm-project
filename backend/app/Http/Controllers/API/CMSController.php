@@ -71,9 +71,9 @@ class CMSController extends Controller
             }
             $file = $request->file('file');
             $filename = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('public/cms', $filename);
+            $path = $file->storeAs('cms', $filename, 'public');
             
-            $fullPath = storage_path('app/' . $path);
+            $fullPath = storage_path('app/public/' . $path);
             $mime = $file->getClientMimeType();
 
             // Compress Image (GD library)
@@ -92,7 +92,7 @@ class CMSController extends Controller
                 }
             }
             
-            $url = \Illuminate\Support\Facades\Storage::url($path);
+            $url = \Illuminate\Support\Facades\Storage::disk('public')->url($path);
             
             // Save to settings automatically if key provided
             \App\Models\Setting::set($request->key, $url, 'media', $mime);

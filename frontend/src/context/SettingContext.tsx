@@ -34,8 +34,14 @@ export function SettingProvider({ children }: { children: ReactNode }) {
         // Dynamic absolute URL parser for backend stored media assets
         Object.keys(loadedSettings).forEach(key => {
           const val = loadedSettings[key];
-          if (typeof val === 'string' && val.startsWith('/storage/')) {
-            loadedSettings[key] = `http://localhost:8000${val}`;
+          if (typeof val === 'string') {
+            if (val.startsWith('/storage/')) {
+              loadedSettings[key] = `http://localhost:8000${val}`;
+            } else if (val.startsWith('http://localhost/storage/')) {
+              loadedSettings[key] = val.replace('http://localhost/storage/', 'http://localhost:8000/storage/');
+            } else if (val.startsWith('http://127.0.0.1/storage/')) {
+              loadedSettings[key] = val.replace('http://127.0.0.1/storage/', 'http://localhost:8000/storage/');
+            }
           }
         });
 
@@ -63,8 +69,14 @@ export function SettingProvider({ children }: { children: ReactNode }) {
 
   const getSetting = (key: string, defaultValue: any = "") => {
     const val = settings[key] !== undefined ? settings[key] : defaultValue;
-    if (typeof val === 'string' && val.startsWith('/storage/')) {
-      return `http://localhost:8000${val}`;
+    if (typeof val === 'string') {
+      if (val.startsWith('/storage/')) {
+        return `http://localhost:8000${val}`;
+      } else if (val.startsWith('http://localhost/storage/')) {
+        return val.replace('http://localhost/storage/', 'http://localhost:8000/storage/');
+      } else if (val.startsWith('http://127.0.0.1/storage/')) {
+        return val.replace('http://127.0.0.1/storage/', 'http://localhost:8000/storage/');
+      }
     }
     return val;
   };
