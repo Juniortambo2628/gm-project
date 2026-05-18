@@ -3,6 +3,7 @@
 import { usePaystackPayment } from "react-paystack";
 import { CreditCard, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSetting } from "@/context/SettingContext";
 
 interface PaystackButtonProps {
     email: string;
@@ -23,11 +24,13 @@ export default function PaystackButton({
     onClose,
     disabled 
 }: PaystackButtonProps) {
+    const { getSetting } = useSetting();
+
     const paystackConfig = {
         reference: (new Date()).getTime().toString(),
         email: email,
         amount: amountInCents,
-        publicKey: 'pk_test_d2d6d06d4e2a6d4e2a6d4e2a6d4e2a6d4e2a', // Placeholder Test Key
+        publicKey: getSetting('paystack_public_key') || 'pk_test_d2d6d06d4e2a6d4e2a6d4e2a6d4e2a6d4e2a', // Dynamically loaded
     };
 
     const initializePayment = usePaystackPayment(paystackConfig);

@@ -184,6 +184,14 @@ export default function CMSPage() {
       desc: 'Change your admin password and manage two-factor authentication.',
       fields: ['admin_2fa_enabled', 'admin_2fa_backup_codes'],
       bg: 'bg-emerald-500/5'
+    },
+    { 
+      id: 'api_keys', 
+      title: 'API & Integrations', 
+      icon: KeyRound, 
+      desc: 'Configure Calendly URLs, Paystack keys, and SMTP email parameters.',
+      fields: ['discovery_calendly_url', 'consulting_calendly_url', 'mba_calendly_url', 'paystack_public_key', 'paystack_secret_key', 'mail_host', 'mail_port', 'mail_username', 'mail_password', 'mail_encryption', 'mail_from_address', 'mail_from_name'],
+      bg: 'bg-cyan-500/5'
     }
   ];
 
@@ -894,6 +902,152 @@ export default function CMSPage() {
                        </div>
                     </div>
                  )}
+
+                  {activeModule === 'api_keys' && (
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full">
+                        {/* Left Column: API & Payment credentials */}
+                        <div className="space-y-6 bg-muted/5 p-6 md:p-8 rounded-3xl border border-primary/5">
+                           <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4 flex items-center gap-2">
+                              <KeyRound size={16} /> API & Payment Integrations
+                           </h4>
+                           
+                           <div className="space-y-3">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Paystack Public Key</label>
+                              <Input 
+                                value={localSettings['paystack_public_key'] || ''} 
+                                onChange={(e) => setLocalSettings({...localSettings, paystack_public_key: e.target.value})}
+                                className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm font-mono" 
+                                placeholder="pk_test_..."
+                              />
+                           </div>
+
+                           <div className="space-y-3">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Paystack Secret Key</label>
+                              <Input 
+                                type="password"
+                                value={localSettings['paystack_secret_key'] || ''} 
+                                onChange={(e) => setLocalSettings({...localSettings, paystack_secret_key: e.target.value})}
+                                className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm font-mono" 
+                                placeholder="sk_test_..."
+                              />
+                           </div>
+
+                           <div className="space-y-3">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Discovery Call Calendly URL</label>
+                              <Input 
+                                value={localSettings['discovery_calendly_url'] || ''} 
+                                onChange={(e) => setLocalSettings({...localSettings, discovery_calendly_url: e.target.value})}
+                                className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
+                                placeholder="https://calendly.com/your-id/discovery"
+                              />
+                           </div>
+
+                           <div className="space-y-3">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">MBA Strategy Calendly URL</label>
+                              <Input 
+                                value={localSettings['mba_calendly_url'] || ''} 
+                                onChange={(e) => setLocalSettings({...localSettings, mba_calendly_url: e.target.value})}
+                                className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
+                                placeholder="https://calendly.com/your-id/mba-prep"
+                              />
+                           </div>
+
+                           <div className="space-y-3">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Consulting Prep Calendly URL</label>
+                              <Input 
+                                value={localSettings['consulting_calendly_url'] || ''} 
+                                onChange={(e) => setLocalSettings({...localSettings, consulting_calendly_url: e.target.value})}
+                                className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
+                                placeholder="https://calendly.com/your-id/mock-interview"
+                              />
+                           </div>
+                        </div>
+
+                        {/* Right Column: SMTP Server configs */}
+                        <div className="space-y-6 bg-muted/5 p-6 md:p-8 rounded-3xl border border-primary/5">
+                           <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4 flex items-center gap-2">
+                              <Globe size={16} /> SMTP Email Configuration
+                           </h4>
+                           
+                           <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">SMTP Host</label>
+                                 <Input 
+                                   value={localSettings['mail_host'] || ''} 
+                                   onChange={(e) => setLocalSettings({...localSettings, mail_host: e.target.value})}
+                                   className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
+                                   placeholder="smtp.mailtrap.io"
+                                 />
+                              </div>
+
+                              <div className="space-y-3">
+                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">SMTP Port</label>
+                                 <Input 
+                                   value={localSettings['mail_port'] || ''} 
+                                   onChange={(e) => setLocalSettings({...localSettings, mail_port: e.target.value})}
+                                   className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
+                                   placeholder="587"
+                                 />
+                              </div>
+                           </div>
+
+                           <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">SMTP Username</label>
+                                 <Input 
+                                   value={localSettings['mail_username'] || ''} 
+                                   onChange={(e) => setLocalSettings({...localSettings, mail_username: e.target.value})}
+                                   className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
+                                   placeholder="SMTP User"
+                                 />
+                              </div>
+
+                              <div className="space-y-3">
+                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">SMTP Password</label>
+                                 <Input 
+                                   type="password"
+                                   value={localSettings['mail_password'] || ''} 
+                                   onChange={(e) => setLocalSettings({...localSettings, mail_password: e.target.value})}
+                                   className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
+                                   placeholder="••••••••"
+                                 />
+                              </div>
+                           </div>
+
+                           <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Encryption</label>
+                                 <Input 
+                                   value={localSettings['mail_encryption'] || ''} 
+                                   onChange={(e) => setLocalSettings({...localSettings, mail_encryption: e.target.value})}
+                                   className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
+                                   placeholder="tls"
+                                 />
+                              </div>
+
+                              <div className="space-y-3">
+                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Sender Email</label>
+                                 <Input 
+                                   value={localSettings['mail_from_address'] || ''} 
+                                   onChange={(e) => setLocalSettings({...localSettings, mail_from_address: e.target.value})}
+                                   className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
+                                   placeholder="hello@coaching.com"
+                                 />
+                              </div>
+                           </div>
+
+                           <div className="space-y-3">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Sender Name</label>
+                              <Input 
+                                value={localSettings['mail_from_name'] || ''} 
+                                onChange={(e) => setLocalSettings({...localSettings, mail_from_name: e.target.value})}
+                                className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
+                                placeholder="Gathoni Mwai"
+                              />
+                           </div>
+                        </div>
+                     </div>
+                  )}
 
                  {activeModule === 'security' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full">
