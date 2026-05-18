@@ -284,6 +284,7 @@ export default function CMSPage() {
                                onSuccess={(url) => setLocalSettings({...localSettings, logo_light: url})}
                                onProcessFile={() => setSaving(true)}
                                onProcessFileEnd={() => setSaving(false)}
+                               currentValue={localSettings['logo_light']}
                              />
                              <FilePondUploader 
                                uploadKey="logo_dark"
@@ -291,6 +292,7 @@ export default function CMSPage() {
                                onSuccess={(url) => setLocalSettings({...localSettings, logo_dark: url})}
                                onProcessFile={() => setSaving(true)}
                                onProcessFileEnd={() => setSaving(false)}
+                               currentValue={localSettings['logo_dark']}
                              />
                              <FilePondUploader 
                                uploadKey="favicon"
@@ -299,6 +301,7 @@ export default function CMSPage() {
                                onProcessFile={() => setSaving(true)}
                                onProcessFileEnd={() => setSaving(false)}
                                acceptedFileTypes={['image/x-icon', 'image/png', 'image/jpeg']}
+                               currentValue={localSettings['favicon']}
                              />
                           </div>
                        </div>
@@ -358,6 +361,7 @@ export default function CMSPage() {
                                   onProcessFile={() => setSaving(true)}
                                   onProcessFileEnd={() => setSaving(false)}
                                   acceptedFileTypes={['image/*', 'video/*']}
+                                  currentValue={localSettings['hero_background_path']}
                                 />
                              </div>
                              <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
@@ -368,6 +372,7 @@ export default function CMSPage() {
                                   onProcessFile={() => setSaving(true)}
                                   onProcessFileEnd={() => setSaving(false)}
                                   acceptedFileTypes={['image/*', 'video/*']}
+                                  currentValue={localSettings['mba_hero_bg']}
                                 />
                              </div>
                              <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
@@ -378,6 +383,7 @@ export default function CMSPage() {
                                   onProcessFile={() => setSaving(true)}
                                   onProcessFileEnd={() => setSaving(false)}
                                   acceptedFileTypes={['image/*', 'video/*']}
+                                  currentValue={localSettings['consulting_hero_bg']}
                                 />
                              </div>
                              <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
@@ -388,6 +394,7 @@ export default function CMSPage() {
                                   onProcessFile={() => setSaving(true)}
                                   onProcessFileEnd={() => setSaving(false)}
                                   acceptedFileTypes={['image/*', 'video/*']}
+                                  currentValue={localSettings['testimonials_hero_bg']}
                                 />
                              </div>
                              <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
@@ -398,6 +405,7 @@ export default function CMSPage() {
                                   onProcessFile={() => setSaving(true)}
                                   onProcessFileEnd={() => setSaving(false)}
                                   acceptedFileTypes={['image/*', 'video/*']}
+                                  currentValue={localSettings['book_hero_bg']}
                                 />
                              </div>
                              <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
@@ -408,6 +416,7 @@ export default function CMSPage() {
                                   onProcessFile={() => setSaving(true)}
                                   onProcessFileEnd={() => setSaving(false)}
                                   acceptedFileTypes={['image/*', 'video/*']}
+                                  currentValue={localSettings['contact_hero_bg']}
                                 />
                              </div>
                              <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
@@ -418,6 +427,7 @@ export default function CMSPage() {
                                   onProcessFile={() => setSaving(true)}
                                   onProcessFileEnd={() => setSaving(false)}
                                   acceptedFileTypes={['image/*', 'video/*']}
+                                  currentValue={localSettings['guide_hero_bg']}
                                 />
                              </div>
                              <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
@@ -428,6 +438,7 @@ export default function CMSPage() {
                                   onProcessFile={() => setSaving(true)}
                                   onProcessFileEnd={() => setSaving(false)}
                                   acceptedFileTypes={['image/*', 'video/*']}
+                                  currentValue={localSettings['survey_hero_bg']}
                                 />
                              </div>
                              <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
@@ -438,6 +449,7 @@ export default function CMSPage() {
                                   onProcessFile={() => setSaving(true)}
                                   onProcessFileEnd={() => setSaving(false)}
                                   acceptedFileTypes={['image/*', 'video/*']}
+                                  currentValue={localSettings['africa_hero_bg']}
                                 />
                              </div>
                              <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
@@ -448,6 +460,7 @@ export default function CMSPage() {
                                   onProcessFile={() => setSaving(true)}
                                   onProcessFileEnd={() => setSaving(false)}
                                   acceptedFileTypes={['image/*', 'video/*']}
+                                  currentValue={localSettings['blog_hero_bg']}
                                 />
                              </div>
                           </div>
@@ -521,6 +534,7 @@ export default function CMSPage() {
                                   onSuccess={(url) => setLocalSettings({...localSettings, about_portrait_path: url})}
                                   onProcessFile={() => setSaving(true)}
                                   onProcessFileEnd={() => setSaving(false)}
+                                  currentValue={localSettings['about_portrait_path']}
                                 />
                              </div>
                              <div className="space-y-3">

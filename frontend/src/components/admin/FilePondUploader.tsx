@@ -15,6 +15,7 @@ interface FilePondUploaderProps {
   onProcessFile?: () => void;
   onProcessFileEnd?: () => void;
   acceptedFileTypes?: string[];
+  currentValue?: string;
 }
 
 export default function FilePondUploader({ 
@@ -23,7 +24,8 @@ export default function FilePondUploader({
   onSuccess,
   onProcessFile,
   onProcessFileEnd,
-  acceptedFileTypes = ['image/*']
+  acceptedFileTypes = ['image/*'],
+  currentValue
 }: FilePondUploaderProps) {
   const [files, setFiles] = useState<any[]>([]);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
@@ -32,7 +34,38 @@ export default function FilePondUploader({
 
   return (
     <div className="filepond-wrapper space-y-4">
-      <p className="text-[10px] font-bold text-muted-foreground ml-1">{label}</p>
+      <div className="flex items-center justify-between px-1">
+        <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">{label}</p>
+        {currentValue && (
+          <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+            Configured
+          </span>
+        )}
+      </div>
+
+      {currentValue && (
+        <div className="relative group overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 flex flex-col items-center justify-center gap-3 transition-all hover:border-white/20">
+          <div className="w-full h-32 rounded-xl overflow-hidden flex items-center justify-center bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] bg-muted/40 dark:bg-muted/10 relative">
+            {currentValue.endsWith('.mp4') || currentValue.endsWith('.webm') || currentValue.endsWith('.ogg') ? (
+              <video 
+                src={currentValue} 
+                controls 
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <img 
+                src={currentValue} 
+                alt={label} 
+                className="max-h-full max-w-full object-contain p-2 drop-shadow-md"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            )}
+          </div>
+          <p className="text-[9px] font-medium text-muted-foreground/60 break-all max-w-full truncate px-2">{currentValue.split('/').pop()}</p>
+        </div>
+      )}
       <FilePond
         files={files}
         onupdatefiles={setFiles}

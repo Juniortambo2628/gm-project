@@ -13,7 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const { user, isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
-  const { settings } = useCMS();
+  const { settings, getSetting } = useCMS();
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -106,29 +106,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-80 bg-card flex flex-col border-r z-20">
         <div className="p-8">
           <Link href="/" className="flex items-center gap-3 group">
-              {(isDark ? (settings['logo_light'] || settings['logo_dark']) : (settings['logo_dark'] || settings['logo_light'])) ? (
-                <div className="flex items-center gap-3">
-                  <img 
-                    src={isDark ? (settings['logo_light'] || settings['logo_dark']) : (settings['logo_dark'] || settings['logo_light'])} 
-                    alt="Site Logo" 
-                    className="h-10 w-auto object-contain transition-transform group-hover:scale-105" 
-                  />
-                  <div>
-                     <h1 className="text-[13px] font-black text-foreground tracking-wider leading-none uppercase">{settings['site_name'] || "Consultancy"}</h1>
-                     <p className="text-[10px] font-bold text-primary tracking-wide uppercase mt-1">Admin system</p>
+              {(() => {
+                const logoLight = getSetting('logo_light');
+                const logoDark = getSetting('logo_dark');
+                const logoSrc = isDark ? (logoLight || logoDark) : (logoDark || logoLight);
+                
+                return logoSrc ? (
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={logoSrc} 
+                      alt="Site Logo" 
+                      className="h-10 w-auto object-contain transition-transform group-hover:scale-105" 
+                    />
+                    <div>
+                       <h1 className="text-[13px] font-black text-foreground tracking-wider leading-none uppercase">{settings['site_name'] || "Consultancy"}</h1>
+                       <p className="text-[10px] font-bold text-primary tracking-wide uppercase mt-1">Admin system</p>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <>
-                  <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/10 transition-transform group-hover:scale-110">
-                     <RefreshCcw size={22} strokeWidth={2.5} />
-                  </div>
-                  <div>
-                     <h1 className="text-xl text-foreground leading-none">{settings['site_name'] || "Consultancy"}</h1>
-                     <p className="text-[13px] font-bold text-primary">Admin system</p>
-                  </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/10 transition-transform group-hover:scale-110">
+                       <RefreshCcw size={22} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                       <h1 className="text-xl text-foreground leading-none">{settings['site_name'] || "Consultancy"}</h1>
+                       <p className="text-[13px] font-bold text-primary">Admin system</p>
+                    </div>
+                  </>
+                );
+              })()}
           </Link>
         </div>
         
