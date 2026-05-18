@@ -28,13 +28,31 @@ deployment:
     - /bin/cp -rf backend/public/* $API/
     - /bin/cp -f  backend/public/.htaccess $API/ 2>/dev/null || true
 
-    # 4. Install/update PHP dependencies (production-only)
+    # 4. Ensure required storage directories exist
+    - mkdir -p $CORE/storage/app/public/cms
+    - mkdir -p $CORE/storage/framework/cache/data
+    - mkdir -p $CORE/storage/framework/sessions
+    - mkdir -p $CORE/storage/framework/views
+    - mkdir -p $CORE/storage/logs
+    - mkdir -p $CORE/bootstrap/cache
+
+    # 5. Set permissions (storage and bootstrap/cache must be writable)
+    - chmod -R 775 $CORE/storage
+    - chmod -R 775 $CORE/bootstrap/cache
+    - chmod 644 $CORE/config/*.php
+    - chmod 644 $CORE/.env 2>/dev/null || true
+    - chmod 755 $CORE/artisan
+
+    # 6. Ensure storage symlink exists in API directory
+    - ln -sfn $CORE/storage/app/public $API/storage
+
+    # 7. Install/update PHP dependencies (production-only)
     - cd $CORE && php composer.phar install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || cd $CORE && composer install --no-dev --optimize-autoloader --no-interaction
 
-    # 5. Run pending migrations
+    # 8. Run pending migrations
     - cd $CORE && php artisan migrate --force
 
-    # 6. Clear and rebuild caches for production performance
+    # 9. Clear and rebuild caches for production performance
     - cd $CORE && php artisan config:cache
     - cd $CORE && php artisan route:cache
     - cd $CORE && php artisan view:cache
