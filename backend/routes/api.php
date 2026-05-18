@@ -27,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function() {
         return response()->json($request->user());
     });
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
 
     // Admin endpoints
     Route::middleware('admin')->group(function() {
