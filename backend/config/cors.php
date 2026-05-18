@@ -19,7 +19,12 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    'allowed_origins' => [
+        'http://localhost:3000', 
+        'http://127.0.0.1:3000',
+        'https://gm-consulting.okjtech.co.ke',
+        'https://www.gm-consulting.okjtech.co.ke'
+    ],
 
     'allowed_origins_patterns' => [],
 

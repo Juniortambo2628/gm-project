@@ -17,3 +17,9 @@ yarn-error.log*
 .vscode
 .idea
 .vercel
+
+# Excluded large/unused directories
+template-for-repurposing/
+portfolio-images/
+.next/
+*.zip
