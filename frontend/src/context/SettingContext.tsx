@@ -27,6 +27,19 @@ export function SettingProvider({ children }: { children: ReactNode }) {
   const apiEndpoint = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
   const backendBaseUrl = apiEndpoint.replace(/\/api\/?$/, "");
 
+  // Normalizes any stored URL to point to the correct backend
+  const normalizeStorageUrl = (val: string): string => {
+    if (val.startsWith('/storage/')) {
+      return `${backendBaseUrl}${val}`;
+    }
+    // Catch any http://localhost[:port] or http://127.0.0.1[:port] prefix
+    const localPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/storage\//;
+    if (localPattern.test(val)) {
+      return val.replace(localPattern, `${backendBaseUrl}/storage/`);
+    }
+    return val;
+  };
+
   const fetchContent = async () => {
     try {
       setIsLoading(true);
@@ -38,13 +51,7 @@ export function SettingProvider({ children }: { children: ReactNode }) {
         Object.keys(loadedSettings).forEach(key => {
           const val = loadedSettings[key];
           if (typeof val === 'string') {
-            if (val.startsWith('/storage/')) {
-              loadedSettings[key] = `${backendBaseUrl}${val}`;
-            } else if (val.startsWith('http://localhost/storage/')) {
-              loadedSettings[key] = val.replace('http://localhost/storage/', `${backendBaseUrl}/storage/`);
-            } else if (val.startsWith('http://127.0.0.1/storage/')) {
-              loadedSettings[key] = val.replace('http://127.0.0.1/storage/', `${backendBaseUrl}/storage/`);
-            }
+            loadedSettings[key] = normalizeStorageUrl(val);
           }
         });
 
@@ -73,13 +80,7 @@ export function SettingProvider({ children }: { children: ReactNode }) {
   const getSetting = (key: string, defaultValue: any = "") => {
     const val = settings[key] !== undefined ? settings[key] : defaultValue;
     if (typeof val === 'string') {
-      if (val.startsWith('/storage/')) {
-        return `${backendBaseUrl}${val}`;
-      } else if (val.startsWith('http://localhost/storage/')) {
-        return val.replace('http://localhost/storage/', `${backendBaseUrl}/storage/`);
-      } else if (val.startsWith('http://127.0.0.1/storage/')) {
-        return val.replace('http://127.0.0.1/storage/', `${backendBaseUrl}/storage/`);
-      }
+      return normalizeStorageUrl(val);
     }
     return val;
   };
