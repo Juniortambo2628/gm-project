@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
 
+import { Skeleton } from "@/components/ui/skeleton";
+
 export default function InquiriesPage() {
   const [inquiries, setInquiries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +39,21 @@ export default function InquiriesPage() {
     }
   };
 
-  if (loading) return <div className="p-12 text-center">Loading inquiries...</div>;
+  if (loading) {
+    return (
+      <div className="space-y-10 pb-20 animate-pulse">
+         <div className="h-44 bg-muted/40 rounded-2xl border p-8 space-y-4">
+            <Skeleton variant="text" className="w-48 h-8" />
+            <Skeleton variant="text" className="w-96 h-5" />
+         </div>
+         <div className="space-y-6">
+            <Skeleton variant="rect" className="h-56 rounded-3xl" />
+            <Skeleton variant="rect" className="h-56 rounded-3xl" />
+            <Skeleton variant="rect" className="h-56 rounded-3xl" />
+         </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in space-y-10 pb-20">

@@ -40,7 +40,8 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/login", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+      const res = await fetch(`${apiUrl}/login`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -82,7 +83,8 @@ export default function LoginPage() {
      e.preventDefault();
      setLoading(true);
      try {
-        const res = await fetch("http://localhost:8000/api/login/verify-2fa", {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+        const res = await fetch(`${apiUrl}/login/verify-2fa`, {
            method: "POST",
            headers: {
                "Content-Type": "application/json",

@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import axiosInstance from "@/lib/axios";
 import { useCMS } from "@/context/SettingContext";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ContentManagementPage() {
   const { faqs, testimonials, refreshSettings, isLoading: cmsLoading } = useCMS();
@@ -64,7 +65,24 @@ export default function ContentManagementPage() {
     }
   };
 
-  if (cmsLoading) return <div className="p-12 text-center">Loading content...</div>;
+  if (cmsLoading) {
+    return (
+      <div className="space-y-10 pb-20 animate-pulse">
+         <div className="h-44 bg-muted/40 rounded-2xl border p-8 space-y-4">
+            <Skeleton variant="text" className="w-48 h-8" />
+            <Skeleton variant="text" className="w-96 h-5" />
+         </div>
+         <div className="h-14 w-64 bg-muted/50 rounded-2xl p-1 mb-10 flex gap-2">
+            <Skeleton variant="rect" className="flex-1 h-full rounded-xl" />
+            <Skeleton variant="rect" className="flex-1 h-full rounded-xl" />
+         </div>
+         <div className="space-y-6">
+            <Skeleton variant="card" className="h-48 rounded-3xl" />
+            <Skeleton variant="card" className="h-48 rounded-3xl" />
+         </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in space-y-10 pb-20">

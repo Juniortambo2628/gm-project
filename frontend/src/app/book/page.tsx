@@ -186,7 +186,8 @@ export default function BookingPage() {
                     onSuccess={async (reference) => {
                        setIsRecording(true);
                        try {
-                         const response = await fetch("http://localhost:8000/api/transactions", {
+                         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+                         const response = await fetch(`${apiUrl}/transactions`, {
                            method: "POST",
                            headers: {
                              "Content-Type": "application/json",

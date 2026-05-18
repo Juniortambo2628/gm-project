@@ -6,6 +6,8 @@ import { DollarSign, Calendar, User, CreditCard, ExternalLink, Activity } from "
 import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
 
+import { Skeleton } from "@/components/ui/skeleton";
+
 export default function BookingsPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,22 @@ export default function BookingsPage() {
     }
   };
 
-  if (loading) return <div className="p-12 text-center">Loading transactions...</div>;
+  if (loading) {
+    return (
+      <div className="space-y-10 pb-20 animate-pulse">
+         <div className="h-44 bg-muted/40 rounded-2xl border p-8 space-y-4">
+            <Skeleton variant="text" className="w-48 h-8" />
+            <Skeleton variant="text" className="w-96 h-5" />
+         </div>
+         <div className="space-y-4">
+            <Skeleton variant="table-row" />
+            <Skeleton variant="table-row" />
+            <Skeleton variant="table-row" />
+            <Skeleton variant="table-row" />
+         </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in space-y-10 pb-20">

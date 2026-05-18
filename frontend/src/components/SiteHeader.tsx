@@ -83,6 +83,13 @@ export function SiteHeader() {
                       src={logoSrc} 
                       alt="Gathoni Mwai Logo" 
                       className="h-full w-auto object-contain transition-transform group-hover:scale-105 rounded-xl"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        const fallback = currentTheme === 'dark' ? "/branding/GM-logo-dark-final.png" : "/branding/GM-logo-light-final.png";
+                        if (target.src !== window.location.origin + fallback && target.src !== fallback) {
+                          target.src = fallback;
+                        }
+                      }}
                     />
                   </div>
                 ) : (

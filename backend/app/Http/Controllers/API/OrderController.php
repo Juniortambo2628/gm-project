@@ -25,6 +25,27 @@ class OrderController extends Controller
 
         $transaction = Transaction::create($validated);
 
+        // Create booking notification for admins
+        try {
+            $admins = \App\Models\User::where('role', 'admin')->get();
+            foreach ($admins as $admin) {
+                \App\Models\Notification::create([
+                    'user_id' => $admin->id,
+                    'type' => 'booking',
+                    'title' => 'New Service Booking',
+                    'message' => "{$transaction->name} completed payment of {$transaction->currency} " . number_format($transaction->amount, 2) . " for '{$transaction->service_name}'.",
+                    'metadata' => [
+                        'transaction_id' => $transaction->id,
+                        'email' => $transaction->email,
+                        'paystack_ref' => $transaction->paystack_ref,
+                    ],
+                    'is_read' => false
+                ]);
+            }
+        } catch (\Exception $notifEx) {
+            \Illuminate\Support\Facades\Log::error('Failed to create booking notification: ' . $notifEx->getMessage());
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => 'Transaction recorded successfully!',

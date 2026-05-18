@@ -35,6 +35,11 @@ Route::middleware('auth:sanctum')->group(function() {
         // CMS Management
         Route::post('/cms/settings', [CMSController::class, 'updateSettings']);
         Route::post('/cms/upload', [CMSController::class, 'uploadFile']);
+        
+        // Live Notification Management
+        Route::get('/cms/notifications', [\App\Http\Controllers\API\NotificationController::class, 'index']);
+        Route::post('/cms/notifications/{id}/read', [\App\Http\Controllers\API\NotificationController::class, 'read']);
+        Route::post('/cms/notifications/read-all', [\App\Http\Controllers\API\NotificationController::class, 'readAll']);
         Route::post('/cms/services', [CMSController::class, 'saveService']);
         Route::delete('/cms/services/{id}', [CMSController::class, 'deleteService']);
         Route::post('/cms/faqs', [CMSController::class, 'saveFaq']);

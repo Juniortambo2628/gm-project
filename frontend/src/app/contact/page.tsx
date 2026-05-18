@@ -32,7 +32,8 @@ export default function ContactPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("http://localhost:8000/api/messages", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+      const response = await fetch(`${apiUrl}/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

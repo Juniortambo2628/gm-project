@@ -40,6 +40,13 @@ export function SiteFooter() {
                      src={logoSrc} 
                      alt="Gathoni Mwai Logo" 
                      className="h-16 md:h-20 w-auto object-contain transition-all rounded-xl"
+                     onError={(e) => {
+                       const target = e.currentTarget;
+                       const fallback = currentTheme === 'dark' ? "/branding/GM-logo-dark-final.png" : "/branding/GM-logo-light-final.png";
+                       if (target.src !== window.location.origin + fallback && target.src !== fallback) {
+                         target.src = fallback;
+                       }
+                     }}
                    />
                  ) : (
                    <div className="h-16 md:h-20 w-40 bg-muted/10 animate-pulse rounded-xl" />

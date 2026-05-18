@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import axiosInstance from "@/lib/axios";
 import { useCMS } from "@/context/SettingContext";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ServicesManagementPage() {
   const { settings, services, refreshSettings, isLoading: cmsLoading } = useCMS();
@@ -63,7 +64,23 @@ export default function ServicesManagementPage() {
     }
   };
 
-  if (cmsLoading) return <div className="p-12 text-center">Loading services...</div>;
+  if (cmsLoading) {
+    return (
+      <div className="space-y-10 pb-20 animate-pulse">
+         <div className="flex justify-between items-end">
+            <div className="h-44 bg-muted/40 rounded-2xl border p-8 space-y-4 flex-1 mr-6">
+               <Skeleton variant="text" className="w-48 h-8" />
+               <Skeleton variant="text" className="w-96 h-5" />
+            </div>
+            <Skeleton variant="rect" className="w-48 h-12 rounded-full mb-10" />
+         </div>
+         <div className="grid grid-cols-1 gap-8">
+            <Skeleton variant="card" className="h-64 rounded-3xl" />
+            <Skeleton variant="card" className="h-64 rounded-3xl" />
+         </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in space-y-10 pb-20">

@@ -2,11 +2,12 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { MessageSquare, DollarSign, Activity, Eye, Loader2, ArrowUpRight } from "lucide-react";
+import { MessageSquare, DollarSign, Activity, Eye, ArrowUpRight } from "lucide-react";
 import DashboardHero from "@/components/DashboardHero";
 import axiosInstance from "@/lib/axios";
 import { IconBlock } from "@/components/ui/IconBlock";
 import { useAuth } from "@/context/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminDashboard() {
   const [data, setData] = useState<any>(null);
@@ -43,10 +44,22 @@ export default function AdminDashboard() {
 
   if (authLoading || (loading && isAuthenticated)) {
     return (
-        <div className="h-[60vh] flex flex-col items-center justify-center gap-6 animate-pulse">
-            <Loader2 className="w-12 h-12 text-primary animate-spin" />
-            <p className="text-muted-foreground">Loading Analytics...</p>
-        </div>
+      <div className="space-y-10 pb-20 animate-pulse">
+         <div className="h-44 bg-muted/40 rounded-2xl border p-8 space-y-4">
+            <Skeleton variant="text" className="w-48 h-8" />
+            <Skeleton variant="text" className="w-96 h-5" />
+         </div>
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Skeleton variant="rect" className="h-32 rounded-2xl" />
+            <Skeleton variant="rect" className="h-32 rounded-2xl" />
+            <Skeleton variant="rect" className="h-32 rounded-2xl" />
+            <Skeleton variant="rect" className="h-32 rounded-2xl" />
+         </div>
+         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <Skeleton variant="rect" className="h-96 rounded-2xl lg:col-span-2" />
+            <Skeleton variant="rect" className="h-96 rounded-2xl" />
+         </div>
+      </div>
     );
   }
 

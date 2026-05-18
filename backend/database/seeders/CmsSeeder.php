@@ -42,6 +42,22 @@ class CmsSeeder extends Seeder
             'linkedin_url' => 'https://www.linkedin.com/in/gathoni-mwai-6747a8118/',
         ]);
 
+        // 4. Integrations & API configurations
+        $this->seedSettings('integrations', [
+            'discovery_calendly_url' => 'https://calendly.com/gathoni-mwai/discovery',
+            'mba_calendly_url' => 'https://calendly.com/gathoni-mwai/mba-prep',
+            'consulting_calendly_url' => 'https://calendly.com/gathoni-mwai/mock-interview',
+            'paystack_public_key' => 'pk_test_a6b63c4e36502283e7de7bf9d64024823ea9a1b1',
+            'paystack_secret_key' => 'sk_test_7f8a9b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a',
+            'mail_host' => 'mail.okjtech.co.ke',
+            'mail_port' => '465',
+            'mail_username' => 'gmconsulting@okjtech.co.ke',
+            'mail_password' => 'gmConsult@2026',
+            'mail_encryption' => 'ssl',
+            'mail_from_address' => 'gm-consulting@okjtech.co.ke',
+            'mail_from_name' => 'GM-Consulting',
+        ]);
+
         // 4. Services
         Service::updateOrCreate(['name' => 'MBA Admissions Coaching'], [
             'type' => 'mba',

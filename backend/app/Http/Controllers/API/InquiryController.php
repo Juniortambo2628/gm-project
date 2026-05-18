@@ -27,6 +27,27 @@ class InquiryController extends Controller
 
         try {
             $message = Message::create($validated);
+
+            // Create live administrative notifications for all admin users
+            try {
+                $admins = \App\Models\User::where('role', 'admin')->get();
+                foreach ($admins as $admin) {
+                    \App\Models\Notification::create([
+                        'user_id' => $admin->id,
+                        'type' => 'inquiry',
+                        'title' => 'New Client Inquiry Received',
+                        'message' => "{$message->name} has submitted a new inquiry regarding " . ($message->subject ?: 'Coaching') . ".",
+                        'metadata' => [
+                            'inquiry_id' => $message->id,
+                            'email' => $message->email,
+                            'country' => $message->country
+                        ],
+                        'is_read' => false
+                    ]);
+                }
+            } catch (\Exception $notifEx) {
+                Log::error('Failed to create administrative inquiry notification: ' . $notifEx->getMessage());
+            }
             
             // Try to find admin email from settings
             $adminEmailSetting = Setting::where('key', 'contact_email')->first();
