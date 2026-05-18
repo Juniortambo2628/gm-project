@@ -1,20 +1,40 @@
 ---
 deployment:
   tasks:
-    # 1. Export Target Directories
-    - export DEPLOYPATH=/home/zhpebukm/gmconsulting-core/
-    - export APIPATH=/home/zhpebukm/gm-consulting.okjtech.co.ke/api/
-    
-    # 2. Sync Core Backend Files
-    - /bin/cp -a backend/* $DEPLOYPATH
-    - /bin/cp -a backend/.* $DEPLOYPATH 2>/dev/null || true
-    
-    # 3. Sync Public API Files
-    - /bin/cp -a backend/public/* $APIPATH
-    - /bin/cp -a backend/public/.* $APIPATH 2>/dev/null || true
-    
-    # 4. Install Dependencies & Optimize
-    - cd $DEPLOYPATH && composer install --no-dev --optimize-autoloader
-    - cd $DEPLOYPATH && php artisan config:cache
-    - cd $DEPLOYPATH && php artisan route:cache
-    - cd $DEPLOYPATH && php artisan view:cache
+    # =============================================
+    # GM-Consulting cPanel Auto-Deploy Configuration
+    # =============================================
+    # Repo root is automatically set by cPanel Git Version Control
+    # Backend core  -> /home/zhpebukm/gmconsulting-core/
+    # API public    -> /home/zhpebukm/gm-consulting.okjtech.co.ke/api/
+    # =============================================
+
+    # 1. Define target paths
+    - export CORE=/home/zhpebukm/gmconsulting-core
+    - export API=/home/zhpebukm/gm-consulting.okjtech.co.ke/api
+
+    # 2. Sync backend core files (everything except public/)
+    - /bin/cp -rf backend/app $CORE/
+    - /bin/cp -rf backend/bootstrap $CORE/
+    - /bin/cp -rf backend/config $CORE/
+    - /bin/cp -rf backend/database $CORE/
+    - /bin/cp -rf backend/resources $CORE/
+    - /bin/cp -rf backend/routes $CORE/
+    - /bin/cp -f  backend/artisan $CORE/
+    - /bin/cp -f  backend/composer.json $CORE/
+    - /bin/cp -f  backend/composer.lock $CORE/
+
+    # 3. Sync public API entry point files
+    - /bin/cp -rf backend/public/* $API/
+    - /bin/cp -f  backend/public/.htaccess $API/ 2>/dev/null || true
+
+    # 4. Install/update PHP dependencies (production-only)
+    - cd $CORE && php composer.phar install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || cd $CORE && composer install --no-dev --optimize-autoloader --no-interaction
+
+    # 5. Run pending migrations
+    - cd $CORE && php artisan migrate --force
+
+    # 6. Clear and rebuild caches for production performance
+    - cd $CORE && php artisan config:cache
+    - cd $CORE && php artisan route:cache
+    - cd $CORE && php artisan view:cache
