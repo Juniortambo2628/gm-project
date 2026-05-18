@@ -50,17 +50,25 @@ class CMSController extends Controller
         return response()->json(['message' => 'Service deleted successfully']);
     }
 
-    /**
-     * Upload a file and return the path with dynamic compression.
-     */
     public function uploadFile(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:jpeg,png,jpg,gif,svg,mp4,webm,ogg|max:10240',
+            'file' => 'required|file|max:25600',
             'key' => 'required|string'
         ]);
 
         if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $mime = $file->getClientMimeType();
+            $ext = strtolower($file->getClientOriginalExtension());
+
+            // Programmatic MIME and extension check to prevent Windows server mismatched validation blocks
+            $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp', 'video/mp4', 'video/webm', 'video/ogg'];
+            $allowedExts = ['jpeg', 'jpg', 'png', 'gif', 'svg', 'webp', 'mp4', 'webm', 'ogg'];
+            
+            if (!in_array($mime, $allowedMimes) && !in_array($ext, $allowedExts)) {
+                return response()->json(['error' => 'Unsupported file format: ' . $mime], 422);
+            }
             $file = $request->file('file');
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('public/cms', $filename);

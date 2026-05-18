@@ -30,6 +30,15 @@ export function SettingProvider({ children }: { children: ReactNode }) {
       const res = await axios.get("http://localhost:8000/api/site-content");
       if (res.data.settings) {
         let loadedSettings = res.data.settings;
+        
+        // Dynamic absolute URL parser for backend stored media assets
+        Object.keys(loadedSettings).forEach(key => {
+          const val = loadedSettings[key];
+          if (typeof val === 'string' && val.startsWith('/storage/')) {
+            loadedSettings[key] = `http://localhost:8000${val}`;
+          }
+        });
+
         if (typeof loadedSettings['about_bio_narrative'] === 'string') {
           try {
             loadedSettings['about_bio_narrative'] = JSON.parse(loadedSettings['about_bio_narrative']);
@@ -53,7 +62,11 @@ export function SettingProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getSetting = (key: string, defaultValue: any = "") => {
-    return settings[key] !== undefined ? settings[key] : defaultValue;
+    const val = settings[key] !== undefined ? settings[key] : defaultValue;
+    if (typeof val === 'string' && val.startsWith('/storage/')) {
+      return `http://localhost:8000${val}`;
+    }
+    return val;
   };
 
   const refreshSettings = async () => {
