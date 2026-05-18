@@ -10,7 +10,7 @@ import { IconBlock } from "@/components/ui/IconBlock";
 import { PageHero } from "@/components/PageHero";
 
 export default function BlogListingPage() {
-  const { blog_posts, isLoading } = useCMS();
+  const { blog_posts, getSetting } = useCMS();
 
   const breadcrumbs = [
     { label: "Blog" }
@@ -21,10 +21,11 @@ export default function BlogListingPage() {
       <SiteHeader />
 
       <PageHero 
-        title="Insights and resources"
-        subtitle="Personal reflections on Oxford, McKinsey, and the journey of African professionals in the global arena."
+        title={getSetting('blog_hero_title', "Insights and resources")}
+        subtitle={getSetting('blog_hero_subtitle', "Personal reflections on Oxford, McKinsey, and the journey of African professionals in the global arena.")}
         badge="Knowledge hub"
         breadcrumbs={breadcrumbs}
+        videoSrc={getSetting('blog_hero_bg') || "/hero-bg.mp4"}
       />
 
       <main className="max-w-7xl mx-auto px-6 py-20">

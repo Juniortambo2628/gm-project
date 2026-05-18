@@ -78,8 +78,8 @@ export default function MBAAdmissionsPage() {
       <SiteHeader />
 
       <PageHero 
-        title="UK MBA admissions coaching for African applicants"
-        subtitle="Personalized guidance from someone who got in, on a full scholarship, and understands exactly where you are starting from."
+        title={getSetting('mba_hero_title', "UK MBA admissions coaching for African applicants")}
+        subtitle={getSetting('mba_hero_subtitle', "Personalized guidance from someone who got in, on a full scholarship, and understands exactly where you are starting from.")}
         badge="MBA admissions pathway"
         breadcrumbs={breadcrumbs}
         videoSrc={getSetting('mba_hero_bg') || "/hero-bg.mp4"}

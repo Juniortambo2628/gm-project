@@ -16,9 +16,17 @@ import {
   Image as ImageIcon,
   MousePointer2,
   Lock,
-  ArrowRight
+  ArrowRight,
+  Plus,
+  Trash2,
+  Award,
+  Target,
+  Users,
+  MapPin,
+  GraduationCap,
+  Briefcase
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
@@ -26,6 +34,13 @@ import DashboardHero from "@/components/DashboardHero";
 import axiosInstance from "@/lib/axios";
 import { useCMS } from "@/context/SettingContext";
 import FilePondUploader from "@/components/admin/FilePondUploader";
+
+interface CredentialItem {
+  icon: string;
+  title: string;
+  subtitle: string;
+  desc: string;
+}
 
 export default function CMSPage() {
   const { settings, refreshSettings, isLoading: cmsLoading } = useCMS();
@@ -52,15 +67,44 @@ export default function CMSPage() {
     }
   };
 
+  const getCredentialsList = (): CredentialItem[] => {
+    try {
+      const val = localSettings['credentials_json'];
+      if (!val) return [];
+      const parsed = typeof val === 'string' ? JSON.parse(val) : val;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  };
+
+  const updateCredentialsList = (newList: CredentialItem[]) => {
+    setLocalSettings({
+      ...localSettings,
+      credentials_json: JSON.stringify(newList)
+    });
+  };
+
   if (cmsLoading) return <div className="p-12 text-center">Loading Settings Hub...</div>;
+
+  const iconOptions = [
+    { label: "Graduation (MBA)", value: "GraduationCap" },
+    { label: "Briefcase (Consulting)", value: "Briefcase" },
+    { label: "Award (Scholarship)", value: "Award" },
+    { label: "Target (Goal)", value: "Target" },
+    { label: "Users (Clients)", value: "Users" },
+    { label: "Map Pin (Location)", value: "MapPin" },
+    { label: "Shield (Security)", value: "ShieldCheck" },
+    { label: "Globe (Global)", value: "Globe" }
+  ];
 
   const modules = [
     { 
       id: 'branding', 
       title: 'Brand Identity', 
       icon: ShieldCheck, 
-      desc: 'Site name, contact email, and official URLs.',
-      fields: ['site_name', 'contact_email', 'linkedin_url', 'logo_light', 'logo_dark', 'favicon'],
+      desc: 'Site name, contact email, location, and official URLs.',
+      fields: ['site_name', 'contact_email', 'linkedin_url', 'contact_location', 'logo_light', 'logo_dark', 'favicon'],
       bg: 'bg-blue-500/5'
     },
     { 
@@ -68,14 +112,14 @@ export default function CMSPage() {
       title: 'Hero & Backgrounds', 
       icon: Layout, 
       desc: 'Headlines, service boxes, and page hero backgrounds.',
-      fields: ['hero_headline', 'hero_tagline', 'hero_background_path', 'mba_hero_bg', 'consulting_hero_bg', 'homepage_mba_desc', 'homepage_consulting_desc'],
+      fields: ['hero_headline', 'hero_tagline', 'hero_background_path', 'mba_hero_bg', 'consulting_hero_bg', 'homepage_mba_desc', 'homepage_consulting_desc', 'testimonials_hero_bg', 'book_hero_bg', 'contact_hero_bg', 'guide_hero_bg', 'survey_hero_bg', 'africa_hero_bg', 'blog_hero_bg'],
       bg: 'bg-amber-500/5'
     },
     { 
       id: 'seo', 
       title: 'Global SEO', 
       icon: Globe, 
-      desc: 'How your site appears on Google.',
+      desc: 'How your site appears on search engines.',
       fields: ['meta_title', 'meta_description'],
       bg: 'bg-emerald-500/5'
     },
@@ -92,20 +136,32 @@ export default function CMSPage() {
       title: 'Services Detail', 
       icon: FileText, 
       desc: 'Customize headlines and text on MBA & Consulting pages.',
-      fields: ['mba_headline', 'mba_description', 'consulting_headline', 'consulting_description'],
+      fields: ['mba_hero_title', 'mba_hero_subtitle', 'mba_headline', 'mba_description', 'consulting_hero_title', 'consulting_hero_subtitle', 'consulting_headline', 'consulting_description'],
       bg: 'bg-indigo-500/5'
+    },
+    { 
+      id: 'other_pages_content', 
+      title: 'Sub-Pages Content', 
+      icon: Settings, 
+      desc: 'Narrative copy for Africa, Testimonials, Book & Contact pages.',
+      fields: ['africa_hero_title', 'africa_hero_subtitle', 'africa_mission_quote', 'africa_core_para_1', 'africa_core_para_2', 'africa_core_para_3', 'africa_bottom_headline', 'africa_bottom_text', 'testimonials_hero_title', 'testimonials_hero_subtitle', 'testimonials_success_headline', 'testimonials_success_description', 'book_hero_title', 'book_hero_subtitle', 'contact_hero_title', 'contact_hero_subtitle'],
+      bg: 'bg-purple-500/5'
     }
   ];
 
   return (
-    <div className="animate-fade-in space-y-12 pb-20">
+    <div className="animate-fade-in space-y-12 pb-20 relative">
+      {/* Decorative Blur Blobs behind the glass cards */}
+      <div className="absolute top-1/4 left-1/10 w-96 h-96 bg-primary/20 rounded-full blur-3xl opacity-30 pointer-events-none z-0" />
+      <div className="absolute bottom-1/4 right-1/10 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl opacity-20 pointer-events-none z-0" />
+
       <DashboardHero 
         title="Website CMS Hub" 
         description="Select a module to manage its content." 
       />
 
       {activeModule ? (
-        <div className="space-y-8 animate-slide-up">
+        <div className="space-y-8 animate-slide-up relative z-10">
            <Button 
             variant="ghost" 
             onClick={() => setActiveModule(null)}
@@ -115,11 +171,11 @@ export default function CMSPage() {
               Back to Hub
            </Button>
 
-           <Card className="rounded-[24px] border border-primary/10 shadow-xl overflow-hidden">
+           <Card className="rounded-[24px] border border-primary/10 shadow-xl overflow-hidden bg-card">
               <div className="p-6 border-b flex items-center justify-between bg-muted/10">
                  <div>
                     <h3 className="text-xl font-black capitalize tracking-tight text-foreground">
-                       {activeModule.replace('_', ' ')} Settings
+                       {activeModule.replace(/_/g, ' ')} Settings
                     </h3>
                     <p className="text-xs font-medium text-muted-foreground italic">Edit settings and click save to apply changes.</p>
                  </div>
@@ -129,68 +185,83 @@ export default function CMSPage() {
                  </Button>
               </div>
               
-              <CardContent className="p-6 md:p-8 max-w-5xl mx-auto space-y-10">
+              <CardContent className="p-6 md:p-8 w-full space-y-10">
                  {activeModule === 'branding' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                       <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Site Official Name</label>
-                          <Input 
-                            value={localSettings['site_name'] || ''} 
-                            onChange={(e) => setLocalSettings({...localSettings, site_name: e.target.value})}
-                            className="h-14 rounded-2xl bg-muted/30 border-none font-bold px-6 text-lg" 
-                          />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full">
+                       {/* Left Column: Text configurations */}
+                       <div className="space-y-6">
+                          <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4">Branding & Links</h4>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Site Official Name</label>
+                             <Input 
+                               value={localSettings['site_name'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, site_name: e.target.value})}
+                               className="h-14 rounded-2xl bg-muted/30 border-none font-bold px-6 text-lg" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Contact Email</label>
+                             <Input 
+                               value={localSettings['contact_email'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, contact_email: e.target.value})}
+                               className="h-14 rounded-2xl bg-muted/30 border-none font-bold px-6 text-lg" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">LinkedIn URL</label>
+                             <Input 
+                               value={localSettings['linkedin_url'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, linkedin_url: e.target.value})}
+                               className="h-14 rounded-2xl bg-muted/30 border-none font-bold px-6" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Location Details</label>
+                             <Input 
+                               value={localSettings['contact_location'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, contact_location: e.target.value})}
+                               className="h-14 rounded-2xl bg-muted/30 border-none font-bold px-6" 
+                               placeholder="Oxford, UK (GMT)"
+                             />
+                          </div>
                        </div>
-                       <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Contact Email</label>
-                          <Input 
-                            value={localSettings['contact_email'] || ''} 
-                            onChange={(e) => setLocalSettings({...localSettings, contact_email: e.target.value})}
-                            className="h-14 rounded-2xl bg-muted/30 border-none font-bold px-6 text-lg" 
-                          />
-                       </div>
-                        <div className="space-y-3 md:col-span-2">
-                           <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">LinkedIn URL</label>
-                           <Input 
-                             value={localSettings['linkedin_url'] || ''} 
-                             onChange={(e) => setLocalSettings({...localSettings, linkedin_url: e.target.value})}
-                             className="h-14 rounded-2xl bg-muted/30 border-none font-bold px-6" 
-                           />
-                        </div>
 
-                        <div className="pt-6 border-t border-border space-y-6 md:col-span-2">
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                              <FilePondUploader 
-                                uploadKey="logo_light"
-                                label="Logo (Light Mode)"
-                                onSuccess={(url) => setLocalSettings({...localSettings, logo_light: url})}
-                                onProcessFile={() => setSaving(true)}
-                                onProcessFileEnd={() => setSaving(false)}
-                              />
-                              <FilePondUploader 
-                                uploadKey="logo_dark"
-                                label="Logo (Dark Mode)"
-                                onSuccess={(url) => setLocalSettings({...localSettings, logo_dark: url})}
-                                onProcessFile={() => setSaving(true)}
-                                onProcessFileEnd={() => setSaving(false)}
-                              />
-                           </div>
-                           <div className="max-w-xs mx-auto">
-                              <FilePondUploader 
-                                uploadKey="favicon"
-                                label="Favicon"
-                                onSuccess={(url) => setLocalSettings({...localSettings, favicon: url})}
-                                onProcessFile={() => setSaving(true)}
-                                onProcessFileEnd={() => setSaving(false)}
-                                acceptedFileTypes={['image/x-icon', 'image/png', 'image/jpeg']}
-                              />
-                           </div>
-                        </div>
+                       {/* Right Column: Logo uploaders */}
+                       <div className="space-y-6">
+                          <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4">Official Media Assets</h4>
+                          <div className="grid grid-cols-1 gap-6">
+                             <FilePondUploader 
+                               uploadKey="logo_light"
+                               label="Logo (Light Mode)"
+                               onSuccess={(url) => setLocalSettings({...localSettings, logo_light: url})}
+                               onProcessFile={() => setSaving(true)}
+                               onProcessFileEnd={() => setSaving(false)}
+                             />
+                             <FilePondUploader 
+                               uploadKey="logo_dark"
+                               label="Logo (Dark Mode)"
+                               onSuccess={(url) => setLocalSettings({...localSettings, logo_dark: url})}
+                               onProcessFile={() => setSaving(true)}
+                               onProcessFileEnd={() => setSaving(false)}
+                             />
+                             <FilePondUploader 
+                               uploadKey="favicon"
+                               label="Favicon"
+                               onSuccess={(url) => setLocalSettings({...localSettings, favicon: url})}
+                               onProcessFile={() => setSaving(true)}
+                               onProcessFileEnd={() => setSaving(false)}
+                               acceptedFileTypes={['image/x-icon', 'image/png', 'image/jpeg']}
+                             />
+                          </div>
+                       </div>
                     </div>
                  )}
 
                  {activeModule === 'hero' && (
-                    <div className="space-y-8">
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full">
+                       {/* Left Column: Homepage Texts */}
+                       <div className="space-y-6">
+                          <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4">Homepage Text Elements</h4>
                           <div className="space-y-3">
                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Hero Headline</label>
                              <Input 
@@ -207,9 +278,6 @@ export default function CMSPage() {
                                className="h-14 rounded-xl bg-muted/30 border-none font-bold px-6" 
                              />
                           </div>
-                       </div>
-                       
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                           <div className="space-y-3">
                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">MBA Box Description</label>
                              <Textarea 
@@ -230,43 +298,117 @@ export default function CMSPage() {
                           </div>
                        </div>
 
-                        <div className="pt-6 border-t border-border space-y-8">
-                           <div>
-                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1 mb-4 block">Homepage Hero Background</label>
-                              <FilePondUploader 
-                                uploadKey="hero_background_path"
-                                label="Landing page background (Image/Video)"
-                                onSuccess={(url) => setLocalSettings({...localSettings, hero_background_path: url})}
-                                onProcessFile={() => setSaving(true)}
-                                onProcessFileEnd={() => setSaving(false)}
-                                acceptedFileTypes={['image/*', 'video/*']}
-                              />
-                           </div>
-                           
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                              <FilePondUploader 
-                                uploadKey="mba_hero_bg"
-                                label="MBA Admissions Hero Background"
-                                onSuccess={(url) => setLocalSettings({...localSettings, mba_hero_bg: url})}
-                                onProcessFile={() => setSaving(true)}
-                                onProcessFileEnd={() => setSaving(false)}
-                                acceptedFileTypes={['image/*', 'video/*']}
-                              />
-                              <FilePondUploader 
-                                uploadKey="consulting_hero_bg"
-                                label="Consulting Prep Hero Background"
-                                onSuccess={(url) => setLocalSettings({...localSettings, consulting_hero_bg: url})}
-                                onProcessFile={() => setSaving(true)}
-                                onProcessFileEnd={() => setSaving(false)}
-                                acceptedFileTypes={['image/*', 'video/*']}
-                              />
-                           </div>
-                        </div>
+                       {/* Right Column: Hero backgrounds for ALL pages */}
+                       <div className="space-y-6">
+                          <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4">Page Backgrounds Gallery (Images/Videos)</h4>
+                          <div className="h-[550px] overflow-y-auto pr-2 space-y-6 custom-scrollbar">
+                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
+                                <FilePondUploader 
+                                  uploadKey="hero_background_path"
+                                  label="Landing Page Hero Background"
+                                  onSuccess={(url) => setLocalSettings({...localSettings, hero_background_path: url})}
+                                  onProcessFile={() => setSaving(true)}
+                                  onProcessFileEnd={() => setSaving(false)}
+                                  acceptedFileTypes={['image/*', 'video/*']}
+                                />
+                             </div>
+                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
+                                <FilePondUploader 
+                                  uploadKey="mba_hero_bg"
+                                  label="MBA Admissions Hero Background"
+                                  onSuccess={(url) => setLocalSettings({...localSettings, mba_hero_bg: url})}
+                                  onProcessFile={() => setSaving(true)}
+                                  onProcessFileEnd={() => setSaving(false)}
+                                  acceptedFileTypes={['image/*', 'video/*']}
+                                />
+                             </div>
+                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
+                                <FilePondUploader 
+                                  uploadKey="consulting_hero_bg"
+                                  label="Consulting Prep Hero Background"
+                                  onSuccess={(url) => setLocalSettings({...localSettings, consulting_hero_bg: url})}
+                                  onProcessFile={() => setSaving(true)}
+                                  onProcessFileEnd={() => setSaving(false)}
+                                  acceptedFileTypes={['image/*', 'video/*']}
+                                />
+                             </div>
+                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
+                                <FilePondUploader 
+                                  uploadKey="testimonials_hero_bg"
+                                  label="Testimonials Hero Background"
+                                  onSuccess={(url) => setLocalSettings({...localSettings, testimonials_hero_bg: url})}
+                                  onProcessFile={() => setSaving(true)}
+                                  onProcessFileEnd={() => setSaving(false)}
+                                  acceptedFileTypes={['image/*', 'video/*']}
+                                />
+                             </div>
+                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
+                                <FilePondUploader 
+                                  uploadKey="book_hero_bg"
+                                  label="Book/Discovery Hero Background"
+                                  onSuccess={(url) => setLocalSettings({...localSettings, book_hero_bg: url})}
+                                  onProcessFile={() => setSaving(true)}
+                                  onProcessFileEnd={() => setSaving(false)}
+                                  acceptedFileTypes={['image/*', 'video/*']}
+                                />
+                             </div>
+                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
+                                <FilePondUploader 
+                                  uploadKey="contact_hero_bg"
+                                  label="Contact Hero Background"
+                                  onSuccess={(url) => setLocalSettings({...localSettings, contact_hero_bg: url})}
+                                  onProcessFile={() => setSaving(true)}
+                                  onProcessFileEnd={() => setSaving(false)}
+                                  acceptedFileTypes={['image/*', 'video/*']}
+                                />
+                             </div>
+                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
+                                <FilePondUploader 
+                                  uploadKey="guide_hero_bg"
+                                  label="MBA & Consulting Guide Hero Background"
+                                  onSuccess={(url) => setLocalSettings({...localSettings, guide_hero_bg: url})}
+                                  onProcessFile={() => setSaving(true)}
+                                  onProcessFileEnd={() => setSaving(false)}
+                                  acceptedFileTypes={['image/*', 'video/*']}
+                                />
+                             </div>
+                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
+                                <FilePondUploader 
+                                  uploadKey="survey_hero_bg"
+                                  label="Survey Hero Background"
+                                  onSuccess={(url) => setLocalSettings({...localSettings, survey_hero_bg: url})}
+                                  onProcessFile={() => setSaving(true)}
+                                  onProcessFileEnd={() => setSaving(false)}
+                                  acceptedFileTypes={['image/*', 'video/*']}
+                                />
+                             </div>
+                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
+                                <FilePondUploader 
+                                  uploadKey="africa_hero_bg"
+                                  label="Africa Story Hero Background"
+                                  onSuccess={(url) => setLocalSettings({...localSettings, africa_hero_bg: url})}
+                                  onProcessFile={() => setSaving(true)}
+                                  onProcessFileEnd={() => setSaving(false)}
+                                  acceptedFileTypes={['image/*', 'video/*']}
+                                />
+                             </div>
+                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
+                                <FilePondUploader 
+                                  uploadKey="blog_hero_bg"
+                                  label="Blog Hero Background"
+                                  onSuccess={(url) => setLocalSettings({...localSettings, blog_hero_bg: url})}
+                                  onProcessFile={() => setSaving(true)}
+                                  onProcessFileEnd={() => setSaving(false)}
+                                  acceptedFileTypes={['image/*', 'video/*']}
+                                />
+                             </div>
+                          </div>
+                       </div>
                     </div>
                  )}
 
                  {activeModule === 'seo' && (
-                    <div className="space-y-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full">
                        <div className="space-y-3">
                           <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Meta Title Tag</label>
                           <Input 
@@ -278,7 +420,7 @@ export default function CMSPage() {
                        <div className="space-y-3">
                           <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Meta Description</label>
                           <Textarea 
-                            rows={4}
+                            rows={6}
                             value={localSettings['meta_description'] || ''} 
                             onChange={(e) => setLocalSettings({...localSettings, meta_description: e.target.value})}
                             className="rounded-2xl bg-muted/30 border-none font-medium p-6" 
@@ -288,153 +430,452 @@ export default function CMSPage() {
                  )}
 
                  {activeModule === 'about' && (
-                    <div className="space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                           <div className="space-y-6">
-                              <div className="space-y-3">
-                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Hey Intro</label>
-                                 <Input 
-                                   value={localSettings['about_hey_gathoni'] || ''} 
-                                   onChange={(e) => setLocalSettings({...localSettings, about_hey_gathoni: e.target.value})}
-                                   className="h-12 rounded-xl bg-muted/30 border-none font-black px-6 text-primary" 
-                                 />
-                              </div>
-                              <div className="space-y-3">
-                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Subtle Tagline</label>
-                                 <Input 
-                                   value={localSettings['about_tagline'] || ''} 
-                                   onChange={(e) => setLocalSettings({...localSettings, about_tagline: e.target.value})}
-                                   className="h-12 rounded-xl bg-muted/30 border-none font-bold px-6" 
-                                 />
-                              </div>
-                           </div>
-                           <div className="space-y-3">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1 mb-2 block">Portrait Image</label>
-                              <FilePondUploader 
-                                uploadKey="about_portrait_path"
-                                label="About portrait"
-                                onSuccess={(url) => setLocalSettings({...localSettings, about_portrait_path: url})}
-                                onProcessFile={() => setSaving(true)}
-                                onProcessFileEnd={() => setSaving(false)}
-                              />
-                           </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-border">
-                           <div className="space-y-3">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">African Advantage Headline</label>
-                              <Input 
-                                value={localSettings['african_coach_headline'] || ''} 
-                                onChange={(e) => setLocalSettings({...localSettings, african_coach_headline: e.target.value})}
-                                className="h-12 rounded-xl bg-muted/30 border-none font-bold px-6" 
-                              />
-                           </div>
-                           <div className="space-y-3">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">African Advantage Text</label>
-                              <Textarea 
-                                rows={4}
-                                value={localSettings['african_coach_description'] || ''} 
-                                onChange={(e) => setLocalSettings({...localSettings, african_coach_description: e.target.value})}
-                                className="rounded-xl bg-muted/30 border-none font-medium p-4" 
-                              />
-                           </div>
-                        </div>
+                    <div className="space-y-10 w-full">
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                          {/* Left Column: Biography details */}
+                          <div className="space-y-6">
+                             <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4">Bio Narratives</h4>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Hey Intro</label>
+                                <Input 
+                                  value={localSettings['about_hey_gathoni'] || ''} 
+                                  onChange={(e) => setLocalSettings({...localSettings, about_hey_gathoni: e.target.value})}
+                                  className="h-12 rounded-xl bg-muted/30 border-none font-black px-6 text-primary" 
+                                />
+                             </div>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Subtle Tagline</label>
+                                <Input 
+                                  value={localSettings['about_tagline'] || ''} 
+                                  onChange={(e) => setLocalSettings({...localSettings, about_tagline: e.target.value})}
+                                  className="h-12 rounded-xl bg-muted/30 border-none font-bold px-6" 
+                                />
+                             </div>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Narrative Biography (Full)</label>
+                                <Textarea 
+                                  rows={8}
+                                  value={localSettings['about_bio_full'] || ''} 
+                                  onChange={(e) => setLocalSettings({...localSettings, about_bio_full: e.target.value})}
+                                  className="rounded-2xl bg-muted/30 border-none font-medium p-6 leading-relaxed" 
+                                />
+                             </div>
+                          </div>
 
-                        <div className="grid grid-cols-1 gap-8 pt-6 border-t border-border">
-                           <div className="space-y-3">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Credentials JSON</label>
-                              <p className="text-[10px] text-muted-foreground mb-2">Enter credentials as JSON array (icon, title, subtitle, desc)</p>
-                              <Textarea 
-                                rows={6}
-                                value={localSettings['credentials_json'] || ''} 
-                                onChange={(e) => setLocalSettings({...localSettings, credentials_json: e.target.value})}
-                                className="rounded-xl bg-muted/30 border-none font-mono p-4 text-xs" 
-                              />
-                           </div>
-                        </div>
+                          {/* Right Column: Portrait and Africa advantages */}
+                          <div className="space-y-6">
+                             <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4">African Advantage & Portrait</h4>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1 mb-2 block">Portrait Image</label>
+                                <FilePondUploader 
+                                  uploadKey="about_portrait_path"
+                                  label="About Portrait"
+                                  onSuccess={(url) => setLocalSettings({...localSettings, about_portrait_path: url})}
+                                  onProcessFile={() => setSaving(true)}
+                                  onProcessFileEnd={() => setSaving(false)}
+                                />
+                             </div>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">African Advantage Headline</label>
+                                <Input 
+                                  value={localSettings['african_coach_headline'] || ''} 
+                                  onChange={(e) => setLocalSettings({...localSettings, african_coach_headline: e.target.value})}
+                                  className="h-12 rounded-xl bg-muted/30 border-none font-bold px-6" 
+                                />
+                             </div>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">African Advantage Description</label>
+                                <Textarea 
+                                  rows={4}
+                                  value={localSettings['african_coach_description'] || ''} 
+                                  onChange={(e) => setLocalSettings({...localSettings, african_coach_description: e.target.value})}
+                                  className="rounded-xl bg-muted/30 border-none font-medium p-4" 
+                                />
+                             </div>
+                          </div>
+                       </div>
 
-                        <div className="space-y-3 pt-6 border-t border-border">
-                           <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Narrative Biography (Full)</label>
-                           <Textarea 
-                             rows={8}
-                             value={localSettings['about_bio_full'] || ''} 
-                             onChange={(e) => setLocalSettings({...localSettings, about_bio_full: e.target.value})}
-                             className="rounded-2xl bg-muted/30 border-none font-medium p-6 leading-relaxed" 
-                           />
-                        </div>
+                       {/* Interactive Credentials List Builder */}
+                       <div className="pt-8 border-t border-border space-y-6">
+                          <div className="flex items-center justify-between border-b pb-4">
+                             <div>
+                                <h4 className="text-md font-bold text-foreground">Interactive Credentials Builder</h4>
+                                <p className="text-xs text-muted-foreground italic">Add or edit credentials dynamically without touching JSON code.</p>
+                             </div>
+                             <Button 
+                               type="button" 
+                               onClick={() => {
+                                 const current = getCredentialsList();
+                                 updateCredentialsList([...current, { icon: "GraduationCap", title: "New Title", subtitle: "New Subtitle", desc: "Description here" }]);
+                               }}
+                               className="rounded-full h-10 px-5 font-bold text-xs gap-2"
+                             >
+                                <Plus size={14} /> Add Credential
+                             </Button>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             {getCredentialsList().map((item, idx) => (
+                                <Card key={idx} className="p-6 rounded-2xl border border-primary/10 relative overflow-hidden bg-muted/10 space-y-4">
+                                   <div className="absolute top-4 right-4">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => {
+                                          const current = getCredentialsList();
+                                          updateCredentialsList(current.filter((_, i) => i !== idx));
+                                        }}
+                                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                      >
+                                         <Trash2 size={16} />
+                                      </Button>
+                                   </div>
+                                   <div className="grid grid-cols-2 gap-4">
+                                      <div className="space-y-2 col-span-2">
+                                         <label className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Icon Type</label>
+                                         <select 
+                                           value={item.icon} 
+                                           onChange={(e) => {
+                                             const current = getCredentialsList();
+                                             current[idx].icon = e.target.value;
+                                             updateCredentialsList(current);
+                                           }}
+                                           className="w-full h-10 bg-background border border-primary/10 rounded-xl px-3 font-semibold text-xs outline-none focus:ring-1 focus:ring-primary/20"
+                                         >
+                                            {iconOptions.map((opt) => (
+                                               <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
+                                         </select>
+                                      </div>
+                                      <div className="space-y-2">
+                                         <label className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Title</label>
+                                         <Input 
+                                           value={item.title} 
+                                           onChange={(e) => {
+                                             const current = getCredentialsList();
+                                             current[idx].title = e.target.value;
+                                             updateCredentialsList(current);
+                                           }}
+                                           className="h-10 rounded-xl bg-background border border-primary/10 font-bold px-3 text-xs" 
+                                         />
+                                      </div>
+                                      <div className="space-y-2">
+                                         <label className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Subtitle</label>
+                                         <Input 
+                                           value={item.subtitle} 
+                                           onChange={(e) => {
+                                             const current = getCredentialsList();
+                                             current[idx].subtitle = e.target.value;
+                                             updateCredentialsList(current);
+                                           }}
+                                           className="h-10 rounded-xl bg-background border border-primary/10 font-bold px-3 text-xs" 
+                                         />
+                                      </div>
+                                      <div className="space-y-2 col-span-2">
+                                         <label className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Description</label>
+                                         <Textarea 
+                                           rows={2}
+                                           value={item.desc} 
+                                           onChange={(e) => {
+                                             const current = getCredentialsList();
+                                             current[idx].desc = e.target.value;
+                                             updateCredentialsList(current);
+                                           }}
+                                           className="rounded-xl bg-background border border-primary/10 font-medium p-3 text-xs" 
+                                         />
+                                      </div>
+                                   </div>
+                                </Card>
+                             ))}
+                             {getCredentialsList().length === 0 && (
+                                <div className="col-span-2 py-12 text-center text-muted-foreground font-medium italic border border-dashed rounded-3xl">
+                                   No credentials added yet. Click 'Add Credential' to start.
+                                </div>
+                             )}
+                          </div>
+                       </div>
                     </div>
                  )}
 
                  {activeModule === 'services_content' && (
-                    <div className="space-y-8">
-                        <div className="space-y-6">
-                           <h4 className="text-sm font-bold text-primary border-b pb-2">MBA Page</h4>
-                           <div className="grid grid-cols-1 gap-6">
-                              <div className="space-y-3">
-                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">MBA Headline</label>
-                                 <Input 
-                                   value={localSettings['mba_headline'] || ''} 
-                                   onChange={(e) => setLocalSettings({...localSettings, mba_headline: e.target.value})}
-                                   className="h-12 rounded-xl bg-muted/30 border-none font-bold px-6" 
-                                 />
-                              </div>
-                              <div className="space-y-3">
-                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">MBA Description</label>
-                                 <Textarea 
-                                   rows={3}
-                                   value={localSettings['mba_description'] || ''} 
-                                   onChange={(e) => setLocalSettings({...localSettings, mba_description: e.target.value})}
-                                   className="rounded-xl bg-muted/30 border-none font-medium p-4" 
-                                 />
-                              </div>
-                           </div>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full">
+                       {/* MBA Page Details */}
+                       <div className="space-y-6 bg-muted/5 p-6 rounded-3xl border border-primary/5">
+                          <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4 flex items-center gap-2">
+                             <GraduationCap size={16} /> MBA Page Content
+                          </h4>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">MBA Hero Title</label>
+                             <Input 
+                               value={localSettings['mba_hero_title'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, mba_hero_title: e.target.value})}
+                               className="h-12 rounded-xl bg-background border border-primary/10 font-bold px-4 text-sm" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">MBA Hero Subtitle</label>
+                             <Textarea 
+                               rows={3}
+                               value={localSettings['mba_hero_subtitle'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, mba_hero_subtitle: e.target.value})}
+                               className="rounded-xl bg-background border border-primary/10 font-medium p-4 text-xs" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">MBA Narrative Section Headline</label>
+                             <Input 
+                               value={localSettings['mba_headline'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, mba_headline: e.target.value})}
+                               className="h-12 rounded-xl bg-background border border-primary/10 font-bold px-4 text-sm" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">MBA Narrative Section Description</label>
+                             <Textarea 
+                               rows={4}
+                               value={localSettings['mba_description'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, mba_description: e.target.value})}
+                               className="rounded-xl bg-background border border-primary/10 font-medium p-4 text-xs" 
+                             />
+                          </div>
+                       </div>
 
-                        <div className="space-y-6 pt-6 border-t">
-                           <h4 className="text-sm font-bold text-primary border-b pb-2">Consulting Page</h4>
-                           <div className="grid grid-cols-1 gap-6">
-                              <div className="space-y-3">
-                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Consulting Headline</label>
-                                 <Input 
-                                   value={localSettings['consulting_headline'] || ''} 
-                                   onChange={(e) => setLocalSettings({...localSettings, consulting_headline: e.target.value})}
-                                   className="h-12 rounded-xl bg-muted/30 border-none font-bold px-6" 
-                                 />
-                              </div>
-                              <div className="space-y-3">
-                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Consulting Description</label>
-                                 <Textarea 
-                                   rows={3}
-                                   value={localSettings['consulting_description'] || ''} 
-                                   onChange={(e) => setLocalSettings({...localSettings, consulting_description: e.target.value})}
-                                   className="rounded-xl bg-muted/30 border-none font-medium p-4" 
-                                 />
-                              </div>
-                           </div>
-                        </div>
+                       {/* Consulting Page Details */}
+                       <div className="space-y-6 bg-muted/5 p-6 rounded-3xl border border-primary/5">
+                          <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4 flex items-center gap-2">
+                             <Briefcase size={16} /> Consulting Page Content
+                          </h4>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Consulting Hero Title</label>
+                             <Input 
+                               value={localSettings['consulting_hero_title'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, consulting_hero_title: e.target.value})}
+                               className="h-12 rounded-xl bg-background border border-primary/10 font-bold px-4 text-sm" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Consulting Hero Subtitle</label>
+                             <Textarea 
+                               rows={3}
+                               value={localSettings['consulting_hero_subtitle'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, consulting_hero_subtitle: e.target.value})}
+                               className="rounded-xl bg-background border border-primary/10 font-medium p-4 text-xs" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Consulting Narrative Section Headline</label>
+                             <Input 
+                               value={localSettings['consulting_headline'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, consulting_headline: e.target.value})}
+                               className="h-12 rounded-xl bg-background border border-primary/10 font-bold px-4 text-sm" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Consulting Narrative Section Description</label>
+                             <Textarea 
+                               rows={4}
+                               value={localSettings['consulting_description'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, consulting_description: e.target.value})}
+                               className="rounded-xl bg-background border border-primary/10 font-medium p-4 text-xs" 
+                             />
+                          </div>
+                       </div>
+                    </div>
+                 )}
+
+                 {activeModule === 'other_pages_content' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full">
+                       {/* Africa Page Copy */}
+                       <div className="space-y-6 bg-muted/5 p-6 rounded-3xl border border-primary/5">
+                          <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4 flex items-center gap-2">
+                             <Globe size={16} /> Africa Page Copy
+                          </h4>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Africa Hero Title</label>
+                             <Input 
+                               value={localSettings['africa_hero_title'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, africa_hero_title: e.target.value})}
+                               className="h-12 rounded-xl bg-background border border-primary/10 font-bold px-4 text-sm" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Africa Hero Subtitle</label>
+                             <Textarea 
+                               rows={3}
+                               value={localSettings['africa_hero_subtitle'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, africa_hero_subtitle: e.target.value})}
+                               className="rounded-xl bg-background border border-primary/10 font-medium p-4 text-xs" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Mission Highlight Quote</label>
+                             <Textarea 
+                               rows={2}
+                               value={localSettings['africa_mission_quote'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, africa_mission_quote: e.target.value})}
+                               className="rounded-xl bg-background border border-primary/10 font-medium p-4 text-xs" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Core Paragraph 1</label>
+                             <Textarea 
+                               rows={3}
+                               value={localSettings['africa_core_para_1'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, africa_core_para_1: e.target.value})}
+                               className="rounded-xl bg-background border border-primary/10 font-medium p-4 text-xs" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Core Paragraph 2 (Bold highlight)</label>
+                             <Textarea 
+                               rows={2}
+                               value={localSettings['africa_core_para_2'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, africa_core_para_2: e.target.value})}
+                               className="rounded-xl bg-background border border-primary/10 font-medium p-4 text-xs" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Core Paragraph 3</label>
+                             <Textarea 
+                               rows={3}
+                               value={localSettings['africa_core_para_3'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, africa_core_para_3: e.target.value})}
+                               className="rounded-xl bg-background border border-primary/10 font-medium p-4 text-xs" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Bottom Visual Quote Headline</label>
+                             <Textarea 
+                               rows={2}
+                               value={localSettings['africa_bottom_headline'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, africa_bottom_headline: e.target.value})}
+                               className="rounded-xl bg-background border border-primary/10 font-medium p-4 text-xs" 
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Bottom Visual Quote Subtext</label>
+                             <Textarea 
+                               rows={2}
+                               value={localSettings['africa_bottom_text'] || ''} 
+                               onChange={(e) => setLocalSettings({...localSettings, africa_bottom_text: e.target.value})}
+                               className="rounded-xl bg-background border border-primary/10 font-medium p-4 text-xs" 
+                             />
+                          </div>
+                       </div>
+
+                       {/* Other Sub-pages Copy */}
+                       <div className="space-y-8 bg-muted/5 p-6 rounded-3xl border border-primary/5 h-fit">
+                          <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4 flex items-center gap-2">
+                             <FileText size={16} /> Testimonials, Booking & Contact Details
+                          </h4>
+                          
+                          {/* Testimonials */}
+                          <div className="space-y-4 border-b pb-6">
+                             <h5 className="text-xs font-bold text-foreground tracking-wide uppercase">Testimonials Page</h5>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Hero Title</label>
+                                <Input 
+                                  value={localSettings['testimonials_hero_title'] || ''} 
+                                  onChange={(e) => setLocalSettings({...localSettings, testimonials_hero_title: e.target.value})}
+                                  className="h-10 rounded-xl bg-background border border-primary/10 font-bold px-3 text-xs" 
+                                />
+                             </div>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Hero Subtitle</label>
+                                <Textarea 
+                                  rows={2}
+                                  value={localSettings['testimonials_hero_subtitle'] || ''} 
+                                  onChange={(e) => setLocalSettings({...localSettings, testimonials_hero_subtitle: e.target.value})}
+                                  className="rounded-xl bg-background border border-primary/10 font-medium p-3 text-xs" 
+                                />
+                             </div>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Success Metric Headline</label>
+                                <Input 
+                                  value={localSettings['testimonials_success_headline'] || ''} 
+                                  onChange={(e) => setLocalSettings({...localSettings, testimonials_success_headline: e.target.value})}
+                                  className="h-10 rounded-xl bg-background border border-primary/10 font-bold px-3 text-xs" 
+                                />
+                             </div>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Success Metric Description</label>
+                                <Textarea 
+                                  rows={2}
+                                  value={localSettings['testimonials_success_description'] || ''} 
+                                  onChange={(e) => setLocalSettings({...localSettings, testimonials_success_description: e.target.value})}
+                                  className="rounded-xl bg-background border border-primary/10 font-medium p-3 text-xs" 
+                                />
+                             </div>
+                          </div>
+
+                          {/* Booking Page */}
+                          <div className="space-y-4 border-b pb-6">
+                             <h5 className="text-xs font-bold text-foreground tracking-wide uppercase">Booking Page</h5>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Hero Title</label>
+                                <Input 
+                                  value={localSettings['book_hero_title'] || ''} 
+                                  onChange={(e) => setLocalSettings({...localSettings, book_hero_title: e.target.value})}
+                                  className="h-10 rounded-xl bg-background border border-primary/10 font-bold px-3 text-xs" 
+                                />
+                             </div>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Hero Subtitle</label>
+                                <Textarea 
+                                  rows={2}
+                                  value={localSettings['book_hero_subtitle'] || ''} 
+                                  onChange={(e) => setLocalSettings({...localSettings, book_hero_subtitle: e.target.value})}
+                                  className="rounded-xl bg-background border border-primary/10 font-medium p-3 text-xs" 
+                                />
+                             </div>
+                          </div>
+
+                          {/* Contact Page */}
+                          <div className="space-y-4">
+                             <h5 className="text-xs font-bold text-foreground tracking-wide uppercase">Contact Page</h5>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Hero Title</label>
+                                <Input 
+                                  value={localSettings['contact_hero_title'] || ''} 
+                                  onChange={(e) => setLocalSettings({...localSettings, contact_hero_title: e.target.value})}
+                                  className="h-10 rounded-xl bg-background border border-primary/10 font-bold px-3 text-xs" 
+                                />
+                             </div>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Hero Subtitle</label>
+                                <Textarea 
+                                  rows={2}
+                                  value={localSettings['contact_hero_subtitle'] || ''} 
+                                  onChange={(e) => setLocalSettings({...localSettings, contact_hero_subtitle: e.target.value})}
+                                  className="rounded-xl bg-background border border-primary/10 font-medium p-3 text-xs" 
+                                />
+                             </div>
+                          </div>
+                       </div>
                     </div>
                  )}
               </CardContent>
            </Card>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 animate-slide-up">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-slide-up relative z-10">
            {modules.map((mod) => (
               <div 
                 key={mod.id}
                 onClick={() => setActiveModule(mod.id)}
                 className="group cursor-pointer relative"
               >
-                 <Card className="h-full rounded-[40px] border-none shadow-xl shadow-primary/5 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 hover:translate-y-[-12px] bg-white overflow-hidden p-8 flex flex-col items-center text-center gap-6">
-                    <div className={`w-24 h-24 ${mod.bg} rounded-[32px] flex items-center justify-center text-primary group-hover:scale-110 group-hover:rotate-6 transition-all duration-500`}>
+                 {/* Premium clear glass card with white text and white icons */}
+                 <Card className="h-full rounded-[40px] border border-white/20 dark:border-white/10 bg-black/40 backdrop-blur-md shadow-2xl overflow-hidden p-8 flex flex-col items-center text-center gap-6 transition-all duration-500 hover:translate-y-[-12px] hover:bg-black/50 hover:border-white/30 hover:shadow-primary/20">
+                    <div className="w-24 h-24 bg-white/10 rounded-[32px] flex items-center justify-center text-white group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 border border-white/10">
                        <mod.icon size={44} strokeWidth={1.5} />
                     </div>
                     <div>
-                       <h3 className="text-xl font-black mb-2 text-foreground tracking-tight">{mod.title}</h3>
-                       <p className="text-[13px] font-medium text-muted-foreground leading-relaxed px-2">{mod.desc}</p>
+                       <h3 className="text-xl font-black mb-2 text-white tracking-tight">{mod.title}</h3>
+                       <p className="text-[13px] font-medium text-white/80 leading-relaxed px-2">{mod.desc}</p>
                     </div>
                     <div className="mt-auto pt-6 w-full">
-                       <div className="h-12 w-12 bg-muted rounded-2xl flex items-center justify-center mx-auto group-hover:bg-primary group-hover:text-white transition-all">
+                       <div className="h-12 w-12 bg-white/10 border border-white/10 rounded-2xl flex items-center justify-center mx-auto text-white group-hover:bg-white group-hover:text-black transition-all">
                           <ChevronRight size={20} />
                        </div>
                     </div>
@@ -442,8 +883,8 @@ export default function CMSPage() {
               </div>
            ))}
 
-           {/* Quick Access / Misc Settings */}
-           <Card className="col-span-1 md:col-span-2 lg:col-span-4 rounded-[40px] bg-primary text-white p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-10">
+           {/* Quick Access / Security Card */}
+           <Card className="col-span-1 md:col-span-2 lg:col-span-3 rounded-[40px] bg-primary text-white p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-10 shadow-3xl">
               <div className="relative z-10 space-y-4 max-w-lg">
                  <div className="flex items-center gap-3">
                     <Lock className="text-white/40" size={24} />

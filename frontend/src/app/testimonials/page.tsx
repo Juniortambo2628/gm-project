@@ -11,7 +11,7 @@ import { IconBlock } from "@/components/ui/IconBlock";
 import { PageHero } from "@/components/PageHero";
 
 export default function TestimonialsPage() {
-  const { testimonials } = useSetting();
+  const { testimonials, getSetting } = useSetting();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -80,10 +80,11 @@ export default function TestimonialsPage() {
       <SiteHeader />
 
       <PageHero 
-        title="Our clients win"
-        subtitle="From Nairobi to Oxford, Lagos to London. Meet the African professionals who turned their ambitions into reality."
+        title={getSetting('testimonials_hero_title', "Our clients win")}
+        subtitle={getSetting('testimonials_hero_subtitle', "From Nairobi to Oxford, Lagos to London. Meet the African professionals who turned their ambitions into reality.")}
         badge="Success stories"
         breadcrumbs={breadcrumbs}
+        videoSrc={getSetting('testimonials_hero_bg') || "/hero-bg.mp4"}
       />
 
       {/* MBA Success Stories */}
@@ -167,10 +168,10 @@ export default function TestimonialsPage() {
             </div>
             
             <h3 className="text-3xl md:text-5xl font-bold mb-8 italic leading-none">
-              90% Success <br/><span className="text-white/60">rate for Africans</span>
+              {getSetting('testimonials_success_headline', "90% Success rate for Africans")}
             </h3>
             <p className="text-lg font-medium mb-10 text-white/80 leading-relaxed max-w-2xl mx-auto border-y border-white/10 py-8">
-              When you have a coach who understands your context, your success becomes predictable, not lucky.
+              {getSetting('testimonials_success_description', "When you have a coach who understands your context, your success becomes predictable, not lucky.")}
             </p>
              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                 {[

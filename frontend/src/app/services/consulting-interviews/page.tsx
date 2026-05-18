@@ -69,8 +69,8 @@ export default function ConsultingPrepPage() {
       <SiteHeader />
 
       <PageHero 
-        title="Consulting preparation for African candidates"
-        subtitle="Coached by a former McKinsey fellow and Genesis Analytics consultant who knows exactly what African offices look for in top-tier talent."
+        title={getSetting('consulting_hero_title', "Consulting preparation for African candidates")}
+        subtitle={getSetting('consulting_hero_subtitle', "Coached by a former McKinsey fellow and Genesis Analytics consultant who knows exactly what African offices look for in top-tier talent.")}
         badge="Consulting interview mastery"
         breadcrumbs={breadcrumbs}
         videoSrc={getSetting('consulting_hero_bg') || "/hero-bg.mp4"}

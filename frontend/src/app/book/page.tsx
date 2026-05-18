@@ -66,10 +66,11 @@ export default function BookingPage() {
       <SiteHeader />
 
       <PageHero 
-        title="Secure your session"
-        subtitle="Choose your pathway and book a time that works for you. Payments are processed securely via Paystack."
+        title={getSetting('book_hero_title', "Secure your session")}
+        subtitle={getSetting('book_hero_subtitle', "Choose your pathway and book a time that works for you. Payments are processed securely via Paystack.")}
         badge="Booking system"
         breadcrumbs={breadcrumbs}
+        videoSrc={getSetting('book_hero_bg') || "/hero-bg.mp4"}
       />
 
       <main className="pb-20 pt-10">

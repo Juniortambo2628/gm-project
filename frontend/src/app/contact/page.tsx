@@ -10,11 +10,14 @@ import { toast } from "sonner";
 import { IconBlock } from "@/components/ui/IconBlock";
 import { PageHero } from "@/components/PageHero";
 
+import { useCMS } from "@/context/SettingContext";
+
 const africanCountries = [
   "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon", "Central African Republic", "Chad", "Comoros", "Congo (Congo-Brazzaville)", "Côte d'Ivoire", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe", "Other"
 ];
 
 export default function ContactPage() {
+  const { getSetting } = useCMS();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -67,10 +70,11 @@ export default function ContactPage() {
       <SiteHeader />
 
       <PageHero 
-        title="Get in touch"
-        subtitle="Have a question about MBA applications or consulting careers? I respond to all messages within 24 hours."
+        title={getSetting('contact_hero_title', "Get in touch")}
+        subtitle={getSetting('contact_hero_subtitle', "Have a question about MBA applications or consulting careers? I respond to all messages within 24 hours.")}
         badge="Direct channel"
         breadcrumbs={breadcrumbs}
+        videoSrc={getSetting('contact_hero_bg') || "/hero-bg.mp4"}
       />
 
       <main className="max-w-7xl mx-auto px-6 py-24">
@@ -89,7 +93,7 @@ export default function ContactPage() {
                   <IconBlock icon={Mail} className="w-12 h-12 group-hover:bg-primary group-hover:text-white transition-all duration-500" />
                   <div>
                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Email</p>
-                     <p className="text-lg font-bold text-foreground">Gathoni.mwai0@gmail.com</p>
+                     <p className="text-lg font-bold text-foreground">{getSetting('contact_email', "Gathoni.mwai0@gmail.com")}</p>
                   </div>
                </div>
 
@@ -97,7 +101,7 @@ export default function ContactPage() {
                   <IconBlock icon={Linkedin} className="w-12 h-12 group-hover:bg-primary group-hover:text-white transition-all duration-500" />
                   <div>
                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">LinkedIn</p>
-                     <a href="https://www.linkedin.com/in/gathoni-mwai-6747a8118/" className="text-lg font-bold text-foreground hover:text-primary transition-colors underline decoration-dotted underline-offset-8">Gathoni Mwai</a>
+                     <a href={getSetting('linkedin_url', "https://www.linkedin.com/in/gathoni-mwai-6747a8118/")} className="text-lg font-bold text-foreground hover:text-primary transition-colors underline decoration-dotted underline-offset-8">Gathoni Mwai</a>
                   </div>
                </div>
 
@@ -105,7 +109,7 @@ export default function ContactPage() {
                   <IconBlock icon={MapPin} className="w-12 h-12 group-hover:bg-primary group-hover:text-white transition-all duration-500" />
                   <div>
                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Location</p>
-                     <p className="text-lg font-bold text-foreground">Oxford, UK (GMT)</p>
+                     <p className="text-lg font-bold text-foreground">{getSetting('contact_location', "Oxford, UK (GMT)")}</p>
                      <p className="text-xs font-medium text-muted-foreground italic">Available across all African time zones.</p>
                   </div>
                </div>

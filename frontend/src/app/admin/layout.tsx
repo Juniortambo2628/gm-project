@@ -7,11 +7,13 @@ import { useState, useEffect } from "react";
 import axiosInstance from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { SiteFooter } from "@/components/SiteFooter";
+import { useCMS } from "@/context/SettingContext";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
+  const { settings } = useCMS();
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -91,13 +93,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-80 bg-card flex flex-col border-r z-20">
         <div className="p-8">
           <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/10 transition-transform group-hover:scale-110">
-                 <RefreshCcw size={22} strokeWidth={2.5} />
-              </div>
-              <div>
-                 <h1 className="text-xl text-foreground leading-none">Consultancy</h1>
-                 <p className="text-[13px] font-bold text-primary">Admin system</p>
-              </div>
+              {settings['logo_light'] || settings['logo_dark'] ? (
+                <img 
+                  src={settings['logo_light'] || settings['logo_dark']} 
+                  alt="Site Logo" 
+                  className="h-10 w-auto object-contain transition-transform group-hover:scale-105" 
+                />
+              ) : (
+                <>
+                  <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/10 transition-transform group-hover:scale-110">
+                     <RefreshCcw size={22} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                     <h1 className="text-xl text-foreground leading-none">{settings['site_name'] || "Consultancy"}</h1>
+                     <p className="text-[13px] font-bold text-primary">Admin system</p>
+                  </div>
+                </>
+              )}
           </Link>
         </div>
         

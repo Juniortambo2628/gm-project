@@ -8,8 +8,10 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { IconBlock } from "@/components/ui/IconBlock";
 import { PageHero } from "@/components/PageHero";
+import { useSetting } from "@/context/SettingContext";
 
 export default function AfricaPage() {
+  const { getSetting } = useSetting();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -25,10 +27,11 @@ export default function AfricaPage() {
       <SiteHeader />
 
       <PageHero 
-        title="Why this matters"
-        subtitle="The global stage wasn't designed with the African journey in mind. I'm here to ensure that doesn't stop you from owning it."
+        title={getSetting('africa_hero_title', "Why this matters")}
+        subtitle={getSetting('africa_hero_subtitle', "The global stage wasn't designed with the African journey in mind. I'm here to ensure that doesn't stop you from owning it.")}
         badge="Our common context"
         breadcrumbs={breadcrumbs}
+        videoSrc={getSetting('africa_hero_bg') || "/hero-bg.mp4"}
       />
 
       {/* Core Mission Section */}
@@ -42,18 +45,18 @@ export default function AfricaPage() {
                   </div>
                   
                   <h2 className="text-2xl md:text-4xl font-bold leading-tight italic max-w-5xl">
-                    "Your background isn't a disadvantage. Most coaches just don't know what to do with it."
+                    {getSetting('africa_mission_quote', "\"Your background isn't a disadvantage. Most coaches just don't know what to do with it.\"")}
                   </h2>
                   
                   <div className="space-y-6 text-lg md:text-xl text-muted-foreground font-medium leading-relaxed max-w-4xl">
                      <p>
-                        African students bring sharp analytical thinking, real-world experience in complex markets, and stories that no one from a Western university can replicate. 
+                        {getSetting('africa_core_para_1', "African students bring sharp analytical thinking, real-world experience in complex markets, and stories that no one from a Western university can replicate.")}
                      </p>
-                     <p className="text-foreground">
-                        The problem isn't your profile, it's knowing how to position it. 
+                     <p className="text-foreground font-bold">
+                        {getSetting('africa_core_para_2', "The problem isn't your profile, it's knowing how to position it.")}
                      </p>
                      <p>
-                        I've sat where you sit, walked into the same rooms, and won. I coach Africans specifically because I understand your starting point, your strengths, and exactly how to make the people on the other side of that application or interview table take notice.
+                        {getSetting('africa_core_para_3', "I've sat where you sit, walked into the same rooms, and won. I coach Africans specifically because I understand your starting point, your strengths, and exactly how to make the people on the other side of that application or interview table take notice.")}
                      </p>
                   </div>
                </div>
@@ -113,10 +116,10 @@ export default function AfricaPage() {
         
         <div className="max-w-5xl mx-auto px-6 relative z-10 text-center space-y-10">
            <h3 className="text-3xl md:text-6xl font-bold italic leading-none">
-             "I believe the next wave of global leaders are coming from <span className="text-primary italic">Lagos, Nairobi, & Johannesburg.</span>"
+             {getSetting('africa_bottom_headline', "I believe the next wave of global leaders are coming from Lagos, Nairobi, & Johannesburg.")}
            </h3>
            <p className="text-xl font-medium text-muted-foreground max-w-3xl mx-auto leading-relaxed italic">
-             Our stories are valid. Our ambitions are backed by excellence. My mission is to ensure those doors open for you.
+             {getSetting('africa_bottom_text', "Our stories are valid. Our ambitions are backed by excellence. My mission is to ensure those doors open for you.")}
            </p>
         </div>
       </section>
