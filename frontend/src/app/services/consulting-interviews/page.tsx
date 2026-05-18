@@ -159,7 +159,24 @@ export default function ConsultingPrepPage() {
              <h2 className="text-4xl md:text-5xl font-bold italic underline underline-offset-[16px] decoration-primary/20">Preparation packages</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {/* Discovery Call Card */}
+              <PackageCard 
+                name="Discovery Consultation"
+                duration={getSetting('discovery_duration', '20 Min')}
+                price="FREE"
+                priceSubtext="Introductory call"
+                features={[
+                   "Assess your consulting prep level",
+                   "Identify McKinsey & MBB target offices",
+                   "Frame your African work experience",
+                   "Customized interview roadmap planning"
+                ]}
+                ctaText="Book Free Discovery Call"
+                ctaLink="/book"
+                popular={false}
+              />
+
               {packages.map((pkg, i) => (
                 <PackageCard 
                   key={i}

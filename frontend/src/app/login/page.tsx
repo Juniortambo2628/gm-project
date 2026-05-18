@@ -5,15 +5,22 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Fingerprint, Mail, Lock, ArrowRight, Loader2, Globe, ShieldCheck } from "lucide-react";
+import { Mail, Lock, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useCMS } from "@/context/SettingContext";
-import { IconBlock } from "@/components/ui/IconBlock";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // 2FA state
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [emailMasked, setEmailMasked] = useState("");
+  const [tempToken, setTempToken] = useState("");
+  const [code, setCode] = useState("");
+  const [debugCode, setDebugCode] = useState("");
+
   const router = useRouter();
   const { login, isAuthenticated, user, isLoading } = useAuth();
   const { settings } = useCMS();
@@ -43,10 +50,20 @@ export default function LoginPage() {
       });
       if (res.ok) {
          const data = await res.json();
-         toast.success("Welcome back!", {
-            description: `Successfully signed in as ${data.user.name}`
-         });
-         login(data.access_token, data.user);
+         if (data.requires_2fa) {
+            setRequires2FA(true);
+            setEmailMasked(data.email_masked);
+            setTempToken(data.temp_token);
+            setDebugCode(data.debug_code || "");
+            toast.success("Verification required", {
+               description: `A dynamic security code has been sent to ${data.email_masked}`
+            });
+         } else {
+            toast.success("Welcome back!", {
+               description: `Successfully signed in as ${data.user.name}`
+            });
+            login(data.access_token, data.user);
+         }
       } else {
          toast.error("Authentication Failed", {
             description: "Check your email and password and try again."
@@ -57,8 +74,41 @@ export default function LoginPage() {
           description: "Unable to reach the authentication server."
        });
     } finally {
-      setLoading(false);
+       setLoading(false);
     }
+  };
+
+  const handleVerify2FA = async (e: React.FormEvent) => {
+     e.preventDefault();
+     setLoading(true);
+     try {
+        const res = await fetch("http://localhost:8000/api/login/verify-2fa", {
+           method: "POST",
+           headers: {
+               "Content-Type": "application/json",
+               "Accept": "application/json"
+           },
+           body: JSON.stringify({ temp_token: tempToken, code })
+        });
+        if (res.ok) {
+           const data = await res.json();
+           toast.success("Identity Verified!", {
+              description: `Successfully signed in as ${data.user.name}`
+           });
+           login(data.access_token, data.user);
+        } else {
+           const data = await res.json();
+           toast.error("Verification Failed", {
+              description: data.message || "Invalid or expired security code."
+           });
+        }
+     } catch (err) {
+        toast.error("Connection Error", {
+           description: "Unable to reach the verification server."
+        });
+     } finally {
+        setLoading(false);
+     }
   };
 
   if (isLoading || isAuthenticated) {
@@ -88,19 +138,19 @@ export default function LoginPage() {
          
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-slate-900/40 p-10 flex flex-col justify-between">
              <div className="flex items-center gap-3">
-                {settings['logo_light'] ? (
-                  <img src={settings['logo_light']} alt="Logo" className="h-10 w-auto object-contain" />
-                ) : (
-                  <span className="text-xl font-bold text-white">{settings['site_name'] || "Consultancy"}<span className="text-primary italic">.</span></span>
-                )}
-             </div>
+                 {settings['logo_light'] ? (
+                   <img src={settings['logo_light']} alt="Logo" className="h-10 w-auto object-contain" />
+                 ) : (
+                   <span className="text-xl font-bold text-white">{settings['site_name'] || "Consultancy"}<span className="text-primary italic">.</span></span>
+                 )}
+              </div>
  
-             <div className="max-w-md hidden lg:block pb-12">
-                <h2 className="text-3xl font-bold text-white leading-tight mb-4">Helping Africans access the world's <span className="text-primary bg-white px-2 py-0.5 rounded-lg">best</span> opportunities</h2>
-                <p className="text-slate-300 font-medium leading-relaxed text-sm">
-                   Join talented professionals leveraging authentic stories to win global admissions and career breakthroughs.
-                </p>
-             </div>
+              <div className="max-w-md hidden lg:block pb-12">
+                 <h2 className="text-3xl font-bold text-white leading-tight mb-4">Helping Africans access the world's <span className="text-primary bg-white px-2 py-0.5 rounded-lg">best</span> opportunities</h2>
+                 <p className="text-slate-300 font-medium leading-relaxed text-sm">
+                    Join talented professionals leveraging authentic stories to win global admissions and career breakthroughs.
+                 </p>
+              </div>
           </div>
       </div>
 
@@ -109,77 +159,145 @@ export default function LoginPage() {
          <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
          
          <div className="w-full max-w-sm relative z-10">
-             <div className="mb-8 text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary text-primary rounded-full text-[13px] font-bold mb-4 border border-border">
-                   <ShieldCheck size={12} /> Secure access
-                </div>
-                <h3 className="text-3xl font-bold text-foreground mb-2">Sign in</h3>
-                <p className="text-slate-500 font-bold text-sm">Welcome back. Enter your credentials to access the admin portal.</p>
-             </div>
-
-             <form onSubmit={handleLogin} className="space-y-5">
-                 <div className="space-y-1.5 group">
-                    <label className="text-[13px] font-bold text-slate-500 ml-1">Email address</label>
-                   <div className="relative">
-                      <Mail size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
-                      <Input 
-                         type="email" 
-                         placeholder="admin@culturemonitor.com" 
-                         value={email}
-                         onChange={(e) => setEmail(e.target.value)}
-                         required 
-                         className="h-12 pl-12 bg-card border-border rounded-xl shadow-sm focus:ring-4 focus:ring-primary/10 transition-all font-medium placeholder:text-slate-400/30 text-foreground"
-                      />
-                   </div>
-                </div>
-
-                 <div className="space-y-1.5 group">
-                    <label className="text-[13px] font-bold text-slate-500 ml-1">Password</label>
-                   <div className="relative">
-                      <Lock size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
-                      <Input 
-                         type="password" 
-                         placeholder="••••••••" 
-                         value={password}
-                         onChange={(e) => setPassword(e.target.value)}
-                         required 
-                         className="h-12 pl-12 bg-card border-border rounded-xl shadow-sm focus:ring-4 focus:ring-primary/10 transition-all font-medium placeholder:text-slate-400/30 text-foreground"
-                      />
-                   </div>
-                </div>
-
-                <Button 
-                   type="submit" 
-                   disabled={loading} 
-                   className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs transition-all active:scale-[0.98] group shadow-lg shadow-primary/10"
-                >
-                  {loading ? (
-                    <Loader2 className="animate-spin" size={18} />
-                  ) : (
-                     <div className="flex items-center justify-center gap-2">
-                       Verify and sign in
-                       <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+            {requires2FA ? (
+               <>
+                  <div className="mb-8 text-center lg:text-left">
+                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-600 rounded-full text-[13px] font-bold mb-4 border border-emerald-500/20">
+                        <ShieldCheck size={12} /> Identity Verification
                      </div>
-                  )}
-               </Button>
-            </form>
+                     <h3 className="text-3xl font-bold text-foreground mb-2">Enter code</h3>
+                     <p className="text-slate-500 font-bold text-sm">
+                        We've sent a 6-digit confirmation code to <span className="text-primary font-black">{emailMasked}</span>. Enter it below, or use one of your recovery backup codes.
+                     </p>
+                  </div>
 
-            <div className="mt-8 pt-8 border-t border-border flex flex-col items-center gap-4">
-               <div className="flex gap-4">
-                  <Link 
-                     href="/" 
-                     className="px-5 py-2.5 rounded-xl border border-border hover:border-slate-400 dark:hover:border-slate-600 transition-all text-[13px] font-medium text-slate-500 bg-card"
-                  >
-                     Return home
-                  </Link>
-                  <Link 
-                     href="/register" 
-                     className="px-5 py-2.5 rounded-xl border border-primary/20 hover:border-primary text-primary transition-all text-[13px] font-medium bg-secondary"
-                  >
-                     Create account
-                  </Link>
-               </div>
-            </div>
+                  <form onSubmit={handleVerify2FA} className="space-y-5">
+                      <div className="space-y-1.5 group">
+                         <label className="text-[13px] font-bold text-slate-500 ml-1">Verification Code</label>
+                         <div className="relative">
+                            <Lock size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
+                            <Input 
+                               type="text" 
+                               placeholder="123-456 or Backup Code" 
+                               value={code}
+                               onChange={(e) => setCode(e.target.value)}
+                               required 
+                               className="h-12 pl-12 bg-card border-border rounded-xl shadow-sm focus:ring-4 focus:ring-primary/10 transition-all font-mono font-bold tracking-widest text-foreground text-center text-lg placeholder:text-slate-400/30 placeholder:tracking-normal placeholder:font-sans placeholder:text-sm"
+                            />
+                         </div>
+                      </div>
+
+                      {debugCode && (
+                         <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl text-center space-y-1 animate-pulse">
+                            <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Simulated Verification Code</p>
+                            <code className="text-lg font-mono font-black text-foreground">{debugCode}</code>
+                         </div>
+                      )}
+
+                      <Button 
+                         type="submit" 
+                         disabled={loading} 
+                         className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs transition-all active:scale-[0.98] group shadow-lg shadow-primary/10"
+                      >
+                        {loading ? (
+                          <Loader2 className="animate-spin" size={18} />
+                        ) : (
+                           <div className="flex items-center justify-center gap-2">
+                             Verify and Proceed
+                             <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+                           </div>
+                        )}
+                     </Button>
+
+                     <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
+                           setRequires2FA(false);
+                           setCode("");
+                           setDebugCode("");
+                        }}
+                        className="w-full h-10 rounded-xl font-bold text-xs text-muted-foreground hover:bg-muted"
+                     >
+                        Back to Login
+                     </Button>
+                  </form>
+               </>
+            ) : (
+               <>
+                  <div className="mb-8 text-center lg:text-left">
+                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary text-primary rounded-full text-[13px] font-bold mb-4 border border-border">
+                        <ShieldCheck size={12} /> Secure access
+                     </div>
+                     <h3 className="text-3xl font-bold text-foreground mb-2">Sign in</h3>
+                     <p className="text-slate-500 font-bold text-sm">Welcome back. Enter your credentials to access the admin portal.</p>
+                  </div>
+
+                  <form onSubmit={handleLogin} className="space-y-5">
+                      <div className="space-y-1.5 group">
+                         <label className="text-[13px] font-bold text-slate-500 ml-1">Email address</label>
+                        <div className="relative">
+                           <Mail size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
+                           <Input 
+                              type="email" 
+                              placeholder="admin@culturemonitor.com" 
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              required 
+                              className="h-12 pl-12 bg-card border-border rounded-xl shadow-sm focus:ring-4 focus:ring-primary/10 transition-all font-medium placeholder:text-slate-400/30 text-foreground"
+                           />
+                        </div>
+                     </div>
+
+                      <div className="space-y-1.5 group">
+                         <label className="text-[13px] font-bold text-slate-500 ml-1">Password</label>
+                        <div className="relative">
+                           <Lock size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
+                           <Input 
+                              type="password" 
+                              placeholder="••••••••" 
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              required 
+                              className="h-12 pl-12 bg-card border-border rounded-xl shadow-sm focus:ring-4 focus:ring-primary/10 transition-all font-medium placeholder:text-slate-400/30 text-foreground"
+                           />
+                        </div>
+                     </div>
+
+                     <Button 
+                        type="submit" 
+                        disabled={loading} 
+                        className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs transition-all active:scale-[0.98] group shadow-lg shadow-primary/10"
+                     >
+                       {loading ? (
+                         <Loader2 className="animate-spin" size={18} />
+                       ) : (
+                          <div className="flex items-center justify-center gap-2">
+                            Verify and sign in
+                            <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+                          </div>
+                       )}
+                    </Button>
+                 </form>
+
+                 <div className="mt-8 pt-8 border-t border-border flex flex-col items-center gap-4">
+                    <div className="flex gap-4">
+                       <Link 
+                          href="/" 
+                          className="px-5 py-2.5 rounded-xl border border-border hover:border-slate-400 dark:hover:border-slate-600 transition-all text-[13px] font-medium text-slate-500 bg-card"
+                       >
+                          Return home
+                       </Link>
+                       <Link 
+                          href="/register" 
+                          className="px-5 py-2.5 rounded-xl border border-primary/20 hover:border-primary text-primary transition-all text-[13px] font-medium bg-secondary"
+                       >
+                          Create account
+                       </Link>
+                    </div>
+                 </div>
+               </>
+            )}
          </div>
       </div>
     </div>

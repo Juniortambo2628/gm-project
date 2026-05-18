@@ -51,7 +51,7 @@ class CMSController extends Controller
     }
 
     /**
-     * Upload a file and return the path.
+     * Upload a file and return the path with dynamic compression.
      */
     public function uploadFile(Request $request)
     {
@@ -65,10 +65,29 @@ class CMSController extends Controller
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('public/cms', $filename);
             
+            $fullPath = storage_path('app/' . $path);
+            $mime = $file->getClientMimeType();
+
+            // Compress Image (GD library)
+            if (strpos($mime, 'image/') !== false) {
+                $this->compressImage($fullPath, $fullPath, $mime);
+            }
+
+            // Compress Video (FFmpeg fallback)
+            if (strpos($mime, 'video/') !== false) {
+                $tempVideoPath = $fullPath . '_temp.mp4';
+                if ($this->compressVideo($fullPath, $tempVideoPath)) {
+                    @unlink($fullPath);
+                    @rename($tempVideoPath, $fullPath);
+                } else {
+                    @unlink($tempVideoPath);
+                }
+            }
+            
             $url = \Illuminate\Support\Facades\Storage::url($path);
             
             // Save to settings automatically if key provided
-            \App\Models\Setting::set($request->key, $url, 'media', $file->getClientMimeType());
+            \App\Models\Setting::set($request->key, $url, 'media', $mime);
 
             return response()->json([
                 'message' => 'File uploaded successfully',
@@ -78,6 +97,96 @@ class CMSController extends Controller
         }
 
         return response()->json(['error' => 'No file provided'], 400);
+    }
+
+    private function compressImage($sourcePath, $destinationPath, $mimeType)
+    {
+        ini_set('memory_limit', '256M');
+
+        switch ($mimeType) {
+            case 'image/jpeg':
+            case 'image/jpg':
+                $image = @imagecreatefromjpeg($sourcePath);
+                break;
+            case 'image/png':
+                $image = @imagecreatefrompng($sourcePath);
+                break;
+            case 'image/gif':
+                $image = @imagecreatefromgif($sourcePath);
+                break;
+            case 'image/webp':
+                $image = @imagecreatefromwebp($sourcePath);
+                break;
+            default:
+                return false;
+        }
+
+        if (!$image) {
+            return false;
+        }
+
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        $maxDimension = 1600;
+        if ($width > $maxDimension || $height > $maxDimension) {
+            if ($width > $height) {
+                $newWidth = $maxDimension;
+                $newHeight = intval($height * ($maxDimension / $width));
+            } else {
+                $newHeight = $maxDimension;
+                $newWidth = intval($width * ($maxDimension / $height));
+            }
+
+            $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
+
+            if ($mimeType === 'image/png' || $mimeType === 'image/gif') {
+                imagealphablending($resizedImage, false);
+                imagesavealpha($resizedImage, true);
+                $transparent = imagecolorallocatealpha($resizedImage, 255, 255, 255, 127);
+                imagefilledrectangle($resizedImage, 0, 0, $newWidth, $newHeight, $transparent);
+            }
+
+            imagecopyresampled($resizedImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+            imagedestroy($image);
+            $image = $resizedImage;
+        }
+
+        $success = false;
+        if ($mimeType === 'image/png') {
+            $success = imagepng($image, $destinationPath, 7);
+        } elseif ($mimeType === 'image/gif') {
+            $success = imagegif($image, $destinationPath);
+        } elseif (function_exists('imagewebp') && $mimeType === 'image/webp') {
+            $success = imagewebp($image, $destinationPath, 80);
+        } else {
+            $success = imagejpeg($image, $destinationPath, 75);
+        }
+
+        imagedestroy($image);
+        return $success;
+    }
+
+    private function compressVideo($sourcePath, $destinationPath)
+    {
+        if (!function_exists('shell_exec')) {
+            return false;
+        }
+
+        $ffmpegCheck = @shell_exec('ffmpeg -version 2>&1');
+        if (!$ffmpegCheck || (strpos($ffmpegCheck, 'ffmpeg version') === false && strpos($ffmpegCheck, 'FFmpeg') === false)) {
+            return false;
+        }
+
+        $cmd = sprintf(
+            'ffmpeg -y -i %s -vcodec libx264 -crf 28 -preset fast -acodec aac -b:a 128k -movflags +faststart %s 2>&1',
+            escapeshellarg($sourcePath),
+            escapeshellarg($destinationPath)
+        );
+
+        @exec($cmd, $output, $resultCode);
+
+        return $resultCode === 0;
     }
 
     /**

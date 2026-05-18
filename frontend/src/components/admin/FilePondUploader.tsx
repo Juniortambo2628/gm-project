@@ -28,6 +28,8 @@ export default function FilePondUploader({
   const [files, setFiles] = useState<any[]>([]);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+
   return (
     <div className="filepond-wrapper space-y-4">
       <p className="text-[10px] font-bold text-muted-foreground ml-1">{label}</p>
@@ -44,6 +46,7 @@ export default function FilePondUploader({
             withCredentials: true,
             headers: {
               'Accept': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
             },
             onload: (response: string) => {
               const data = JSON.parse(response);

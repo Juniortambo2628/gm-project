@@ -11,6 +11,7 @@ use App\Http\Controllers\API\OrderController;
 use App\Http\Controllers\API\DashboardController;
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/login/verify-2fa', [AuthController::class, 'verify2FA']);
 Route::post('/register', [AuthController::class, 'register']);
 
 // Public Content
