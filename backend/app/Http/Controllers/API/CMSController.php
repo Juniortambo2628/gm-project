@@ -89,7 +89,7 @@ class CMSController extends Controller
         $filename = time() . '_' . $file->getClientOriginalName();
         $path = $file->storeAs('cms', $filename, 'public');
         
-        $fullPath = storage_path('app/public/' . $path);
+        $fullPath = \Illuminate\Support\Facades\Storage::disk('public')->path($path);
         $mime = $file->getClientMimeType();
 
         // Compress Image (GD library)
