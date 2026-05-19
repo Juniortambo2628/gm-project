@@ -32,7 +32,7 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
             $table->string('status')->default('draft'); // draft, active, closed
-            $table->foreignId('organization_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('organization_id')->index();
             $table->integer('year');
             $table->integer('quarter');
             $table->boolean('can_update_responses')->default(false);
@@ -42,8 +42,8 @@ return new class extends Migration
         // 4. Questions
         Schema::create('questions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('poll_id')->constrained()->onDelete('cascade');
-            $table->foreignId('factor_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('poll_id')->index();
+            $table->unsignedBigInteger('factor_id')->index();
             $table->text('text');
             $table->decimal('weight', 8, 2)->default(1.00);
             $table->timestamps();
@@ -52,8 +52,8 @@ return new class extends Migration
         // 5. Responses
         Schema::create('responses', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('poll_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('user_id')->index();
+            $table->unsignedBigInteger('poll_id')->index();
             $table->json('answers');
             $table->timestamps();
         });
