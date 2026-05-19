@@ -25,6 +25,30 @@ class OrderController extends Controller
 
         $transaction = Transaction::create($validated);
 
+        // Dispatch dynamic successful booking and payment emails to client
+        try {
+            \Illuminate\Support\Facades\Mail::to($transaction->email)->queue(
+                new \App\Mail\DynamicSystemMail('payment_success', [
+                    'name' => $transaction->name,
+                    'service_name' => $transaction->service_name,
+                    'amount' => $transaction->currency . ' ' . number_format($transaction->amount, 2),
+                    'transaction_id' => $transaction->paystack_ref
+                ])
+            );
+
+            \Illuminate\Support\Facades\Mail::to($transaction->email)->queue(
+                new \App\Mail\DynamicSystemMail('booking_success', [
+                    'name' => $transaction->name,
+                    'service_name' => $transaction->service_name,
+                    'date' => now()->addDays(2)->format('F d, Y'),
+                    'time' => '10:00 AM (EAT)',
+                    'amount' => $transaction->currency . ' ' . number_format($transaction->amount, 2),
+                ])
+            );
+        } catch (\Exception $mailEx) {
+            \Illuminate\Support\Facades\Log::error('Failed to dispatch booking/payment success emails: ' . $mailEx->getMessage());
+        }
+
         // Create booking notification for admins
         try {
             $admins = \App\Models\User::where('role', 'admin')->get();

@@ -76,6 +76,18 @@ class AuthController extends Controller
                 'expires_at' => now()->addMinutes(10)->timestamp
             ]), 'security');
 
+            // Dispatch 2FA email using Dynamic System Mail
+            try {
+                \Illuminate\Support\Facades\Mail::to($user->email)->queue(
+                    new \App\Mail\DynamicSystemMail('two_factor', [
+                        'name' => $user->name,
+                        'code' => strval($code)
+                    ])
+                );
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to dispatch 2FA email: ' . $e->getMessage());
+            }
+
             return response()->json([
                 'requires_2fa' => true,
                 'email_masked' => substr($user->email, 0, 3) . '***' . strstr($user->email, '@'),
@@ -188,6 +200,119 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Password updated successfully.'
+        ]);
+    }
+
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            // For security, do not disclose that user doesn't exist
+            return response()->json([
+                'message' => 'Security reset code sent if the email exists.',
+                'temp_token' => encrypt(['user_id' => 0, 'expires_at' => now()->addMinutes(15)->timestamp]),
+                'debug_code' => ''
+            ]);
+        }
+
+        $code = rand(100000, 999999);
+        Setting::set('temp_reset_code_' . $user->id, json_encode([
+            'code' => $code,
+            'expires_at' => now()->addMinutes(15)->timestamp
+        ]), 'security');
+
+        // Dispatch dynamic forgot password email
+        try {
+            \Illuminate\Support\Facades\Mail::to($user->email)->queue(
+                new \App\Mail\DynamicSystemMail('forgot_password', [
+                    'name' => $user->name,
+                    'code' => strval($code)
+                ])
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to dispatch password reset email: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'message' => 'Security reset code dispatched.',
+            'temp_token' => encrypt(['user_id' => $user->id, 'expires_at' => now()->addMinutes(15)->timestamp]),
+            'debug_code' => $code
+        ]);
+    }
+
+    public function verifyResetCode(Request $request)
+    {
+        $request->validate([
+            'temp_token' => 'required',
+            'code' => 'required',
+        ]);
+
+        try {
+            $payload = decrypt($request->temp_token);
+            if ($payload['expires_at'] < now()->timestamp) {
+                return response()->json(['message' => 'The verification session has expired.'], 422);
+            }
+            $userId = $payload['user_id'];
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Invalid session token.'], 422);
+        }
+
+        if ($userId === 0) {
+            return response()->json(['message' => 'Invalid or expired security reset code.'], 422);
+        }
+
+        $saved = Setting::get('temp_reset_code_' . $userId);
+        if (!$saved) {
+            return response()->json(['message' => 'Invalid or expired security reset code.'], 422);
+        }
+
+        $data = json_decode($saved, true);
+        if ($data['expires_at'] < now()->timestamp || strval($data['code']) !== strval($request->code)) {
+            return response()->json(['message' => 'Invalid or expired security reset code.'], 422);
+        }
+
+        // Delete used reset code
+        Setting::where('key', 'temp_reset_code_' . $userId)->delete();
+
+        return response()->json([
+            'message' => 'Security reset code verified.',
+            'reset_token' => encrypt([
+                'user_id' => $userId,
+                'verified' => true,
+                'expires_at' => now()->addMinutes(15)->timestamp
+            ])
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'reset_token' => 'required',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        try {
+            $payload = decrypt($request->reset_token);
+            if ($payload['expires_at'] < now()->timestamp || !$payload['verified']) {
+                return response()->json(['message' => 'The password reset session has expired or is invalid.'], 422);
+            }
+            $userId = $payload['user_id'];
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Invalid reset session token.'], 422);
+        }
+
+        $user = User::findOrFail($userId);
+        $user->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        return response()->json([
+            'message' => 'Security credentials updated successfully.'
         ]);
     }
 }

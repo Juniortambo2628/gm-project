@@ -28,7 +28,8 @@ import {
   KeyRound,
   Smartphone,
   UserCheck,
-  GripVertical
+  GripVertical,
+  Mail
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -248,6 +249,20 @@ export default function CMSPage() {
       desc: 'Configure Calendly URLs, Paystack keys, and SMTP email parameters.',
       fields: ['discovery_calendly_url', 'consulting_calendly_url', 'mba_calendly_url', 'paystack_public_key', 'paystack_secret_key', 'mail_host', 'mail_port', 'mail_username', 'mail_password', 'mail_encryption', 'mail_from_address', 'mail_from_name'],
       bg: 'bg-cyan-500/5'
+    },
+    { 
+      id: 'email_templates', 
+      title: 'Email Templates', 
+      icon: Mail, 
+      desc: 'Customize system email subjects, contents, and dynamic placeholders.',
+      fields: [
+        'template_subject_forgot_password', 'template_content_forgot_password',
+        'template_subject_two_factor', 'template_content_two_factor',
+        'template_subject_booking_success', 'template_content_booking_success',
+        'template_subject_booking_reminder', 'template_content_booking_reminder',
+        'template_subject_payment_success', 'template_content_payment_success'
+      ],
+      bg: 'bg-rose-500/5'
     }
   ];
 

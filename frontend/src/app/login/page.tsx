@@ -27,18 +27,34 @@ export default function LoginPage() {
   const [resetCode, setResetCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [simulatedResetCode, setSimulatedResetCode] = useState("");
+  const [resetTempToken, setResetTempToken] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [debugResetCode, setDebugResetCode] = useState("");
 
   const handleForgotEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const simulatedCode = Math.floor(100000 + Math.random() * 900000).toString();
-      setSimulatedResetCode(simulatedCode);
-      toast.success("Security code generated", {
-        description: `A dynamic verification code has been dispatched to ${forgotEmail}.`
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+      const res = await fetch(`${apiUrl}/forgot-password`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        },
+        body: JSON.stringify({ email: forgotEmail })
       });
-      setFlow('reset-code');
+      if (res.ok) {
+        const data = await res.json();
+        setResetTempToken(data.temp_token);
+        setDebugResetCode(data.debug_code || "");
+        toast.success("Security code generated", {
+          description: `A dynamic verification code has been dispatched to ${forgotEmail}.`
+        });
+        setFlow('reset-code');
+      } else {
+        toast.error("Request Failed", { description: "Failed to request password reset code." });
+      }
     } catch (err) {
       toast.error("Error", { description: "Failed to request password reset." });
     } finally {
@@ -49,17 +65,34 @@ export default function LoginPage() {
   const handleVerifyResetCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    if (resetCode === simulatedResetCode) {
-      toast.success("Code verified successfully!", {
-        description: "Please configure your new security credentials."
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+      const res = await fetch(`${apiUrl}/verify-reset-code`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        },
+        body: JSON.stringify({ temp_token: resetTempToken, code: resetCode })
       });
-      setFlow('new-password');
-    } else {
-      toast.error("Verification Failed", {
-        description: "Invalid or expired security reset code."
-      });
+      if (res.ok) {
+        const data = await res.json();
+        setResetToken(data.reset_token);
+        toast.success("Code verified successfully!", {
+          description: "Please configure your new security credentials."
+        });
+        setFlow('new-password');
+      } else {
+        const data = await res.json();
+        toast.error("Verification Failed", {
+          description: data.message || "Invalid or expired security reset code."
+        });
+      }
+    } catch (err) {
+      toast.error("Error", { description: "Unable to reach the verification server." });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSetNewPassword = async (e: React.FormEvent) => {
@@ -73,12 +106,37 @@ export default function LoginPage() {
       return;
     }
     
-    toast.success("Security credentials updated", {
-      description: "You may now sign in using your new password."
-    });
-    setEmail(forgotEmail);
-    setFlow('login');
-    setLoading(false);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+      const res = await fetch(`${apiUrl}/reset-password`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        },
+        body: JSON.stringify({ 
+          reset_token: resetToken, 
+          password: newPassword,
+          password_confirmation: confirmNewPassword
+        })
+      });
+      if (res.ok) {
+        toast.success("Security credentials updated", {
+          description: "You may now sign in using your new password."
+        });
+        setEmail(forgotEmail);
+        setFlow('login');
+      } else {
+        const data = await res.json();
+        toast.error("Reset Failed", {
+          description: data.message || "Unable to reset password."
+        });
+      }
+    } catch (err) {
+      toast.error("Error", { description: "Unable to reach the password reset server." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const router = useRouter();
@@ -375,10 +433,10 @@ export default function LoginPage() {
                          </div>
                       </div>
 
-                      {simulatedResetCode && (
+                      {debugResetCode && (
                          <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl text-center space-y-1 animate-pulse">
                             <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Simulated Password Reset Code</p>
-                            <code className="text-lg font-mono font-black text-foreground">{simulatedResetCode}</code>
+                            <code className="text-lg font-mono font-black text-foreground">{debugResetCode}</code>
                          </div>
                       )}
 

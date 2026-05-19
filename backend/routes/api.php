@@ -13,6 +13,9 @@ use App\Http\Controllers\API\DashboardController;
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/login/verify-2fa', [AuthController::class, 'verify2FA']);
 Route::post('/register', [AuthController::class, 'register']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/verify-reset-code', [AuthController::class, 'verifyResetCode']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 // Public Content
 Route::get('/site-content', [ContentController::class, 'index']);
