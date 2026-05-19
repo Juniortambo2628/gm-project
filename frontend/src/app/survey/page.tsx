@@ -27,7 +27,7 @@ function SurveyContent() {
   useEffect(() => {
     if (!pollId) {
         toast.error("Invalid Survey", { description: "No poll was found." });
-        router.push("/user");
+        router.push("/");
         return;
     }
 
@@ -76,7 +76,7 @@ function SurveyContent() {
 
   const handleSubmit = async () => {
     if (userResponse && !poll?.can_update_responses) {
-        router.push("/user");
+        router.push("/");
         return;
     }
 
@@ -94,7 +94,7 @@ function SurveyContent() {
         icon: <CheckCircle2 className="text-emerald-500" size={18} />
       });
       
-      router.push("/user");
+      router.push("/");
     } catch (e: any) {
       toast.error("Error", {
         description: e.response?.data?.message || "Something went wrong. Please try again.",
