@@ -159,7 +159,7 @@ class DynamicSystemMail extends Mailable
             ' . $content . '
         </div>
         <div class="footer">
-            <p>&copy; ' . date(\'Y\') . ' Gathoni Mwai Coaching. All rights reserved.</p>
+            <p>&copy; ' . date('Y') . ' Gathoni Mwai Coaching. All rights reserved.</p>
             <p>You received this email because you are registered on Gathoni Mwai Coaching.</p>
         </div>
     </div>
