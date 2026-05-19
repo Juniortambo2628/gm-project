@@ -12,51 +12,61 @@ return new class extends Migration
     public function up(): void
     {
         // 1. Organizations
-        Schema::create('organizations', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('industry')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('organizations')) {
+            Schema::create('organizations', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('industry')->nullable();
+                $table->timestamps();
+            });
+        }
 
         // 2. Factors
-        Schema::create('factors', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('factors')) {
+            Schema::create('factors', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->timestamps();
+            });
+        }
 
         // 3. Polls
-        Schema::create('polls', function (Blueprint $table) {
-            $table->id();
-            $table->string('title');
-            $table->text('description')->nullable();
-            $table->string('status')->default('draft'); // draft, active, closed
-            $table->unsignedBigInteger('organization_id')->index();
-            $table->integer('year');
-            $table->integer('quarter');
-            $table->boolean('can_update_responses')->default(false);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('polls')) {
+            Schema::create('polls', function (Blueprint $table) {
+                $table->id();
+                $table->string('title');
+                $table->text('description')->nullable();
+                $table->string('status')->default('draft'); // draft, active, closed
+                $table->unsignedBigInteger('organization_id')->index();
+                $table->integer('year');
+                $table->integer('quarter');
+                $table->boolean('can_update_responses')->default(false);
+                $table->timestamps();
+            });
+        }
 
         // 4. Questions
-        Schema::create('questions', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('poll_id')->index();
-            $table->unsignedBigInteger('factor_id')->index();
-            $table->text('text');
-            $table->decimal('weight', 8, 2)->default(1.00);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('questions')) {
+            Schema::create('questions', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('poll_id')->index();
+                $table->unsignedBigInteger('factor_id')->index();
+                $table->text('text');
+                $table->decimal('weight', 8, 2)->default(1.00);
+                $table->timestamps();
+            });
+        }
 
         // 5. Responses
-        Schema::create('responses', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('user_id')->index();
-            $table->unsignedBigInteger('poll_id')->index();
-            $table->json('answers');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('responses')) {
+            Schema::create('responses', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('user_id')->index();
+                $table->unsignedBigInteger('poll_id')->index();
+                $table->json('answers');
+                $table->timestamps();
+            });
+        }
     }
 
     /**
