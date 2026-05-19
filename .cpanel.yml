@@ -1,34 +1,29 @@
 ---
 deployment:
   tasks:
-    # =============================================
-    # GM-Consulting cPanel Auto-Deploy Configuration
-    # =============================================
-    # Repo root is automatically set by cPanel Git Version Control
-    # Backend core  -> /home/zhpebukm/gmconsulting-core/
-    # API public    -> /home/zhpebukm/gm-consulting.okjtech.co.ke/api/
-    # =============================================
+    # ==========================================================
+    # GM-Consulting cPanel Automated Deployment
+    # ==========================================================
+    # Repository Cloned to: /home/zhpebukm/repositories/gm-project
+    # Core Backend target:  /home/zhpebukm/gmconsulting-core
+    # API Public target:    /home/zhpebukm/gm-consulting.okjtech.co.ke/api
+    # ==========================================================
 
     # 1. Define target paths
     - export CORE=/home/zhpebukm/gmconsulting-core
     - export API=/home/zhpebukm/gm-consulting.okjtech.co.ke/api
 
-    # 2. Sync backend core files (everything except public/)
-    - /bin/cp -rf backend/app $CORE/
-    - /bin/cp -rf backend/bootstrap $CORE/
-    - /bin/cp -rf backend/config $CORE/
-    - /bin/cp -rf backend/database $CORE/
-    - /bin/cp -rf backend/resources $CORE/
-    - /bin/cp -rf backend/routes $CORE/
-    - /bin/cp -f  backend/artisan $CORE/
-    - /bin/cp -f  backend/composer.json $CORE/
-    - /bin/cp -f  backend/composer.lock $CORE/
+    # 2. Ensure target folders exist
+    - mkdir -p $CORE
+    - mkdir -p $API
 
-    # 3. Sync public API entry point files
-    - /bin/cp -rf backend/public/* $API/
-    - /bin/cp -f  backend/public/.htaccess $API/ 2>/dev/null || true
+    # 3. Synchronize Backend Core files (excluding the public folder to separate concerns)
+    - rsync -av --delete --exclude='public' backend/ $CORE/
 
-    # 4. Ensure required storage directories exist
+    # 4. Synchronize API Public entry point files
+    - rsync -av --delete backend/public/ $API/
+
+    # 5. Ensure required storage & cache directories exist in core
     - mkdir -p $CORE/storage/app/public/cms
     - mkdir -p $CORE/storage/framework/cache/data
     - mkdir -p $CORE/storage/framework/sessions
@@ -36,23 +31,23 @@ deployment:
     - mkdir -p $CORE/storage/logs
     - mkdir -p $CORE/bootstrap/cache
 
-    # 5. Set permissions (storage and bootstrap/cache must be writable)
+    # 6. Set correct permissions for production execution
     - chmod -R 775 $CORE/storage
     - chmod -R 775 $CORE/bootstrap/cache
-    - chmod 644 $CORE/config/*.php
+    - chmod 644 $CORE/config/*.php 2>/dev/null || true
     - chmod 644 $CORE/.env 2>/dev/null || true
     - chmod 755 $CORE/artisan
 
-    # 6. Ensure storage symlink exists in API directory
+    # 7. Maintain storage symlink from API directory to Core storage
     - ln -sfn $CORE/storage/app/public $API/storage
 
-    # 7. Install/update PHP dependencies (production-only)
+    # 8. Install PHP dependencies
     - cd $CORE && php composer.phar install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || cd $CORE && composer install --no-dev --optimize-autoloader --no-interaction
 
-    # 8. Run pending migrations
+    # 9. Run migrations automatically
     - cd $CORE && php artisan migrate --force
 
-    # 9. Clear and rebuild caches for production performance
+    # 10. Cache configuration and routes for production-grade speed
     - cd $CORE && php artisan config:cache
     - cd $CORE && php artisan route:cache
     - cd $CORE && php artisan view:cache
