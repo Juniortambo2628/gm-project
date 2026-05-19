@@ -152,6 +152,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       items: [
         { name: "Website CMS", path: "/admin/cms", icon: Globe },
         { name: "FAQs & Proof", path: "/admin/content", icon: HelpCircle },
+        { name: "User Accounts", path: "/admin/users", icon: User },
       ]
     }
   ];

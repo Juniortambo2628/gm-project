@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             SettingSeeder::class,
             UserSeeder::class,
             CmsSeeder::class,
+            SurveySeeder::class,
         ]);
     }
 }

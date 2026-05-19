@@ -9,6 +9,8 @@ use App\Http\Controllers\API\CMSController;
 use App\Http\Controllers\API\InquiryController;
 use App\Http\Controllers\API\OrderController;
 use App\Http\Controllers\API\DashboardController;
+use App\Http\Controllers\API\PollController;
+use App\Http\Controllers\API\UserController;
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/login/verify-2fa', [AuthController::class, 'verify2FA']);
@@ -33,6 +35,8 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::get('/user/bookings', [OrderController::class, 'userBookings']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change-password', [AuthController::class, 'changePassword']);
+    Route::get('/polls/{id}', [PollController::class, 'show']);
+    Route::post('/responses', [PollController::class, 'storeResponse']);
 
     // Admin endpoints
     Route::middleware('admin')->group(function() {
@@ -66,6 +70,11 @@ Route::middleware('auth:sanctum')->group(function() {
 
         // Order/Transaction Management
         Route::get('/cms/orders', [OrderController::class, 'index']);
+
+        // User Management CRUD
+        Route::get('/cms/users', [UserController::class, 'index']);
+        Route::put('/cms/users/{id}/role', [UserController::class, 'updateRole']);
+        Route::delete('/cms/users/{id}', [UserController::class, 'destroy']);
 
         // Legacy System Settings
         Route::post('/settings', [SettingController::class, 'update']);
