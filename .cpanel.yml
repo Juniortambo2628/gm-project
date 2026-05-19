@@ -17,11 +17,11 @@ deployment:
     - mkdir -p $CORE
     - mkdir -p $API
 
-    # 3. Synchronize Backend Core files (excluding the public folder to separate concerns)
-    - rsync -av --delete --exclude='public' backend/ $CORE/
+    # 3. Synchronize Backend Core files (excluding public folder to separate concerns)
+    - rsync -av --exclude='public' backend/ $CORE/
 
     # 4. Synchronize API Public entry point files
-    - rsync -av --delete backend/public/ $API/
+    - rsync -av backend/public/ $API/
 
     # 5. Ensure required storage & cache directories exist in core
     - mkdir -p $CORE/storage/app/public/cms
@@ -32,22 +32,22 @@ deployment:
     - mkdir -p $CORE/bootstrap/cache
 
     # 6. Set correct permissions for production execution
-    - chmod -R 775 $CORE/storage
-    - chmod -R 775 $CORE/bootstrap/cache
+    - chmod -R 775 $CORE/storage 2>/dev/null || true
+    - chmod -R 775 $CORE/bootstrap/cache 2>/dev/null || true
     - chmod 644 $CORE/config/*.php 2>/dev/null || true
     - chmod 644 $CORE/.env 2>/dev/null || true
-    - chmod 755 $CORE/artisan
+    - chmod 755 $CORE/artisan 2>/dev/null || true
 
     # 7. Maintain storage symlink from API directory to Core storage
     - ln -sfn $CORE/storage/app/public $API/storage
 
-    # 8. Install PHP dependencies
-    - cd $CORE && php composer.phar install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || cd $CORE && composer install --no-dev --optimize-autoloader --no-interaction
+    # 8. Install PHP dependencies (Non-blocking: if no composer/internet, don't halt deployment)
+    - cd $CORE && (composer install --no-dev --optimize-autoloader --no-interaction || php composer.phar install --no-dev --optimize-autoloader --no-interaction || echo "Composer install skipped or failed")
 
-    # 9. Run migrations automatically
-    - cd $CORE && php artisan migrate --force
+    # 9. Run pending migrations (Non-blocking: will not crash the deploy if .env isn't set up yet)
+    - cd $CORE && (php artisan migrate --force || echo "Migrations skipped (probably missing .env configuration)")
 
-    # 10. Cache configuration and routes for production-grade speed
-    - cd $CORE && php artisan config:cache
-    - cd $CORE && php artisan route:cache
-    - cd $CORE && php artisan view:cache
+    # 10. Cache configuration and routes (Non-blocking)
+    - cd $CORE && (php artisan config:cache || echo "Config caching skipped")
+    - cd $CORE && (php artisan route:cache || echo "Route caching skipped")
+    - cd $CORE && (php artisan view:cache || echo "View caching skipped")
