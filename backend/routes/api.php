@@ -30,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::get('/user', function (Request $request) {
         return response()->json($request->user());
     });
+    Route::get('/user/bookings', [OrderController::class, 'userBookings']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change-password', [AuthController::class, 'changePassword']);
 

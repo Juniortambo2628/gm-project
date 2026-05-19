@@ -25,7 +25,7 @@ export default function RegisterPage() {
       if (user?.role === 'admin') {
         router.push("/admin");
       } else {
-        router.push("/");
+        router.push("/user");
       }
     }
   }, [isAuthenticated, user, isLoading, router]);

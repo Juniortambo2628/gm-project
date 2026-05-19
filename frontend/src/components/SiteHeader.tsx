@@ -122,7 +122,7 @@ export function SiteHeader() {
               <ThemeToggle />
 
               {isAuthenticated ? (
-                <Link href={user?.role === 'admin' ? '/admin' : '/'} className="hidden lg:block animate-fade-in">
+                <Link href={user?.role === 'admin' ? '/admin' : '/user'} className="hidden lg:block animate-fade-in">
                   <Button size="xl" variant="outline" className="h-11 px-6 font-bold text-[13px] border-primary/30 hover:border-primary text-primary bg-secondary/50 dark:bg-transparent transition-all">
                     Dashboard
                   </Button>
@@ -173,7 +173,7 @@ export function SiteHeader() {
               <div className="h-px bg-border my-2"></div>
               
               {isAuthenticated ? (
-                <Link href={user?.role === 'admin' ? '/admin' : '/'} onClick={() => setIsMobileMenuOpen(false)}>
+                <Link href={user?.role === 'admin' ? '/admin' : '/user'} onClick={() => setIsMobileMenuOpen(false)}>
                   <Button variant="outline" className="w-full border-primary/30 text-primary rounded-3xl h-16 font-bold text-sm bg-secondary/50 shadow-sm">
                     Dashboard
                   </Button>

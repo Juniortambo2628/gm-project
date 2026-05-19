@@ -78,6 +78,16 @@ class OrderController extends Controller
     }
 
     /**
+     * List bookings for the authenticated user based on their email.
+     */
+    public function userBookings(Request $request)
+    {
+        $email = $request->user()->email;
+        $bookings = Transaction::where('email', $email)->latest()->get();
+        return response()->json($bookings);
+    }
+
+    /**
      * List all transactions (Admin).
      */
     public function index()
