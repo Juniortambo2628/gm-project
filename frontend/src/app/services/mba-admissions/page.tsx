@@ -26,8 +26,8 @@ export default function MBAAdmissionsPage() {
     { label: "MBA Admissions" }
   ];
 
-  // Filter services for MBA type
-  const mbaServices = services.filter(s => s.type === 'mba');
+  // Filter services for MBA type, excluding the introductory discovery call to prevent repetition
+  const mbaServices = services.filter(s => s.type === 'mba' && Number(s.price) > 0);
   
   const dynamicMbaFaqs = allFaqs.filter(f => f.category === 'mba' || f.category === 'MBA Admissions');
   const faqs = dynamicMbaFaqs.length > 0 ? dynamicMbaFaqs.map((f: any) => ({ q: f.question, a: f.answer })) : [
@@ -53,15 +53,15 @@ export default function MBAAdmissionsPage() {
     }
   ];
   
-  // Local packages with dynamic values mapped
+  // Local packages with dynamic values mapped (excluding discovery call)
   const packages = [
     ...mbaServices.map(s => ({
       name: s.name,
       duration: s.duration || "60 Min",
       price: `${s.currency === 'USD' ? '$' : ''}${s.price}`,
       features: Array.isArray(s.features) ? s.features : (s.features ? JSON.parse(s.features) : []),
-      cta: s.price == 0 ? "Book Free Call" : "Book Session",
-      popular: s.price > 0
+      cta: "Book Session",
+      popular: true
     }))
   ];
 
@@ -205,6 +205,7 @@ export default function MBAAdmissionsPage() {
                   name={pkg.name}
                   duration={pkg.duration}
                   price={pkg.price}
+                  priceSubtext="Fixed rate"
                   features={pkg.features}
                   ctaText={pkg.cta}
                   popular={pkg.popular}
