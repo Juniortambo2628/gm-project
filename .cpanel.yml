@@ -27,6 +27,8 @@ deployment:
     - /bin/cp -f  backend/artisan $CORE/
     - /bin/cp -f  backend/composer.json $CORE/
     - /bin/cp -f  backend/composer.lock $CORE/
+    - /bin/cp -f  backend/.env.production $CORE/.env.production
+    - /bin/cp -n  backend/.env.production $CORE/.env 2>/dev/null || true
 
     # 4. Copy API Public entry point files
     - /bin/cp -rf backend/public/* $API/
