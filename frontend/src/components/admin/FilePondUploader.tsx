@@ -32,6 +32,35 @@ export default function FilePondUploader({
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
 
+  const getResolvedUrl = (val: string) => {
+    if (!val) return "";
+    
+    // Prepend active API base host to any relative storage paths
+    if (val.startsWith('/storage') || val.startsWith('storage')) {
+      const base = apiUrl.replace(/\/api$/, "");
+      const normalizedPath = val.startsWith('/') ? val : '/' + val;
+      return `${base}${normalizedPath}`;
+    }
+    
+    // If absolute path, dynamically map to current API host in case of domain migration
+    if (val.startsWith('http://') || val.startsWith('https://')) {
+      try {
+        const urlObj = new URL(val);
+        const path = urlObj.pathname;
+        if (path.startsWith('/storage')) {
+          const base = apiUrl.replace(/\/api$/, "");
+          return `${base}${path}`;
+        }
+      } catch (e) {
+        // Fallback
+      }
+    }
+    
+    return val;
+  };
+
+  const resolvedValue = currentValue ? getResolvedUrl(currentValue) : "";
+
   return (
     <div className="filepond-wrapper space-y-4">
       <div className="flex items-center justify-between px-1">
@@ -46,15 +75,15 @@ export default function FilePondUploader({
       {currentValue && (
         <div className="relative group overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 flex flex-col items-center justify-center gap-3 transition-all hover:border-white/20">
           <div className="w-full h-32 rounded-xl overflow-hidden flex items-center justify-center bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] bg-muted/40 dark:bg-muted/10 relative">
-            {currentValue.endsWith('.mp4') || currentValue.endsWith('.webm') || currentValue.endsWith('.ogg') ? (
+            {resolvedValue.endsWith('.mp4') || resolvedValue.endsWith('.webm') || resolvedValue.endsWith('.ogg') ? (
               <video 
-                src={currentValue} 
+                src={resolvedValue} 
                 controls 
                 className="h-full w-full object-contain"
               />
             ) : (
               <img 
-                src={currentValue} 
+                src={resolvedValue} 
                 alt={label} 
                 className="max-h-full max-w-full object-contain p-2 drop-shadow-md"
                 onError={(e) => {

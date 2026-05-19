@@ -1235,6 +1235,94 @@ export default function CMSPage() {
                      </div>
                   )}
 
+                 {activeModule === 'email_templates' && (
+                     <div className="space-y-10 w-full max-w-4xl mx-auto">
+                        <div className="p-6 bg-primary/5 rounded-3xl border border-primary/10 animate-fade-in">
+                           <h4 className="font-bold text-sm text-primary mb-1">Email Customization & Placeholders</h4>
+                           <p className="text-xs text-muted-foreground font-medium leading-relaxed">
+                              Configure the automated message subjects and HTML bodies dispatched across different triggers. Use standard HTML tags (e.g. <code>&lt;p&gt;</code>, <code>&lt;strong&gt;</code>, <code>&lt;br&gt;</code>, <code>&lt;a&gt;</code>) to style the layout and inject the bracketed placeholders to pull dynamic context.
+                           </p>
+                        </div>
+
+                        {[
+                           {
+                              key: 'forgot_password',
+                              title: 'Forgot Password Verification Code',
+                              desc: 'Dispatched during login reset request to confirm identity.',
+                              placeholders: ['{name}', '{code}']
+                           },
+                           {
+                              key: 'two_factor',
+                              title: '2FA Secure Login Code',
+                              desc: 'Multi-factor authentication check for admin access.',
+                              placeholders: ['{name}', '{code}']
+                           },
+                           {
+                              key: 'booking_success',
+                              title: 'Coaching Booking Confirmation',
+                              desc: 'Welcome email sent immediately after booking a session.',
+                              placeholders: ['{name}', '{service_name}', '{date}', '{time}', '{amount}']
+                           },
+                           {
+                              key: 'booking_reminder',
+                              title: 'Upcoming Session Reminder',
+                              desc: 'Automated notification reminding client about their coaching slot.',
+                              placeholders: ['{name}', '{service_name}', '{date}', '{time}']
+                           },
+                           {
+                              key: 'payment_success',
+                              title: 'Payment Received Success',
+                              desc: 'Transactional confirmation of successful Paystack charge.',
+                              placeholders: ['{name}', '{amount}', '{service_name}', '{transaction_id}']
+                           }
+                        ].map((tpl) => (
+                           <div key={tpl.key} className="p-8 bg-muted/5 border border-primary/5 rounded-[24px] space-y-6 animate-fade-in">
+                              <div>
+                                 <h4 className="text-base font-black text-foreground">{tpl.title}</h4>
+                                 <p className="text-xs text-muted-foreground font-medium italic mt-1">{tpl.desc}</p>
+                              </div>
+
+                              <div className="grid grid-cols-1 gap-5">
+                                 <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Email Subject Line</label>
+                                    <Input 
+                                      value={localSettings[`template_subject_${tpl.key}`] || ''} 
+                                      onChange={(e) => setLocalSettings({...localSettings, [`template_subject_${tpl.key}`]: e.target.value})}
+                                      className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm font-bold" 
+                                      placeholder="Enter custom email subject..."
+                                    />
+                                 </div>
+
+                                 <div className="space-y-2">
+                                    <div className="flex justify-between items-center ml-1">
+                                       <label className="text-[10px] font-black uppercase tracking-widest text-primary/60">Email Body HTML Content</label>
+                                       <span className="text-[9px] font-bold text-slate-400">
+                                          Supported HTML markup
+                                       </span>
+                                    </div>
+                                    <Textarea 
+                                      rows={6}
+                                      value={localSettings[`template_content_${tpl.key}`] || ''} 
+                                      onChange={(e) => setLocalSettings({...localSettings, [`template_content_${tpl.key}`]: e.target.value})}
+                                      className="rounded-xl bg-background border border-primary/10 font-mono text-xs p-4 leading-relaxed" 
+                                      placeholder="<p>Enter HTML email content...</p>"
+                                    />
+                                 </div>
+
+                                 <div className="flex flex-wrap gap-2 items-center bg-card p-3 rounded-xl border">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-2 ml-1">Available Context Placeholders:</span>
+                                    {tpl.placeholders.map(ph => (
+                                       <code key={ph} className="text-[10px] font-extrabold text-primary bg-primary/5 px-2.5 py-1 rounded-md border border-primary/10 font-mono">
+                                          {ph}
+                                       </code>
+                                    ))}
+                                 </div>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                  )}
+
                  {activeModule === 'security' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full">
                        {/* Change Password Panel */}
