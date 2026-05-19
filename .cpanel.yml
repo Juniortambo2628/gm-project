@@ -2,7 +2,7 @@
 deployment:
   tasks:
     # ==========================================================
-    # GM-Consulting cPanel Automated Deployment
+    # GM-Consulting cPanel Automated Deployment (Ultra-Reliable)
     # ==========================================================
     # Repository Cloned to: /home/zhpebukm/repositories/gm-project
     # Core Backend target:  /home/zhpebukm/gmconsulting-core
@@ -13,41 +13,37 @@ deployment:
     - export CORE=/home/zhpebukm/gmconsulting-core
     - export API=/home/zhpebukm/gm-consulting.okjtech.co.ke/api
 
-    # 2. Ensure target folders exist
-    - mkdir -p $CORE
-    - mkdir -p $API
+    # 2. Ensure target folders exist using system absolute paths
+    - /bin/mkdir -p $CORE
+    - /bin/mkdir -p $API
 
-    # 3. Synchronize Backend Core files (excluding public folder to separate concerns)
-    - rsync -av --exclude='public' backend/ $CORE/
+    # 3. Copy Backend Core files (avoiding untracked system tools like rsync)
+    - /bin/cp -rf backend/app $CORE/
+    - /bin/cp -rf backend/bootstrap $CORE/
+    - /bin/cp -rf backend/config $CORE/
+    - /bin/cp -rf backend/database $CORE/
+    - /bin/cp -rf backend/resources $CORE/
+    - /bin/cp -rf backend/routes $CORE/
+    - /bin/cp -f  backend/artisan $CORE/
+    - /bin/cp -f  backend/composer.json $CORE/
+    - /bin/cp -f  backend/composer.lock $CORE/
 
-    # 4. Synchronize API Public entry point files
-    - rsync -av backend/public/ $API/
+    # 4. Copy API Public entry point files
+    - /bin/cp -rf backend/public/* $API/
+    - /bin/cp -f  backend/public/.htaccess $API/ 2>/dev/null || true
 
     # 5. Ensure required storage & cache directories exist in core
-    - mkdir -p $CORE/storage/app/public/cms
-    - mkdir -p $CORE/storage/framework/cache/data
-    - mkdir -p $CORE/storage/framework/sessions
-    - mkdir -p $CORE/storage/framework/views
-    - mkdir -p $CORE/storage/logs
-    - mkdir -p $CORE/bootstrap/cache
+    - /bin/mkdir -p $CORE/storage/app/public/cms
+    - /bin/mkdir -p $CORE/storage/framework/cache/data
+    - /bin/mkdir -p $CORE/storage/framework/sessions
+    - /bin/mkdir -p $CORE/storage/framework/views
+    - /bin/mkdir -p $CORE/storage/logs
+    - /bin/mkdir -p $CORE/bootstrap/cache
 
-    # 6. Set correct permissions for production execution
-    - chmod -R 775 $CORE/storage 2>/dev/null || true
-    - chmod -R 775 $CORE/bootstrap/cache 2>/dev/null || true
-    - chmod 644 $CORE/config/*.php 2>/dev/null || true
-    - chmod 644 $CORE/.env 2>/dev/null || true
-    - chmod 755 $CORE/artisan 2>/dev/null || true
+    # 6. Set correct permissions for execution using system utilities
+    - /bin/chmod -R 775 $CORE/storage 2>/dev/null || true
+    - /bin/chmod -R 775 $CORE/bootstrap/cache 2>/dev/null || true
+    - /bin/chmod 755 $CORE/artisan 2>/dev/null || true
 
     # 7. Maintain storage symlink from API directory to Core storage
-    - ln -sfn $CORE/storage/app/public $API/storage
-
-    # 8. Install PHP dependencies (Non-blocking: if no composer/internet, don't halt deployment)
-    - cd $CORE && (composer install --no-dev --optimize-autoloader --no-interaction || php composer.phar install --no-dev --optimize-autoloader --no-interaction || echo "Composer install skipped or failed")
-
-    # 9. Run pending migrations (Non-blocking: will not crash the deploy if .env isn't set up yet)
-    - cd $CORE && (php artisan migrate --force || echo "Migrations skipped (probably missing .env configuration)")
-
-    # 10. Cache configuration and routes (Non-blocking)
-    - cd $CORE && (php artisan config:cache || echo "Config caching skipped")
-    - cd $CORE && (php artisan route:cache || echo "Route caching skipped")
-    - cd $CORE && (php artisan view:cache || echo "View caching skipped")
+    - /bin/ln -sfn $CORE/storage/app/public $API/storage
