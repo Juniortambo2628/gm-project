@@ -198,9 +198,9 @@ export default function TestimonialsPage() {
             <p className="text-xl font-medium text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Don't wait for the 'perfect' time. Start your preparation today and join our list of winners.
             </p>
-             <Link href="/book">
-                <Button className="bg-primary text-white hover:bg-primary/90 px-16 h-16 text-lg font-bold rounded-full group shadow-2xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                   Book a strategy session <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
+             <Link href="/book" className="inline-block w-full sm:w-auto">
+                <Button className="w-full sm:w-auto bg-primary text-white hover:bg-primary/90 px-6 sm:px-10 md:px-16 h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg font-bold rounded-full group shadow-2xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 flex items-center justify-center">
+                   Book a strategy session <ArrowRight className="ml-2 sm:ml-3 group-hover:translate-x-2 transition-transform shrink-0" />
                 </Button>
              </Link>
          </div>

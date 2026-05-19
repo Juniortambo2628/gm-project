@@ -279,9 +279,9 @@ export default function MBAAdmissionsPage() {
             <p className="text-lg font-medium mb-10 text-white/80 leading-relaxed max-w-xl mx-auto">
               Don't leave your application to chance. Book a strategy session today and start your journey to a world-class MBA.
             </p>
-            <Link href="/book">
-               <Button className="bg-white text-primary hover:bg-white/90 px-12 h-16 text-lg font-bold rounded-full group shadow-2xl transition-all hover:scale-105 active:scale-95">
-                  Start my strategy <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
+            <Link href="/book" className="inline-block w-full sm:w-auto">
+               <Button className="w-full sm:w-auto bg-white text-primary hover:bg-white/90 px-6 sm:px-10 md:px-12 h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg font-bold rounded-full group shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center">
+                  Start my strategy <ArrowRight className="ml-2 sm:ml-3 group-hover:translate-x-2 transition-transform shrink-0" />
                </Button>
             </Link>
          </div>

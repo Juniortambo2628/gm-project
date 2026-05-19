@@ -121,6 +121,20 @@ export function SiteHeader() {
             <div className="flex items-center gap-5">
               <ThemeToggle />
 
+              {isAuthenticated ? (
+                <Link href={user?.role === 'admin' ? '/admin' : '/user'} className="hidden lg:block animate-fade-in">
+                  <Button size="xl" variant="outline" className="h-11 px-6 font-bold text-[13px] border-primary/30 hover:border-primary text-primary bg-secondary/50 dark:bg-transparent transition-all">
+                    Dashboard
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/login" className="hidden lg:block animate-fade-in">
+                  <Button size="xl" variant="outline" className="h-11 px-6 font-bold text-[13px] border-primary/30 hover:border-primary text-primary bg-secondary/50 dark:bg-transparent transition-all">
+                    Sign in
+                  </Button>
+                </Link>
+              )}
+
               <Link href="/book" className="hidden lg:block">
                 <Button size="xl" className="shadow-xl shadow-primary/20 transition-all active:scale-95 border-none h-11 px-6">
                   Book session
@@ -157,6 +171,21 @@ export function SiteHeader() {
                 ))}
               </div>
               <div className="h-px bg-border my-2"></div>
+              
+              {isAuthenticated ? (
+                <Link href={user?.role === 'admin' ? '/admin' : '/user'} onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full border-primary/30 text-primary rounded-3xl h-16 font-bold text-sm bg-secondary/50 shadow-sm">
+                    Dashboard
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full border-primary/30 text-primary rounded-3xl h-16 font-bold text-sm bg-secondary/50 shadow-sm">
+                    Sign in / Create Account
+                  </Button>
+                </Link>
+              )}
+
               <Link href="/book" onClick={() => setIsMobileMenuOpen(false)}>
                 <Button className="w-full bg-primary text-primary-foreground rounded-3xl h-16 font-bold text-sm shadow-xl shadow-primary/20">
                   Book session

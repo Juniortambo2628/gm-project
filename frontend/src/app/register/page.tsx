@@ -75,7 +75,14 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row-reverse bg-background font-sans transition-colors duration-500">
+    <div className="min-h-screen flex flex-col lg:flex-row-reverse bg-background font-sans transition-colors duration-500 relative">
+      {/* Floating Return Home Link */}
+      <Link 
+        href="/" 
+        className="absolute top-6 left-6 z-50 flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-card/85 backdrop-blur-md hover:border-slate-400 dark:hover:border-slate-600 transition-all text-xs font-bold text-muted-foreground shadow-sm animate-fade-in"
+      >
+        <ArrowLeft size={14} /> Back to website
+      </Link>
       {/* Right Side: Video & Brand */}
       <div className="relative w-full lg:w-1/2 h-[40vh] lg:h-screen bg-slate-900 overflow-hidden group">
          <video 
@@ -91,11 +98,18 @@ export default function RegisterPage() {
          {/* Overlay Content */}
          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-slate-900/40 p-12 flex flex-col justify-between">
             <div className="flex items-center gap-3">
-               {settings['logo_light'] ? (
-                 <img src={settings['logo_light']} alt="Logo" className="h-10 w-auto object-contain" />
-               ) : (
-                 <span className="text-xl font-bold text-white">{settings['site_name'] || "Consultancy"}<span className="text-primary italic">.</span></span>
-               )}
+               <img 
+                 src={settings['logo_light'] || "/branding/GM-logo-light-final.png"} 
+                 alt="Logo" 
+                 className="h-10 w-auto object-contain rounded-xl"
+                 onError={(e) => {
+                   const target = e.currentTarget;
+                   const fallback = "/branding/GM-logo-light-final.png";
+                   if (target.src !== window.location.origin + fallback && target.src !== fallback) {
+                     target.src = fallback;
+                   }
+                 }}
+               />
             </div>
 
             <div className="max-w-md hidden lg:block text-right self-end">
@@ -114,7 +128,7 @@ export default function RegisterPage() {
          <div className="w-full max-w-md relative z-10">
             <div className="mb-10 text-center lg:text-left">
                <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary text-primary rounded-full text-[13px] font-bold mb-4 border border-border">
-                  <Heart size={12} fill="currentColor" /> Welcome aboard
+                  Welcome aboard
                </div>
                <h3 className="text-4xl text-foreground mb-2 italic">Register</h3>
                <p className="text-muted-foreground font-bold text-sm">Fill in the details below to begin your journey.</p>

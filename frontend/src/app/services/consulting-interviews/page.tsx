@@ -254,9 +254,9 @@ export default function ConsultingPrepPage() {
             <p className="text-lg font-medium mb-10 text-muted-foreground leading-relaxed max-w-xl mx-auto">
               Master the logic, the math, and the narrative. Start your preparation with a coach who knows the African market.
             </p>
-             <Link href="/book">
-                <Button className="bg-primary text-white hover:bg-primary/90 px-16 h-16 text-lg font-bold rounded-full group shadow-2xl transition-all hover:scale-105 active:scale-95">
-                   Book first mock case <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
+             <Link href="/book" className="inline-block w-full sm:w-auto">
+                <Button className="w-full sm:w-auto bg-primary text-white hover:bg-primary/90 px-6 sm:px-10 md:px-16 h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg font-bold rounded-full group shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center">
+                   Book first mock case <ArrowRight className="ml-2 sm:ml-3 group-hover:translate-x-2 transition-transform shrink-0" />
                 </Button>
              </Link>
          </div>

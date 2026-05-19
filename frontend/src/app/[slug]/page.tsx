@@ -114,8 +114,8 @@ export default async function DynamicFooterPage({ params }: { params: Promise<{ 
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-6 w-full sm:w-auto">
-                <Link href="/">
-                    <Button className="h-14 px-10 rounded-full bg-primary hover:bg-primary/90 text-white text-[13px] font-bold shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-3 w-full sm:w-auto">
+                <Link href="/" className="w-full sm:w-auto">
+                    <Button className="h-14 px-10 rounded-full bg-primary hover:bg-primary/90 text-white text-[13px] font-bold shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3 w-full sm:w-auto">
                         <ArrowLeft size={18} /> Return home
                     </Button>
                 </Link>
