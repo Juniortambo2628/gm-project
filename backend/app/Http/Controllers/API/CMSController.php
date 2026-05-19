@@ -52,59 +52,72 @@ class CMSController extends Controller
 
     public function uploadFile(Request $request)
     {
+        // Extract the file directly from the files bag to prevent name-collision where FilePond/plugins send metadata string with same name 'file'
+        $file = null;
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+        } elseif ($request->files->has('file')) {
+            $file = $request->files->get('file');
+        }
+
+        // Validate key
         $request->validate([
-            'file' => 'required|file|max:25600',
             'key' => 'required|string'
         ]);
 
-        if ($request->hasFile('file')) {
-            $file = $request->file('file');
-            $mime = $file->getClientMimeType();
-            $ext = strtolower($file->getClientOriginalExtension());
-
-            // Programmatic MIME and extension check to prevent Windows server mismatched validation blocks
-            $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp', 'video/mp4', 'video/webm', 'video/ogg'];
-            $allowedExts = ['jpeg', 'jpg', 'png', 'gif', 'svg', 'webp', 'mp4', 'webm', 'ogg'];
-            
-            if (!in_array($mime, $allowedMimes) && !in_array($ext, $allowedExts)) {
-                return response()->json(['error' => 'Unsupported file format: ' . $mime], 422);
-            }
-            $file = $request->file('file');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('cms', $filename, 'public');
-            
-            $fullPath = storage_path('app/public/' . $path);
-            $mime = $file->getClientMimeType();
-
-            // Compress Image (GD library)
-            if (strpos($mime, 'image/') !== false) {
-                $this->compressImage($fullPath, $fullPath, $mime);
-            }
-
-            // Compress Video (FFmpeg fallback)
-            if (strpos($mime, 'video/') !== false) {
-                $tempVideoPath = $fullPath . '_temp.mp4';
-                if ($this->compressVideo($fullPath, $tempVideoPath)) {
-                    @unlink($fullPath);
-                    @rename($tempVideoPath, $fullPath);
-                } else {
-                    @unlink($tempVideoPath);
-                }
-            }
-            
-            $url = \Illuminate\Support\Facades\Storage::disk('public')->url($path);
-            
-            // Save to settings automatically if key provided
-            \App\Models\Setting::set($request->key, $url, 'media', $mime);
-
-            return response()->json([
-                'message' => 'File uploaded successfully',
-                'url' => $url,
-                'path' => $path
-            ]);
+        // Manually validate that a valid uploaded file exists
+        if (!$file || !($file instanceof \Illuminate\Http\UploadedFile) || !$file->isValid()) {
+            return response()->json(['error' => 'The file field must be a valid uploaded file.'], 422);
         }
 
-        return response()->json(['error' => 'No file provided'], 400);
+        // Validate max size (25.6MB)
+        if ($file->getSize() > 25600 * 1024) {
+            return response()->json(['error' => 'The file size must not exceed 25.6MB.'], 422);
+        }
+
+        $mime = $file->getClientMimeType();
+        $ext = strtolower($file->getClientOriginalExtension());
+
+        // Programmatic MIME and extension check to prevent Windows server mismatched validation blocks
+        $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp', 'video/mp4', 'video/webm', 'video/ogg'];
+        $allowedExts = ['jpeg', 'jpg', 'png', 'gif', 'svg', 'webp', 'mp4', 'webm', 'ogg'];
+        
+        if (!in_array($mime, $allowedMimes) && !in_array($ext, $allowedExts)) {
+            return response()->json(['error' => 'Unsupported file format: ' . $mime], 422);
+        }
+
+        $filename = time() . '_' . $file->getClientOriginalName();
+        $path = $file->storeAs('cms', $filename, 'public');
+        
+        $fullPath = storage_path('app/public/' . $path);
+        $mime = $file->getClientMimeType();
+
+        // Compress Image (GD library)
+        if (strpos($mime, 'image/') !== false) {
+            $this->compressImage($fullPath, $fullPath, $mime);
+        }
+
+        // Compress Video (FFmpeg fallback)
+        if (strpos($mime, 'video/') !== false) {
+            $tempVideoPath = $fullPath . '_temp.mp4';
+            if ($this->compressVideo($fullPath, $tempVideoPath)) {
+                @unlink($fullPath);
+                @rename($tempVideoPath, $fullPath);
+            } else {
+                @unlink($tempVideoPath);
+            }
+        }
+        
+        $url = \Illuminate\Support\Facades\Storage::disk('public')->url($path);
+        
+        // Save to settings automatically if key provided
+        \App\Models\Setting::set($request->key, $url, 'media', $mime);
+
+        return response()->json([
+            'message' => 'File uploaded successfully',
+            'url' => $url,
+            'path' => $path
+        ]);
     }
 
     private function compressImage($sourcePath, $destinationPath, $mimeType)
