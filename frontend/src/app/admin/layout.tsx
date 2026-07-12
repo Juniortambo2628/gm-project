@@ -1,5 +1,5 @@
 "use client";
-import { LayoutDashboard, LogOut, Settings, BarChart3, Fingerprint, RefreshCcw, MessageSquare, Globe, FileText, DollarSign, HelpCircle, Bell, CheckCheck, User, ShieldAlert, Clock, ExternalLink, Lock, Check, Calendar } from "lucide-react";
+import { LogOut, Settings, BarChart3, MessageSquare, Globe, FileText, DollarSign, HelpCircle, Bell, CheckCheck, User, ShieldAlert, Clock, ExternalLink, Mail, Zap, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname, useRouter } from "next/navigation";
@@ -7,24 +7,42 @@ import { useState, useEffect } from "react";
 import axiosInstance from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { SiteFooter } from "@/components/SiteFooter";
-import { useCMS } from "@/context/SettingContext";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { SafeImage } from "@/components/SafeImage";
+
+interface NotificationItem {
+  id: number;
+  title: string;
+  message: string;
+  type: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+interface MenuItem {
+  name: string;
+  path?: string;
+  icon?: LucideIcon;
+  category?: string;
+  items?: MenuItem[];
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
-  const { settings, getSetting } = useCMS();
-  const [isDataLoading, setIsDataLoading] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const { getSetting } = useSiteSettings();
+  const [isDataLoading] = useState(false);
   const [isDark, setIsDark] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const fetchNotifications = async () => {
     try {
       const response = await axiosInstance.get('/cms/notifications');
-      setNotifications(response.data);
+      const list = Array.isArray(response.data) ? response.data : response.data?.data ?? [];
+      setNotifications(list);
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
     }
@@ -32,6 +50,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (isAuthenticated) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchNotifications();
       const interval = setInterval(fetchNotifications, 20000);
       return () => clearInterval(interval);
@@ -98,17 +117,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [isAuthenticated, isAuthLoading, user, router]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setIsSearchOpen(true);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   if (isAuthLoading || (isAuthenticated && isDataLoading)) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
@@ -124,11 +132,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     logout();
   };
 
-  const markAsRead = async (id: number) => {
-    // Legacy notification logic removed
-  };
-
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     { name: "Analytics dashboard", path: "/admin", icon: BarChart3, category: "Overview" },
     { 
       name: "Communication", 
@@ -152,7 +156,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       items: [
         { name: "Website CMS", path: "/admin/cms", icon: Globe },
         { name: "FAQs & Proof", path: "/admin/content", icon: HelpCircle },
+        { name: "Email Templates", path: "/admin/emails", icon: Mail },
         { name: "User Accounts", path: "/admin/users", icon: User },
+      ]
+    },
+    {
+      name: "System",
+      category: "Infrastructure",
+      items: [
+        { name: "API Integrations", path: "/admin/integrations", icon: Zap },
       ]
     }
   ];
@@ -164,26 +176,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-8">
           <Link href="/" className="flex items-center gap-3 group">
               {(() => {
-                const logoLight = getSetting('logo_light') || "/branding/GM-logo-light-final.png";
-                const logoDark = getSetting('logo_dark') || "/branding/GM-logo-dark-final.png";
-                const logoSrc = isDark ? logoLight : logoDark;
+                const logoLight = getSetting('logo_light', "/branding/GM-logo-light-final.png");
+                const logoDark = getSetting('logo_dark', "/branding/GM-logo-dark-final.png");
+                const logoSrc = isDark ? logoDark : logoLight;
                 
                 return (
                   <div className="flex items-center gap-3">
-                    <img 
-                      src={logoSrc} 
-                      alt="Site Logo" 
-                      className="h-10 w-auto object-contain transition-transform group-hover:scale-105" 
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        const fallback = isDark ? "/branding/GM-logo-light-final.png" : "/branding/GM-logo-dark-final.png";
-                        if (target.src !== window.location.origin + fallback && target.src !== fallback) {
-                          target.src = fallback;
-                        }
-                      }}
+                    <SafeImage
+                      src={logoSrc}
+                      fallback={isDark ? "/branding/GM-logo-dark-final.png" : "/branding/GM-logo-light-final.png"}
+                      alt="Site Logo"
+                      width={120}
+                      height={40}
+                      className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
+                      style={{ width: 'auto', height: 'auto' }}
                     />
                     <div>
-                       <h1 className="text-[13px] font-black text-foreground tracking-wider leading-none uppercase">{settings['site_name'] || "Consultancy"}</h1>
+                       <h1 className="text-[13px] font-black text-foreground tracking-wider leading-none uppercase">{getSetting('site_name', "Consultancy")}</h1>
                        <p className="text-[10px] font-bold text-primary tracking-wide uppercase mt-1">Admin system</p>
                     </div>
                   </div>
@@ -199,30 +208,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {section.category}
               </p>
               <div className="space-y-1">
-                {('items' in section && Array.isArray(section.items)) ? (
-                  (section.items as any[]).map((item) => {
+                {section.items && section.items.length > 0 ? (
+                  section.items.map((item) => {
+                    if (!item.path || !item.icon) return null;
                     const ItemIcon = item.icon;
                     return (
-                      <Link 
+                      <Link
                         key={item.path}
-                        href={item.path} 
+                        href={item.path}
                         className={`p-3 rounded-xl text-left font-medium flex items-center gap-3 transition-all duration-300 ${pathname === item.path ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/10' : 'hover:bg-muted text-muted-foreground hover:text-foreground'}`}
                       >
-                         <ItemIcon size={18} className={pathname === item.path ? 'text-primary-foreground' : 'text-muted-foreground'} /> 
+                         <ItemIcon size={18} className={pathname === item.path ? 'text-primary-foreground' : 'text-muted-foreground'} />
                          <span className="text-[12px]">{item.name}</span>
                       </Link>
                     );
                   })
                 ) : (
                   (() => {
-                    const SectionIcon = (section as any).icon;
+                    if (!section.path || !section.icon) return null;
+                    const SectionIcon = section.icon;
                     return (
-                      <Link 
-                        href={(section as any).path!} 
-                        className={`p-3 rounded-xl text-left font-medium flex items-center gap-3 transition-all duration-300 ${pathname === (section as any).path ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/10' : 'hover:bg-muted text-muted-foreground hover:text-foreground'}`}
+                      <Link
+                        href={section.path}
+                        className={`p-3 rounded-xl text-left font-medium flex items-center gap-3 transition-all duration-300 ${pathname === section.path ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/10' : 'hover:bg-muted text-muted-foreground hover:text-foreground'}`}
                       >
-                         <SectionIcon size={18} className={pathname === (section as any).path ? 'text-primary-foreground' : 'text-muted-foreground'} /> 
-                         <span className="text-[12px] text-sentence-case">{(section as any).name}</span>
+                         <SectionIcon size={18} className={pathname === section.path ? 'text-primary-foreground' : 'text-muted-foreground'} />
+                         <span className="text-[12px] text-sentence-case">{section.name}</span>
                       </Link>
                     );
                   })()

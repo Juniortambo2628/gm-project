@@ -5,14 +5,12 @@ interface IconBlockProps {
   icon: LucideIcon;
   className?: string;
   iconClassName?: string;
-  variant?: 'default' | 'solid';
 }
 
 export function IconBlock({ 
   icon: Icon, 
   className, 
-  iconClassName,
-  variant = 'default' 
+  iconClassName
 }: IconBlockProps) {
   return (
     <div className={cn("icon-block", className)}>

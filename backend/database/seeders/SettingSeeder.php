@@ -14,21 +14,17 @@ class SettingSeeder extends Seeder
     {
         $settings = [
             // General
-            ['key' => 'site_name', 'value' => 'Culture Monitor™', 'group' => 'general', 'type' => 'string'],
-            ['key' => 'site_description', 'value' => 'Enterprise Culture Analysis Platform', 'group' => 'general', 'type' => 'string'],
-            ['key' => 'support_email', 'value' => 'support@culturemonitor.io', 'group' => 'general', 'type' => 'string'],
+            ['key' => 'site_name', 'value' => 'Gathoni Mwai Coaching', 'group' => 'general', 'type' => 'string'],
+            ['key' => 'site_description', 'value' => 'MBA Admissions & Consulting Interview Coaching', 'group' => 'general', 'type' => 'string'],
+            ['key' => 'support_email', 'value' => 'Gathoni.mwai0@gmail.com', 'group' => 'general', 'type' => 'string'],
             
             // Communications
             ['key' => 'enable_notifications', 'value' => 'true', 'group' => 'communications', 'type' => 'boolean'],
-            ['key' => 'welcome_message', 'value' => 'Welcome to the Culture Monitor portal.', 'group' => 'communications', 'type' => 'string'],
+            ['key' => 'welcome_message', 'value' => 'Welcome to the Gathoni Mwai Coaching portal.', 'group' => 'communications', 'type' => 'string'],
             
             // Security
             ['key' => 'allow_public_registration', 'value' => 'true', 'group' => 'security', 'type' => 'boolean'],
             ['key' => 'session_timeout', 'value' => '120', 'group' => 'security', 'type' => 'number'],
-            
-            // Analytics
-            ['key' => 'heatmap_refresh_rate', 'value' => '60', 'group' => 'analytics', 'type' => 'number'],
-            ['key' => 'auto_generate_reports', 'value' => 'false', 'group' => 'analytics', 'type' => 'boolean'],
         ];
 
         foreach ($settings as $setting) {

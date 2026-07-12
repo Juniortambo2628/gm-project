@@ -5,11 +5,11 @@ A new client has reached out via the website contact form.
 
 **Name:** {{ $inquiryMessage->name }}  
 **Email:** {{ $inquiryMessage->email }}  
-**Interested In:** {{ $inquiryMessage->service_interest }}  
+**Subject:** {{ $inquiryMessage->subject ?: 'General Coaching Inquiry' }}  
 
 **Message:**
 <x-mail::panel>
-{{ $inquiryMessage->message }}
+{{ $inquiryMessage->content }}
 </x-mail::panel>
 
 <x-mail::button :url="config('app.frontend_url', 'http://localhost:3000') . '/admin'">

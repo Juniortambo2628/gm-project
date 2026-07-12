@@ -3,71 +3,69 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\StoreMessageRequest;
+use App\Http\Resources\MessageResource;
 use App\Models\Message;
 use App\Models\Setting;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\InquiryReceived;
+use App\Services\MailDeliveryService;
+use App\Services\NotificationService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
 class InquiryController extends Controller
 {
+    public function __construct(
+        protected NotificationService $notificationService,
+        protected MailDeliveryService $mailDeliveryService
+    ) {}
+
     /**
      * Store a new contact message.
      */
-    public function store(Request $request)
+    public function store(StoreMessageRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'country' => 'nullable|string|max:255',
-            'subject' => 'nullable|string|max:255',
-            'content' => 'required|string',
-        ]);
+        $validated = $request->validated();
 
         try {
             $message = Message::create($validated);
 
-            // Create live administrative notifications for all admin users
-            try {
-                $admins = \App\Models\User::where('role', 'admin')->get();
-                foreach ($admins as $admin) {
-                    \App\Models\Notification::create([
-                        'user_id' => $admin->id,
-                        'type' => 'inquiry',
-                        'title' => 'New Client Inquiry Received',
-                        'message' => "{$message->name} has submitted a new inquiry regarding " . ($message->subject ?: 'Coaching') . ".",
-                        'metadata' => [
-                            'inquiry_id' => $message->id,
-                            'email' => $message->email,
-                            'country' => $message->country
-                        ],
-                        'is_read' => false
-                    ]);
-                }
-            } catch (\Exception $notifEx) {
-                Log::error('Failed to create administrative inquiry notification: ' . $notifEx->getMessage());
-            }
-            
-            // Try to find admin email from settings
-            $adminEmailSetting = Setting::where('key', 'contact_email')->first();
-            $adminEmail = $adminEmailSetting ? $adminEmailSetting->value : 'admin@gathonimwai.com';
+            $this->notificationService->notifyAdmins(
+                'inquiry',
+                'New Client Inquiry Received',
+                "{$message->name} has submitted a new inquiry regarding " . ($message->subject ?: 'Coaching') . ".",
+                [
+                    'inquiry_id' => $message->id,
+                    'email' => $message->email,
+                    'country' => $message->country,
+                ]
+            );
 
-            try {
-                Mail::to($adminEmail)->queue(new InquiryReceived($message));
-            } catch (\Exception $mailEx) {
-                Log::error('Failed to send inquiry email (check SMTP credentials): ' . $mailEx->getMessage());
-            }
+            $adminEmail = Setting::get('contact_email', 'admin@gathonimwai.com');
+
+            $this->mailDeliveryService->send($adminEmail, 'inquiry_received', [
+                'name' => $message->name,
+                'email' => $message->email,
+                'subject' => $message->subject ?: 'General Coaching Inquiry',
+                'country' => $message->country ?: 'N/A',
+                'message' => nl2br(e($message->content)),
+            ]);
+
+            $this->mailDeliveryService->send($message->email, 'inquiry_auto_reply', [
+                'name' => $message->name,
+                'subject' => $message->subject ?: 'your inquiry',
+            ]);
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Message sent successfully. We will get back to you shortly.',
-                'data' => $message
+                'data' => new MessageResource($message),
             ], 201);
         } catch (\Exception $e) {
+            Log::error('Failed to store inquiry: ' . $e->getMessage());
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'An error occurred while processing your request.'
+                'message' => 'An error occurred while processing your request.',
             ], 500);
         }
     }
@@ -75,18 +73,45 @@ class InquiryController extends Controller
     /**
      * List all inquiries (Admin).
      */
-    public function index()
+    public function index(): JsonResponse
     {
-        $messages = Message::latest()->get();
-        return response()->json($messages);
+        $messages = Message::query()->latest()->paginate(15);
+
+        return MessageResource::collection($messages)->response();
+    }
+
+    /**
+     * Show a single inquiry (Admin).
+     */
+    public function show($id): JsonResponse
+    {
+        $message = Message::query()->findOrFail($id);
+
+        return (new MessageResource($message))->response();
+    }
+
+    /**
+     * Mark an inquiry as read (Admin).
+     */
+    public function markAsRead($id): JsonResponse
+    {
+        $message = Message::query()->findOrFail($id);
+        $message->update(['is_read' => true]);
+
+        return response()->json([
+            'message' => 'Inquiry marked as read',
+            'data' => new MessageResource($message),
+        ]);
     }
 
     /**
      * Delete an inquiry (Admin).
      */
-    public function destroy($id)
+    public function destroy($id): JsonResponse
     {
-        Message::destroy($id);
+        $message = Message::query()->findOrFail($id);
+        $message->delete();
+
         return response()->json(['message' => 'Message deleted successfully']);
     }
 }

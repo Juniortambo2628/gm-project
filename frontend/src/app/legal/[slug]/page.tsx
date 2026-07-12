@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { ArrowLeft, Scale, ShieldAlert, FileText, Cookie } from "lucide-react";
+import { ArrowLeft, Scale, ShieldAlert, FileText, Cookie, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-const legalConfig: Record<string, { title: string; description: string; icon: any; status: string; features: string[] }> = {
+const legalConfig: Record<string, { title: string; description: string; icon: LucideIcon; status: string; features: string[] }> = {
   "privacy": {
     title: "Privacy policy",
     description: "Strict data sovereignty guidelines concerning how we protect, store, and process your personal and professional information.",

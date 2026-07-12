@@ -72,7 +72,7 @@ function Slider({
         style={{
           background: `linear-gradient(to right, hsl(var(--primary)) ${percentage}%, hsl(var(--secondary)) ${percentage}%)`
         }}
-        {...(props as any)}
+        {...(props as React.InputHTMLAttributes<HTMLInputElement>)}
       />
     </div>
   )

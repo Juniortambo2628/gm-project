@@ -17,8 +17,8 @@ export function ThemeToggle() {
       onClick={() => {
         const nextTheme = theme === "light" ? "dark" : "light";
         setTheme(nextTheme);
-        toast.success(nextTheme === "dark" ? "Deep Teal Mode Active" : "Light Mode Active", {
-          description: "System aesthetics updated successfully."
+        toast.success(nextTheme === "dark" ? "Dark Mode" : "Light Mode", {
+          description: "Theme updated successfully."
         });
       }}
     >

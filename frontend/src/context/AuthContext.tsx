@@ -2,8 +2,9 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import axiosInstance from "@/lib/axios";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { isAxiosError } from "@/lib/utils";
 
 interface AuthUser {
   id: number;
@@ -27,7 +28,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
 
   const fetchProfile = useCallback(async () => {
     const token = localStorage.getItem("auth_token");
@@ -39,8 +39,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await axiosInstance.get("/user");
       setUser(response.data);
-    } catch (error: any) {
-      if (error?.response?.status === 401) {
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 401) {
         localStorage.removeItem("auth_token");
         setUser(null);
       } else {

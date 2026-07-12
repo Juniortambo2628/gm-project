@@ -20,8 +20,12 @@ export const metadata: Metadata = {
 import { Toaster } from 'sonner';
 
 import { AuthProvider } from "@/context/AuthContext";
-import { SettingProvider } from "@/context/SettingContext";
+import { SiteDataProvider } from "@/context/SiteDataContext";
+import { SiteSettingsProvider } from "@/context/SiteSettingsContext";
+import { CMSContentProvider } from "@/context/CMSContentContext";
 import { SEOHandler } from "@/components/SEOHandler";
+import { ApiStatusBanner } from "@/components/ApiStatusBanner";
+import { SiteDataGate } from "@/components/SiteDataGate";
 
 export default function RootLayout({
   children,
@@ -34,6 +38,9 @@ export default function RootLayout({
       className={`${inter.variable} h-full antialiased font-sans`}
       suppressHydrationWarning
     >
+      <head>
+        <link rel="preconnect" href="http://localhost:8000" />
+      </head>
       <body 
         className="w-full flex flex-col bg-background text-foreground transition-colors duration-300"
         suppressHydrationWarning
@@ -45,11 +52,18 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <SettingProvider>
-              <SEOHandler />
-              {children}
-              <Toaster position="top-right" richColors expand={true} />
-            </SettingProvider>
+            <SiteDataProvider>
+              <SiteSettingsProvider>
+                <CMSContentProvider>
+                  <SEOHandler />
+                  <ApiStatusBanner />
+                  <SiteDataGate>
+                    {children}
+                  </SiteDataGate>
+                  <Toaster position="top-right" richColors expand={true} />
+                </CMSContentProvider>
+              </SiteSettingsProvider>
+            </SiteDataProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

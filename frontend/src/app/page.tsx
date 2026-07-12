@@ -1,33 +1,43 @@
+/* eslint-disable react/no-unescaped-entities, @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useSetting, useCMS } from "@/context/SettingContext";
-import { SiteHeader } from "@/components/SiteHeader";
+import Image from "next/image";
 import { PrivacyConsent } from "@/components/PrivacyConsent";
-import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { SiteFooter } from "@/components/SiteFooter";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Linkedin, Award, GraduationCap, Briefcase, Globe, TrendingUp, Star } from "lucide-react";
 import Link from "next/link";
 import { IconBlock } from "@/components/ui/IconBlock";
+import { SiteHeader } from "@/components/SiteHeader";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { cn } from "@/lib/utils";
+import { HeroSkeleton } from "@/components/Skeletons";
 
 export default function Home() {
-  const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const { settings, services, isLoading } = useCMS();
+  const { getSetting, getHeroProps } = useSiteSettings();
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect
+  }, []);
 
-  if (!mounted) return null;
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SiteHeader />
+        <HeroSkeleton />
+      </div>
+    );
+  }
 
   const getOrderedSections = (): string[] => {
     try {
-      const val = settings['landing_sections_order_json'];
+      const val = getSetting('landing_sections_order_json');
       if (!val) return ["hero", "bio", "credentials", "african_coach", "cta"];
       const parsed = typeof val === 'string' ? JSON.parse(val) : val;
       return Array.isArray(parsed) && parsed.length > 0 ? parsed : ["hero", "bio", "credentials", "african_coach", "cta"];
-    } catch (e) {
+    } catch {
       return ["hero", "bio", "credentials", "african_coach", "cta"];
     }
   };
@@ -35,26 +45,67 @@ export default function Home() {
   const renderSection = (sectionId: string) => {
     switch (sectionId) {
       case 'hero':
+        const heroBg = getHeroProps('hero_background_path', '/landing-hero-bg-image-landscape.png');
+        const heroPos = heroBg.position;
+        const desktopX = heroPos?.x ?? 50;
+        const desktopY = heroPos?.y ?? 50;
+        const mobileX = heroPos?.mobile_x ?? desktopX;
+        const mobileY = heroPos?.mobile_y ?? desktopY;
+        const isVideo = heroBg.videoSrc.match(/\.(mp4|webm|ogg)$/i);
+        const isMobileVideo = heroBg.mobileVideoSrc?.match(/\.(mp4|webm|ogg)$/i);
         return (
-          <div key="hero" className="relative flex flex-col w-full min-h-[70vh] overflow-hidden">
+          <div key="hero" className="relative flex flex-col w-full min-h-screen overflow-hidden">
             {/* Dynamic Background */}
             <div className="absolute inset-0 z-0 animate-fade-in transition-opacity duration-700">
-               {settings['hero_background_path']?.match(/\.(mp4|webm|ogg)$/i) ? (
-                 <video
-                   autoPlay
-                   loop
-                   muted
-                   playsInline
-                   className="w-full h-full object-cover"
-                 >
-                   <source src={settings['hero_background_path']} type="video/mp4" />
-                 </video>
-               ) : (
-                 <div 
-                   className="absolute inset-0 w-full h-full bg-cover bg-no-repeat bg-center opacity-90 transition-opacity duration-700"
-                   style={{ backgroundImage: `url(${settings['hero_background_path'] || '/landing-hero-bg-image-landscape.png'})` }}
-                 />
-               )}
+                {/* Mobile background (hidden on md+) */}
+                {heroBg.mobileVideoSrc && (
+                  <div className="md:hidden absolute inset-0">
+                    {isMobileVideo ? (
+                      <video
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                        style={{ objectPosition: `${mobileX}% ${mobileY}%` }}
+                      >
+                        <source src={heroBg.mobileVideoSrc} type="video/mp4" />
+                      </video>
+                    ) : (
+                      <div
+                        className="absolute inset-0 w-full h-full bg-cover bg-no-repeat opacity-90 transition-opacity duration-700"
+                        style={{
+                          backgroundImage: `url(${heroBg.mobileVideoSrc})`,
+                          backgroundPosition: `${mobileX}% ${mobileY}%`,
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* Desktop background */}
+                <div className={cn(heroBg.mobileVideoSrc && "hidden md:block", "absolute inset-0")}>
+                  {isVideo ? (
+                    <video
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover"
+                      style={{ objectPosition: `${desktopX}% ${desktopY}%` }}
+                    >
+                      <source src={heroBg.videoSrc} type="video/mp4" />
+                    </video>
+                  ) : (
+                    <div
+                      className="absolute inset-0 w-full h-full bg-cover bg-no-repeat opacity-90 transition-opacity duration-700"
+                      style={{
+                        backgroundImage: `url(${heroBg.videoSrc})`,
+                        backgroundPosition: `${desktopX}% ${desktopY}%`,
+                      }}
+                    />
+                  )}
+                </div>
               
               {/* Theme-adaptive overlays */}
               <div className="absolute inset-0 bg-[#470f0b]/20 transition-colors duration-500" />
@@ -69,26 +120,26 @@ export default function Home() {
             <SiteHeader />
 
             {/* Main Hero Content */}
-            <section className="relative z-10 flex-1 flex flex-col justify-center px-5 pt-32 pb-20">
-              <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 items-center gap-12">
+            <section className="relative z-10 flex-1 flex flex-col justify-between sm:justify-center px-4 sm:px-5 pt-20 sm:pt-28 pb-8 sm:pb-16">
+              <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 flex-1 items-stretch">
                 {/* Left Column: Transparent Spacer for Visibility */}
                 <div className="hidden lg:block lg:col-span-5" />
 
                 {/* Right Column: Hero Content */}
-                <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left space-y-8">
-                  <div className="w-fit mx-auto lg:mx-0 min-h-[44px] py-2 px-6 flex items-center justify-center lg:justify-start border border-white/10 bg-primary/10 dark:bg-primary/20 backdrop-blur-md rounded-[20px] md:rounded-full shadow-xl transition-all animate-fade-in shadow-white/5">
-                    <span className="text-[11px] sm:text-[13px] font-bold tracking-wider text-white uppercase text-center lg:text-left leading-normal">
-                      {settings['hero_tagline'] || "Africa's MBA & Consulting Coach"}
+                <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left justify-between sm:justify-center py-4 sm:py-0">
+                  <div className="w-fit mx-auto lg:mx-0 min-h-[36px] sm:min-h-[40px] py-1.5 sm:py-2 px-4 sm:px-5 flex items-center justify-center lg:justify-start border border-white/10 bg-primary/10 dark:bg-primary/20 backdrop-blur-md rounded-full shadow-xl transition-all animate-fade-in shadow-white/5">
+                    <span className="text-[10px] sm:text-[11px] font-bold tracking-wider text-white uppercase text-center lg:text-left leading-normal">
+                      {getSetting('hero_tagline', "Africa's MBA & Consulting Coach")}
                     </span>
                   </div>
                   
-                  <div className="w-full backdrop-blur-md bg-white/5 dark:bg-[#470f0b]/20 rounded-[40px] p-8 md:p-10 border border-white/10 shadow-2xl space-y-8 animate-slide-up relative">
+                  <div className="w-full backdrop-blur-md bg-white/5 dark:bg-[#470f0b]/20 rounded-3xl p-5 sm:p-7 md:p-8 border border-white/10 shadow-2xl space-y-5 sm:space-y-6 animate-slide-up relative">
                     {/* Maroon/Pink tint depending on mode */}
-                    <div className="absolute inset-0 bg-primary/10 dark:bg-primary/20 rounded-[40px] pointer-events-none" />
+                    <div className="absolute inset-0 bg-primary/10 dark:bg-primary/20 rounded-3xl pointer-events-none" />
                     
-                    <h1 className="relative z-10 text-3xl md:text-5xl font-bold text-white leading-[1.2] transition-all duration-500">
-                      {settings['hero_headline'] ? (
-                        settings['hero_headline'].split('. ').map((part: string, i: number) => (
+                    <h1 className="relative z-10 text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-[1.2] transition-all duration-500">
+                      {getSetting('hero_headline', '') ? (
+                        String(getSetting('hero_headline', '')).split('. ').map((part: string, i: number) => (
                           <span key={i} className="block last:text-white/60">{part}{i === 0 ? '.' : ''}</span>
                         ))
                       ) : (
@@ -99,27 +150,42 @@ export default function Home() {
                       )}
                     </h1>
 
-                    <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 w-full pt-4">
-                      <div className="group relative p-8 bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl hover:bg-primary/20 transition-all duration-500 shadow-2xl animate-fade-in">
-                        <h3 className="text-xl font-bold text-white mb-3 italic">MBA admissions</h3>
-                        <p className="text-sm text-white/80 font-medium leading-relaxed mb-6">
-                          {settings['homepage_mba_desc'] || "Targeting Oxford, LBS, or Cambridge? I help you craft an authentic African narrative that resonates with the world's best admissions committees."}
+                    {/* Mobile: buttons only */}
+                    <div className="relative z-10 flex md:hidden flex-col gap-3 w-full pt-1">
+                      <Link href="/services/mba-admissions">
+                        <Button variant="outline" className="w-full bg-transparent border-white/40 text-white hover:bg-white hover:text-primary font-bold rounded-full transition-all text-xs h-10">
+                          Explore MBA Admissions <ArrowRight className="ml-2 w-3.5 h-3.5" />
+                        </Button>
+                      </Link>
+                      <Link href="/services/consulting-interviews">
+                        <Button variant="outline" className="w-full bg-transparent border-white/40 text-white hover:bg-white hover:text-primary font-bold rounded-full transition-all text-xs h-10">
+                          Explore Consulting <ArrowRight className="ml-2 w-3.5 h-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+
+                    {/* Desktop: full cards */}
+                    <div className="relative z-10 hidden md:grid grid-cols-2 gap-4 sm:gap-5 w-full pt-2 sm:pt-3">
+                      <div className="group relative p-5 sm:p-6 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl hover:bg-primary/20 transition-all duration-500 shadow-2xl animate-fade-in">
+                        <h3 className="text-base sm:text-lg font-bold text-white mb-2 italic">MBA admissions</h3>
+                        <p className="text-xs sm:text-sm text-white/80 font-medium leading-relaxed mb-4 sm:mb-5">
+                          {getSetting('homepage_mba_desc', "Targeting Oxford, LBS, or Cambridge? I help you craft an authentic African narrative that resonates with the world's best admissions committees.")}
                         </p>
                         <Link href="/services/mba-admissions">
-                          <Button variant="outline" className="w-full bg-transparent border-white/40 text-white hover:bg-white hover:text-primary font-bold rounded-full transition-all">
-                            Explore MBA Admissions <ArrowRight className="ml-2 w-4 h-4" />
+                          <Button variant="outline" className="w-full bg-transparent border-white/40 text-white hover:bg-white hover:text-primary font-bold rounded-full transition-all text-xs sm:text-sm h-9 sm:h-10">
+                            Explore MBA Admissions <ArrowRight className="ml-2 w-3.5 h-3.5" />
                           </Button>
                         </Link>
                       </div>
 
-                      <div className="group relative p-8 bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl hover:bg-primary/20 transition-all duration-500 shadow-2xl animate-fade-in">
-                        <h3 className="text-xl font-bold text-white mb-3 italic">Consulting prep</h3>
-                        <p className="text-sm text-white/80 font-medium leading-relaxed mb-6">
-                          {settings['homepage_consulting_desc'] || "MBB case interviews require more than just logic; they require impact-driven confidence. Prep with a former McKinsey fellow who knows the African market."}
+                      <div className="group relative p-5 sm:p-6 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl hover:bg-primary/20 transition-all duration-500 shadow-2xl animate-fade-in">
+                        <h3 className="text-base sm:text-lg font-bold text-white mb-2 italic">Consulting prep</h3>
+                        <p className="text-xs sm:text-sm text-white/80 font-medium leading-relaxed mb-4 sm:mb-5">
+                          {getSetting('homepage_consulting_desc', "MBB case interviews require more than just logic; they require impact-driven confidence. Prep with a former McKinsey fellow who knows the African market.")}
                         </p>
                         <Link href="/services/consulting-interviews">
-                          <Button variant="outline" className="w-full bg-transparent border-white/40 text-white hover:bg-white hover:text-primary font-bold rounded-full transition-all">
-                            Explore Consulting <ArrowRight className="ml-2 w-4 h-4" />
+                          <Button variant="outline" className="w-full bg-transparent border-white/40 text-white hover:bg-white hover:text-primary font-bold rounded-full transition-all text-xs sm:text-sm h-9 sm:h-10">
+                            Explore Consulting <ArrowRight className="ml-2 w-3.5 h-3.5" />
                           </Button>
                         </Link>
                       </div>
@@ -137,12 +203,12 @@ export default function Home() {
             <div className="max-w-4xl mx-auto px-6">
               <div className="relative border-l-4 border-primary pl-8 md:pl-12 space-y-8 animate-fade-in">
                 <h2 className="text-3xl md:text-5xl font-bold leading-tight italic text-foreground">
-                  {settings['about_hey_gathoni'] || "Hey, I'm Gathoni."}
+                  {getSetting('about_hey_gathoni', "Hey, I'm Gathoni.")}
                 </h2>
-                
+
                 <div className="space-y-8 text-xl text-muted-foreground font-medium leading-relaxed">
-                  {settings['about_bio_full'] ? (
-                    settings['about_bio_full'].split('\n\n').map((para: string, i: number) => {
+                  {getSetting('about_bio_full', '') ? (
+                    String(getSetting('about_bio_full', '')).split('\n\n').map((para: string, i: number) => {
                       if (para.includes("\"") || para.includes("honesty truth")) {
                         return (
                           <div key={i} className="p-8 md:p-10 bg-card rounded-3xl border border-border shadow-xl transform -rotate-1 my-10 animate-fade-in">
@@ -191,16 +257,17 @@ export default function Home() {
                   ];
                   
                   let creds = defaultCreds;
-                  if (settings['credentials_json']) {
+                  const credentialsJson = getSetting('credentials_json', '');
+                  if (credentialsJson) {
                     try {
-                      const parsed = JSON.parse(settings['credentials_json']);
+                      const parsed = JSON.parse(String(credentialsJson));
                       const iconMap: Record<string, any> = { GraduationCap, Award, Briefcase, TrendingUp, Star, Globe };
                       creds = parsed.map((c: any) => ({
                         ...c,
                         icon: iconMap[c.icon] || Award
                       }));
-                    } catch (e) {
-                      console.error("Failed to parse credentials_json", e);
+                    } catch (err) {
+                      console.error("Failed to parse credentials_json", err);
                     }
                   }
 
@@ -227,13 +294,15 @@ export default function Home() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
                  <div className="lg:col-span-12 xl:col-span-5 relative">
                     <div className="absolute -inset-10 bg-primary/5 rounded-full blur-[100px]" />
-                    <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white dark:border-white/10 max-w-sm mx-auto xl:max-w-none aspect-[4/5]">
-                      <img 
-                        src="/about-professional-portrait-red-bg.png" 
-                        alt="Gathoni Mwai" 
-                        className="w-full h-full object-cover object-top"
-                      />
-                    </div>
+                     <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white dark:border-white/10 max-w-sm mx-auto xl:max-w-none aspect-[4/5]">
+                       <Image 
+                         src="/about-professional-portrait-red-bg.png" 
+                         alt="Gathoni Mwai" 
+                         fill
+                         sizes="(max-width: 1280px) 100vw, 400px"
+                         className="object-cover object-top"
+                       />
+                     </div>
                  </div>
                   <div className="lg:col-span-12 xl:col-span-7 space-y-8">
                      <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full text-primary">
@@ -241,8 +310,8 @@ export default function Home() {
                      </div>
                     
                     <h2 className="text-4xl md:text-5xl font-bold leading-tight">
-                      {settings['african_coach_headline'] ? (
-                        <>Why an <span className="text-primary italic">{settings['african_coach_headline']}</span></>
+                      {getSetting('african_coach_headline', '') ? (
+                        <>Why an <span className="text-primary italic">{getSetting('african_coach_headline', '')}</span></>
                       ) : (
                         <>Why an <span className="text-primary italic">African coach?</span></>
                       )}
@@ -250,10 +319,10 @@ export default function Home() {
 
                     <div className="border-l-4 border-primary pl-8 space-y-6">
                        <p className="text-xl font-bold text-foreground leading-snug">
-                         {settings['about_tagline'] || "Your background isn't a disadvantage. Most coaches just don't know what to do with it."}
+                         {getSetting('about_tagline', "Your background isn't a disadvantage. Most coaches just don't know what to do with it.")}
                        </p>
                        <p className="text-lg text-muted-foreground font-medium leading-relaxed">
-                         {settings['african_coach_description'] || "African students bring sharp analytical thinking, real-world experience in complex markets, and stories that no one from a Western university can replicate. The problem isn't your profile, it's knowing how to position it."}
+                         {getSetting('african_coach_description', "African students bring sharp analytical thinking, real-world experience in complex markets, and stories that no one from a Western university can replicate. The problem isn't your profile, it's knowing how to position it.")}
                        </p>
                        <p className="text-lg text-muted-foreground font-medium leading-relaxed italic border-t border-border pt-6">
                          "I've sat where you sit, walked into the same rooms, and won. I coach Africans specifically because I understand your starting point."

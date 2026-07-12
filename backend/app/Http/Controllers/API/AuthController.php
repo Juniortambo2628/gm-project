@@ -3,66 +3,58 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\User;
+use App\Http\Requests\ChangePasswordRequest;
+use App\Http\Requests\ForgotPasswordRequest;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\ResetPasswordRequest;
+use App\Http\Requests\UpdateProfileRequest;
+use App\Http\Requests\Verify2FARequest;
+use App\Http\Requests\VerifyResetCodeRequest;
+use App\Http\Resources\UserResource;
 use App\Models\Setting;
+use App\Models\User;
+use App\Services\MailDeliveryService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    public function __construct(protected MailDeliveryService $mailDeliveryService) {}
+
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255',
-            'password' => 'required|string|min:8',
+        $validated = $request->validated();
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => 'participant',
         ]);
 
-        $user = User::where('email', $request->email)->first();
-
-        if ($user) {
-            if ($user->is_provisioned) {
-                // Claim it
-                $user->update([
-                    'name' => $request->name,
-                    'password' => Hash::make($request->password),
-                    'is_provisioned' => false,
-                ]);
-            } else {
-                throw ValidationException::withMessages([
-                    'email' => ['The email has already been taken.'],
-                ]);
-            }
-        } else {
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'role' => 'participant', 
-                'is_provisioned' => false,
-            ]);
-        }
-
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        $this->mailDeliveryService->send($user->email, 'welcome', [
+            'name' => $user->name,
+        ]);
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user
+            'user' => new UserResource($user),
         ]);
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+        $validated = $request->validated();
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::query()->where('email', $validated['email'])->first();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Given credentials are incorrect.'],
             ]);
@@ -73,26 +65,18 @@ class AuthController extends Controller
             $code = rand(100000, 999999);
             Setting::set('temp_2fa_code_' . $user->id, json_encode([
                 'code' => $code,
-                'expires_at' => now()->addMinutes(10)->timestamp
+                'expires_at' => now()->addMinutes(10)->timestamp,
             ]), 'security');
 
-            // Dispatch 2FA email using Dynamic System Mail
-            try {
-                \Illuminate\Support\Facades\Mail::to($user->email)->queue(
-                    new \App\Mail\DynamicSystemMail('two_factor', [
-                        'name' => $user->name,
-                        'code' => strval($code)
-                    ])
-                );
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Failed to dispatch 2FA email: ' . $e->getMessage());
-            }
+            $this->mailDeliveryService->send($user->email, 'two_factor', [
+                'name' => $user->name,
+                'code' => strval($code),
+            ]);
 
             return response()->json([
                 'requires_2fa' => true,
                 'email_masked' => substr($user->email, 0, 3) . '***' . strstr($user->email, '@'),
                 'temp_token' => encrypt(['user_id' => $user->id, 'expires_at' => now()->addMinutes(10)->timestamp]),
-                'debug_code' => $code
             ]);
         }
 
@@ -101,19 +85,16 @@ class AuthController extends Controller
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user
+            'user' => new UserResource($user),
         ]);
     }
 
-    public function verify2FA(Request $request)
+    public function verify2FA(Verify2FARequest $request): JsonResponse
     {
-        $request->validate([
-            'temp_token' => 'required',
-            'code' => 'required',
-        ]);
+        $validated = $request->validated();
 
         try {
-            $payload = decrypt($request->temp_token);
+            $payload = decrypt($validated['temp_token']);
             if ($payload['expires_at'] < now()->timestamp) {
                 return response()->json(['message' => 'The verification session has expired.'], 422);
             }
@@ -122,138 +103,152 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid session token.'], 422);
         }
 
-        $user = User::findOrFail($userId);
+        $user = User::query()->findOrFail($userId);
 
-        // Check if code is the generated OTP
-        $saved = Setting::get('temp_2fa_code_' . $user->id);
-        $isOtpValid = false;
-        if ($saved) {
-            $data = json_decode($saved, true);
-            if ($data['expires_at'] >= now()->timestamp && strval($data['code']) === strval($request->code)) {
-                $isOtpValid = true;
-                // Clear OTP
-                Setting::where('key', 'temp_2fa_code_' . $user->id)->delete();
-            }
-        }
+        $isOtpValid = $this->isOtpValid($user->id, $validated['code']);
+        $isBackupValid = $this->isBackupValid($validated['code']);
 
-        // Check if code is one of the recovery backup codes
-        $isBackupValid = false;
-        $backupCodesJson = Setting::get('admin_2fa_backup_codes');
-        if ($backupCodesJson) {
-            $backupCodes = json_decode($backupCodesJson, true);
-            if (is_array($backupCodes)) {
-                $submittedCode = str_replace('-', '', $request->code);
-                foreach ($backupCodes as $idx => $bCode) {
-                    $cleanBCode = str_replace('-', '', $bCode);
-                    if (strval($cleanBCode) === strval($submittedCode)) {
-                        $isBackupValid = true;
-                        // Remove this backup code so it is one-time use only!
-                        unset($backupCodes[$idx]);
-                        Setting::set('admin_2fa_backup_codes', json_encode(array_values($backupCodes)), 'security');
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (!$isOtpValid && !$isBackupValid) {
+        if (! $isOtpValid && ! $isBackupValid) {
             return response()->json(['message' => 'Invalid or expired security code.'], 422);
         }
 
-        // Successfully authenticated!
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user
+            'user' => new UserResource($user),
         ]);
     }
 
-    public function logout(Request $request)
+    private function isOtpValid(int $userId, string $code): bool
+    {
+        $saved = Setting::get('temp_2fa_code_' . $userId);
+
+        if (! $saved) {
+            return false;
+        }
+
+        $data = json_decode($saved, true);
+        if (! is_array($data)) {
+            return false;
+        }
+
+        if ($data['expires_at'] >= now()->timestamp && strval($data['code']) === strval($code)) {
+            Setting::where('key', 'temp_2fa_code_' . $userId)->delete();
+            return true;
+        }
+
+        return false;
+    }
+
+    private function isBackupValid(string $code): bool
+    {
+        $backupCodesJson = Setting::get('admin_2fa_backup_codes');
+
+        if (! $backupCodesJson) {
+            return false;
+        }
+
+        $backupCodes = json_decode($backupCodesJson, true);
+        if (! is_array($backupCodes)) {
+            return false;
+        }
+
+        $submittedCode = str_replace('-', '', $code);
+
+        foreach ($backupCodes as $idx => $bCode) {
+            $cleanBCode = str_replace('-', '', $bCode);
+            if (strval($cleanBCode) === strval($submittedCode)) {
+                unset($backupCodes[$idx]);
+                Setting::set('admin_2fa_backup_codes', json_encode(array_values($backupCodes)), 'security');
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'message' => 'Logged out successfully'
+            'message' => 'Logged out successfully',
         ]);
     }
 
-    public function changePassword(Request $request)
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
-        $request->validate([
-            'current_password' => 'required',
-            'new_password' => 'required|string|min:8|confirmed',
-        ]);
-
+        $validated = $request->validated();
         $user = $request->user();
 
-        if (!Hash::check($request->current_password, $user->password)) {
+        $user->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+        ]);
+
+        return response()->json([
+            'message' => 'Profile updated successfully.',
+            'user' => new UserResource($user),
+        ]);
+    }
+
+    public function changePassword(ChangePasswordRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+        $user = $request->user();
+
+        if (! Hash::check($validated['current_password'], $user->password)) {
             throw ValidationException::withMessages([
                 'current_password' => ['The current password you entered is incorrect.'],
             ]);
         }
 
         $user->update([
-            'password' => Hash::make($request->new_password)
+            'password' => Hash::make($validated['new_password']),
         ]);
 
         return response()->json([
-            'message' => 'Password updated successfully.'
+            'message' => 'Password updated successfully.',
         ]);
     }
 
-    public function forgotPassword(Request $request)
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => 'required|email',
-        ]);
+        $email = $request->validated()['email'];
+        $user = User::query()->where('email', $email)->first();
 
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user) {
-            // For security, do not disclose that user doesn't exist
+        if (! $user) {
             return response()->json([
                 'message' => 'Security reset code sent if the email exists.',
                 'temp_token' => encrypt(['user_id' => 0, 'expires_at' => now()->addMinutes(15)->timestamp]),
-                'debug_code' => ''
             ]);
         }
 
         $code = rand(100000, 999999);
         Setting::set('temp_reset_code_' . $user->id, json_encode([
             'code' => $code,
-            'expires_at' => now()->addMinutes(15)->timestamp
+            'expires_at' => now()->addMinutes(15)->timestamp,
         ]), 'security');
 
-        // Dispatch dynamic forgot password email
-        try {
-            \Illuminate\Support\Facades\Mail::to($user->email)->queue(
-                new \App\Mail\DynamicSystemMail('forgot_password', [
-                    'name' => $user->name,
-                    'code' => strval($code)
-                ])
-            );
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to dispatch password reset email: ' . $e->getMessage());
-        }
+        $this->mailDeliveryService->send($user->email, 'forgot_password', [
+            'name' => $user->name,
+            'code' => strval($code),
+        ]);
 
         return response()->json([
             'message' => 'Security reset code dispatched.',
             'temp_token' => encrypt(['user_id' => $user->id, 'expires_at' => now()->addMinutes(15)->timestamp]),
-            'debug_code' => $code
         ]);
     }
 
-    public function verifyResetCode(Request $request)
+    public function verifyResetCode(VerifyResetCodeRequest $request): JsonResponse
     {
-        $request->validate([
-            'temp_token' => 'required',
-            'code' => 'required',
-        ]);
+        $validated = $request->validated();
 
         try {
-            $payload = decrypt($request->temp_token);
+            $payload = decrypt($validated['temp_token']);
             if ($payload['expires_at'] < now()->timestamp) {
                 return response()->json(['message' => 'The verification session has expired.'], 422);
             }
@@ -267,16 +262,15 @@ class AuthController extends Controller
         }
 
         $saved = Setting::get('temp_reset_code_' . $userId);
-        if (!$saved) {
+        if (! $saved) {
             return response()->json(['message' => 'Invalid or expired security reset code.'], 422);
         }
 
         $data = json_decode($saved, true);
-        if ($data['expires_at'] < now()->timestamp || strval($data['code']) !== strval($request->code)) {
+        if ($data['expires_at'] < now()->timestamp || strval($data['code']) !== strval($validated['code'])) {
             return response()->json(['message' => 'Invalid or expired security reset code.'], 422);
         }
 
-        // Delete used reset code
         Setting::where('key', 'temp_reset_code_' . $userId)->delete();
 
         return response()->json([
@@ -284,21 +278,18 @@ class AuthController extends Controller
             'reset_token' => encrypt([
                 'user_id' => $userId,
                 'verified' => true,
-                'expires_at' => now()->addMinutes(15)->timestamp
-            ])
+                'expires_at' => now()->addMinutes(15)->timestamp,
+            ]),
         ]);
     }
 
-    public function resetPassword(Request $request)
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
-        $request->validate([
-            'reset_token' => 'required',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+        $validated = $request->validated();
 
         try {
-            $payload = decrypt($request->reset_token);
-            if ($payload['expires_at'] < now()->timestamp || !$payload['verified']) {
+            $payload = decrypt($validated['reset_token']);
+            if ($payload['expires_at'] < now()->timestamp || ! $payload['verified']) {
                 return response()->json(['message' => 'The password reset session has expired or is invalid.'], 422);
             }
             $userId = $payload['user_id'];
@@ -306,13 +297,13 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid reset session token.'], 422);
         }
 
-        $user = User::findOrFail($userId);
+        $user = User::query()->findOrFail($userId);
         $user->update([
-            'password' => Hash::make($request->password)
+            'password' => Hash::make($validated['password']),
         ]);
 
         return response()->json([
-            'message' => 'Security credentials updated successfully.'
+            'message' => 'Security credentials updated successfully.',
         ]);
     }
 }

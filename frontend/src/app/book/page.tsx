@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, Briefcase, Calendar, MapPin, Phone, MessageSquare, CreditCard, CheckCircle2, Globe, ArrowRight, Loader2 } from "lucide-react";
-import { InlineWidget } from "react-calendly";
-import { useSetting } from "@/context/SettingContext";
+import { GraduationCap, Briefcase, MapPin, Phone, MessageSquare, CheckCircle2, Globe, Loader2 } from "lucide-react";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { useCMSContent } from "@/context/CMSContentContext";
 import { IconBlock } from "@/components/ui/IconBlock";
 import dynamic from "next/dynamic";
-import { PageHero } from "@/components/PageHero";
+import { PublicLayout } from "@/components/layout/PublicLayout";
+import { africanCountries } from "@/lib/data/countries";
+import { createTransaction, verifyPayment } from "@/lib/api";
+import { toast } from "sonner";
 
 const PaystackButton = dynamic(() => import("@/components/PaystackButton"), { 
   ssr: false,
@@ -22,8 +23,13 @@ const PaystackButton = dynamic(() => import("@/components/PaystackButton"), {
   )
 });
 
+const InlineWidget = dynamic(() => import("react-calendly").then((mod) => mod.InlineWidget), {
+  ssr: false,
+});
+
 export default function BookingPage() {
-  const { services, getSetting, isLoading } = useSetting();
+  const { services } = useCMSContent();
+  const { getSetting, getHeroProps } = useSiteSettings();
   const [mounted, setMounted] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
@@ -37,42 +43,75 @@ export default function BookingPage() {
 
   useEffect(() => {
     setMounted(true);
-    // Auto-select first MBA service if available
     if (services.length > 0 && !selectedServiceId) {
       setSelectedServiceId(services[0].id);
     }
-  }, [services]);
+  }, [services, selectedServiceId]);
 
   if (!mounted) return null;
 
   const selectedService = services.find(s => s.id === selectedServiceId) || services[0];
   const price = selectedService?.price || 0;
   
-  const canPay = formData.email && formData.name && formData.phone;
-
-  // Validation before payment is handled in the button component now
-
-  const africanCountries = [
-    "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon", "Central African Republic", "Chad", "Comoros", "Congo (Congo-Brazzaville)", "Côte d'Ivoire", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe", "Other"
-  ];
+  const canPay = !!(formData.email && formData.name && formData.phone);
 
   const breadcrumbs = [
     { label: "Booking", path: "/book" },
     { label: "Strategy session" }
   ];
 
+  const handlePaymentSuccess = async (reference: { reference: string }) => {
+    setIsRecording(true);
+    try {
+      // Step 1: Verify payment server-side with Paystack API
+      const verification = await verifyPayment(reference.reference);
+      if (!verification.verified) {
+        toast.error("Verification failed", {
+          description: verification.message || "Could not verify payment. Please contact support.",
+        });
+        return;
+      }
+
+      // Step 2: Record the verified transaction
+      await createTransaction({
+        name: verification.data?.customer_name || formData.name,
+        email: verification.data?.customer_email || formData.email,
+        amount: verification.data?.amount || price,
+        currency: verification.data?.currency || selectedService?.currency || 'USD',
+        service_id: selectedService?.id,
+        paystack_ref: reference.reference,
+        status: 'success'
+      });
+
+      toast.success("Payment successful!", {
+        description: "Your session is now confirmed. Check your email for details."
+      });
+      setFormData({ name: "", email: "", phone: "", location: "", expectations: "" });
+    } catch {
+      toast.error("Recording issue", {
+        description: "Payment succeeded but we couldn't record the transaction. Please contact support."
+      });
+    } finally {
+      setIsRecording(false);
+    }
+  };
+
+  const handlePaymentClose = () => {
+    toast.error("Payment cancelled", {
+      description: "The payment process was not completed."
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-background transition-colors duration-500">
-      <SiteHeader />
-
-      <PageHero 
-        title={getSetting('book_hero_title', "Secure your session")}
-        subtitle={getSetting('book_hero_subtitle', "Choose your pathway and book a time that works for you. Payments are processed securely via Paystack.")}
-        badge="Booking system"
-        breadcrumbs={breadcrumbs}
-        videoSrc={getSetting('book_hero_bg') || "/hero-bg.mp4"}
-      />
-
+    <PublicLayout
+      hero={{
+        title: getSetting('book_hero_title', "Secure your session"),
+        subtitle: getSetting('book_hero_subtitle', "Choose your pathway and book a time that works for you. Payments are processed securely via Paystack."),
+        badge: "Booking system",
+        breadcrumbs,
+        ...getHeroProps('book_hero_bg')
+      }}
+    >
       <main className="pb-20 pt-10">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col lg:flex-row gap-12">
@@ -89,7 +128,7 @@ export default function BookingPage() {
                   >
                     <IconBlock icon={s.type === 'mba' ? GraduationCap : Briefcase} className={selectedServiceId === s.id ? 'bg-primary text-white' : 'bg-secondary text-primary'} />
                     <div>
-                      <p className="font-bold italic italic">{s.name}</p>
+                      <p className="font-bold italic">{s.name}</p>
                       <p className="text-2xl font-bold text-primary">
                         {s.currency === 'USD' ? '$' : ''}{s.price} 
                         <span className="text-[10px] opacity-40 font-bold"> / hr</span>
@@ -183,58 +222,8 @@ export default function BookingPage() {
                     serviceName={selectedService?.name || 'Session'}
                     isRecording={isRecording}
                     disabled={!canPay}
-                    onSuccess={async (reference) => {
-                       setIsRecording(true);
-                       try {
-                         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-                         const response = await fetch(`${apiUrl}/transactions`, {
-                           method: "POST",
-                           headers: {
-                             "Content-Type": "application/json",
-                             Accept: "application/json",
-                           },
-                           body: JSON.stringify({
-                             name: formData.name,
-                             email: formData.email,
-                             amount: price,
-                             currency: selectedService?.currency || 'USD',
-                             service_name: selectedService?.name || 'Session',
-                             paystack_ref: reference.reference,
-                             status: 'success'
-                           }),
-                         });
-
-                         if (response.ok) {
-                           import("sonner").then(({ toast }) => {
-                             toast.success("Payment successful!", {
-                               description: "Your session is now confirmed. Check your email for details."
-                             });
-                           });
-                           setFormData({ name: "", email: "", phone: "", location: "", expectations: "" });
-                         } else {
-                           import("sonner").then(({ toast }) => {
-                             toast.error("Recording issue", {
-                               description: "Payment succeeded but we couldn't record the transaction. Please contact support."
-                             });
-                           });
-                         }
-                       } catch (e) {
-                         import("sonner").then(({ toast }) => {
-                           toast.error("Network error", {
-                             description: "Payment succeeded but a network error occurred while recording the transaction."
-                           });
-                         });
-                       } finally {
-                         setIsRecording(false);
-                       }
-                    }}
-                    onClose={() => {
-                       import("sonner").then(({ toast }) => {
-                         toast.error("Payment cancelled", {
-                           description: "The payment process was not completed."
-                         });
-                       });
-                    }}
+                    onSuccess={handlePaymentSuccess}
+                    onClose={handlePaymentClose}
                  />
                 
                 <div className="flex items-center justify-center gap-2 opacity-40 grayscale group-hover:grayscale-0 transition-all">
@@ -309,8 +298,6 @@ export default function BookingPage() {
           </div>
         </div>
       </main>
-
-      <SiteFooter />
-    </div>
+    </PublicLayout>
   );
 }

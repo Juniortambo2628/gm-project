@@ -7,6 +7,7 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use App\Models\MailTemplate;
 use App\Models\Setting;
 
 class DynamicSystemMail extends Mailable
@@ -15,37 +16,47 @@ class DynamicSystemMail extends Mailable
 
     public string $htmlContent;
     public string $mailSubject;
+    private ?string $fromAddress;
+    private ?string $fromName;
 
-    public function __construct(string $templateKey, array $placeholders)
+    public function __construct(string $templateKey, array $placeholders = [])
     {
-        // 1. Fetch template from settings
-        $subject = Setting::get('template_subject_' . $templateKey);
-        $content = Setting::get('template_content_' . $templateKey);
+        $template = MailTemplate::forKey($templateKey);
 
-        // Fallbacks if not set
-        if (!$subject) {
-            $subject = $this->getDefaultSubject($templateKey);
-        }
-        if (!$content) {
-            $content = $this->getDefaultContent($templateKey);
+        $subject = $template->subject;
+        $content = $template->body;
+
+        // Per-template from address (overrides global MAIL_FROM_ADDRESS)
+        $this->fromAddress = $template->from_address;
+        $this->fromName = $template->from_name;
+
+        // Merge provided placeholders with global placeholders
+        $placeholders = array_merge($this->globalPlaceholders(), $placeholders);
+
+        foreach ($placeholders as $key => $value) {
+            $subject = str_replace('{' . $key . '}', (string) $value, $subject);
+            $content = str_replace('{' . $key . '}', (string) $value, $content);
         }
 
-        // 2. Process placeholders
-        foreach ($placeholders as $key => $val) {
-            $subject = str_replace('{' . $key . '}', $val, $subject);
-            $content = str_replace('{' . $key . '}', $val, $content);
-        }
-
-        // 3. Wrap in premium layout
         $this->mailSubject = $subject;
         $this->htmlContent = $this->wrapInPremiumLayout($subject, $content);
     }
 
     public function envelope(): Envelope
     {
-        return new Envelope(
+        $envelope = new Envelope(
             subject: $this->mailSubject,
         );
+
+        // Apply per-template from address if set
+        if ($this->fromAddress) {
+            $envelope->from = new \Illuminate\Mail\Mailables\Address(
+                $this->fromAddress,
+                $this->fromName ?? config('mail.from.name', config('app.name'))
+            );
+        }
+
+        return $envelope;
     }
 
     public function content(): Content
@@ -55,23 +66,47 @@ class DynamicSystemMail extends Mailable
         );
     }
 
-    private function wrapInPremiumLayout(string $subject, string $content): string
+    /**
+     * Global placeholders available in every template.
+     */
+    private function globalPlaceholders(): array
+    {
+        return [
+            'logo_url' => $this->logoUrl(),
+            'app_name' => config('app.name', 'Gathoni Mwai Coaching'),
+            'frontend_url' => rtrim(config('app.frontend_url', config('app.url', 'https://example.com')), '/'),
+            'current_year' => (string) now()->year,
+        ];
+    }
+
+    private function logoUrl(): string
     {
         $logo = Setting::get('logo_dark', '/branding/GM-logo-dark-final.png');
-        if (strpos($logo, 'http') === false) {
-            $logo = rtrim(config('app.url', 'https://api-gm-consulting.okjtech.co.ke'), '/') . $logo;
+
+        if (filter_var($logo, FILTER_VALIDATE_URL)) {
+            return $logo;
         }
 
-        return '
+        return rtrim(config('app.url', 'https://example.com'), '/') . $logo;
+    }
+
+    private function wrapInPremiumLayout(string $subject, string $content): string
+    {
+        $logo = $this->logoUrl();
+        $appName = config('app.name', 'Gathoni Mwai Coaching');
+        $frontendUrl = rtrim(config('app.frontend_url', config('app.url', 'https://example.com')), '/');
+        $year = now()->year;
+
+        return <<<HTML
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>' . htmlspecialchars($subject) . '</title>
+    <title>{$this->e($subject)}</title>
     <style>
         body {
-            font-family: \'Outfit\', \'Inter\', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: #f8fafc;
             margin: 0;
             padding: 0;
@@ -148,101 +183,32 @@ class DynamicSystemMail extends Mailable
             margin: 32px 0;
             font-family: monospace;
         }
+        a { color: #dc2626; }
+        ul, ol { padding-left: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <img src="' . htmlspecialchars($logo) . '" alt="Gathoni Mwai Coaching" class="logo">
+            <a href="{$this->e($frontendUrl)}" target="_blank">
+                <img src="{$this->e($logo)}" alt="{$this->e($appName)}" class="logo">
+            </a>
         </div>
         <div class="body">
-            ' . $content . '
+            {$content}
         </div>
         <div class="footer">
-            <p>&copy; ' . date('Y') . ' Gathoni Mwai Coaching. All rights reserved.</p>
-            <p>You received this email because you are registered on Gathoni Mwai Coaching.</p>
+            <p>&copy; {$year} {$this->e($appName)}. All rights reserved.</p>
+            <p>You received this email because you are registered on {$this->e($appName)}.</p>
         </div>
     </div>
 </body>
-</html>';
+</html>
+HTML;
     }
 
-    private function getDefaultSubject(string $templateKey): string
+    private function e(string $text): string
     {
-        switch ($templateKey) {
-            case 'forgot_password':
-                return 'Reset Your Password - Gathoni Mwai Coaching';
-            case 'two_factor':
-                return 'Your Two-Factor Authentication (2FA) Code';
-            case 'booking_success':
-                return 'Coaching Session Confirmed: {service_name}';
-            case 'booking_reminder':
-                return 'Reminder: Upcoming Coaching Session - {service_name}';
-            case 'payment_success':
-                return 'Payment Received Successfully - Gathoni Mwai Coaching';
-            default:
-                return 'Notification - Gathoni Mwai Coaching';
-        }
-    }
-
-    private function getDefaultContent(string $templateKey): string
-    {
-        switch ($templateKey) {
-            case 'forgot_password':
-                return '
-<h2>Password Reset Request</h2>
-<p>Hello {name},</p>
-<p>We received a request to reset your password. Use the verification code below to complete the password reset flow:</p>
-<div class="otp-box">{code}</div>
-<p>If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>';
-
-            case 'two_factor':
-                return '
-<h2>Secure Verification Code</h2>
-<p>Hello {name},</p>
-<p>Your administration portal requires multi-factor authentication. Please use the following one-time security verification code to authorize your login:</p>
-<div class="otp-box">{code}</div>
-<p>This code will expire in 10 minutes. If you did not attempt to sign in, please update your account credentials immediately.</p>';
-
-            case 'booking_success':
-                return '
-<h2>Coaching Booking Confirmed!</h2>
-<p>Hello {name},</p>
-<p>Congratulations! Your coaching session has been successfully booked and confirmed. Here are the details of your upcoming consultation:</p>
-<div class="panel">
-    <strong>Service:</strong> {service_name}<br>
-    <strong>Date:</strong> {date}<br>
-    <strong>Time:</strong> {time}<br>
-    <strong>Amount:</strong> {amount}
-</div>
-<p>We look forward to partnering with you on your journey. If you need to reschedule or have any questions, please feel free to reach out.</p>';
-
-            case 'booking_reminder':
-                return '
-<h2>Reminder: Upcoming Coaching Session</h2>
-<p>Hello {name},</p>
-<p>This is a quick reminder that you have an upcoming coaching session scheduled with Gathoni Mwai. Here are the details:</p>
-<div class="panel">
-    <strong>Service:</strong> {service_name}<br>
-    <strong>Date:</strong> {date}<br>
-    <strong>Time:</strong> {time}
-</div>
-<p>Please make sure you are prepared and ready at the scheduled time. See you soon!</p>';
-
-            case 'payment_success':
-                return '
-<h2>Payment Successful!</h2>
-<p>Hello {name},</p>
-<p>Thank you for your payment! We have successfully processed your transaction for your booking.</p>
-<div class="panel">
-    <strong>Service:</strong> {service_name}<br>
-    <strong>Amount Paid:</strong> {amount}<br>
-    <strong>Transaction Reference:</strong> {transaction_id}
-</div>
-<p>A receipt has been generated and your booking is fully active. We appreciate your partnership!</p>';
-
-            default:
-                return '<p>Hello {name}, you have a new notification from Gathoni Mwai Coaching.</p>';
-        }
+        return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
     }
 }

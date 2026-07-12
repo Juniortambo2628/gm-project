@@ -7,8 +7,6 @@ import {
   RefreshCcw, 
   Settings, 
   FileText, 
-  HelpCircle, 
-  MessageSquare,
   ChevronRight,
   ShieldCheck,
   Type,
@@ -21,15 +19,12 @@ import {
   Trash2,
   Award,
   Target,
-  Users,
-  MapPin,
   GraduationCap,
   Briefcase,
   KeyRound,
   Smartphone,
   UserCheck,
-  GripVertical,
-  Mail
+  GripVertical
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,8 +32,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import DashboardHero from "@/components/DashboardHero";
 import axiosInstance from "@/lib/axios";
-import { useCMS } from "@/context/SettingContext";
-import FilePondUploader from "@/components/admin/FilePondUploader";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { getErrorMessage } from "@/lib/api";
+import dynamic from "next/dynamic";
 
 interface CredentialItem {
   icon: string;
@@ -47,10 +43,26 @@ interface CredentialItem {
   desc: string;
 }
 
+const FilePondUploader = dynamic(() => import("@/components/admin/FilePondUploader"), { ssr: false });
+const HeroBackgroundsSection = dynamic(() => import("@/components/admin/HeroBackgroundsSection"), { ssr: false });
+
+const HERO_BACKGROUNDS = [
+  { key: "hero_background_path", label: "Landing Page Hero", hasPosition: true, hasMobile: true },
+  { key: "mba_hero_bg", label: "MBA Admissions Hero", hasPosition: true, hasMobile: true },
+  { key: "consulting_hero_bg", label: "Consulting Prep Hero", hasPosition: true, hasMobile: true },
+  { key: "testimonials_hero_bg", label: "Testimonials Hero", hasPosition: true, hasMobile: false },
+  { key: "book_hero_bg", label: "Book/Discovery Hero", hasPosition: true, hasMobile: true },
+  { key: "contact_hero_bg", label: "Contact Hero", hasPosition: true, hasMobile: false },
+  { key: "guide_hero_bg", label: "MBA & Consulting Guide Hero", hasPosition: true, hasMobile: true },
+  { key: "africa_hero_bg", label: "Africa Story Hero", hasPosition: true, hasMobile: false },
+  { key: "blog_hero_bg", label: "Blog Hero", hasPosition: true, hasMobile: false },
+];
+
 export default function CMSPage() {
-  const { settings, refreshSettings, isLoading: cmsLoading } = useCMS();
+  const { settings, refreshSettings, isLoading: cmsLoading } = useSiteSettings();
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [localSettings, setLocalSettings] = useState<Record<string, any>>({});
 
   // Password fields
@@ -69,7 +81,7 @@ export default function CMSPage() {
       if (!val) return ["hero", "bio", "credentials", "african_coach", "cta"];
       const parsed = typeof val === 'string' ? JSON.parse(val) : val;
       return Array.isArray(parsed) && parsed.length > 0 ? parsed : ["hero", "bio", "credentials", "african_coach", "cta"];
-    } catch (e) {
+    } catch {
       return ["hero", "bio", "credentials", "african_coach", "cta"];
     }
   };
@@ -115,10 +127,17 @@ export default function CMSPage() {
   const handleSaveSettings = async () => {
     setSaving(true);
     try {
-      await axiosInstance.post("/cms/settings", { settings: localSettings });
+      const mediaKeys = ['logo_light', 'logo_dark', 'favicon'];
+      const payload = { ...localSettings };
+      for (const key of mediaKeys) {
+        if (payload[key] && String(payload[key]).startsWith('http://localhost')) {
+          delete payload[key];
+        }
+      }
+      await axiosInstance.post("/cms/settings", { settings: payload });
       toast.success("Settings saved successfully");
       refreshSettings();
-    } catch (e) {
+    } catch {
       toast.error("Failed to save settings");
     } finally {
       setSaving(false);
@@ -131,7 +150,7 @@ export default function CMSPage() {
       if (!val) return [];
       const parsed = typeof val === 'string' ? JSON.parse(val) : val;
       return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
+    } catch {
       return [];
     }
   };
@@ -159,7 +178,7 @@ export default function CMSPage() {
        if (!val) return [];
        const parsed = typeof val === 'string' ? JSON.parse(val) : val;
        return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
+    } catch {
        return [];
     }
   };
@@ -199,7 +218,7 @@ export default function CMSPage() {
       title: 'Hero & Backgrounds', 
       icon: Layout, 
       desc: 'Headlines, service boxes, and page hero backgrounds.',
-      fields: ['hero_headline', 'hero_tagline', 'hero_background_path', 'mba_hero_bg', 'consulting_hero_bg', 'homepage_mba_desc', 'homepage_consulting_desc', 'testimonials_hero_bg', 'book_hero_bg', 'contact_hero_bg', 'guide_hero_bg', 'survey_hero_bg', 'africa_hero_bg', 'blog_hero_bg'],
+      fields: ['hero_headline', 'hero_tagline', 'hero_background_path', 'mba_hero_bg', 'consulting_hero_bg', 'homepage_mba_desc', 'homepage_consulting_desc', 'testimonials_hero_bg', 'book_hero_bg', 'contact_hero_bg', 'guide_hero_bg', 'africa_hero_bg', 'blog_hero_bg'],
       bg: 'bg-amber-500/5'
     },
     { 
@@ -246,24 +265,10 @@ export default function CMSPage() {
       id: 'api_keys', 
       title: 'API & Integrations', 
       icon: KeyRound, 
-      desc: 'Configure Calendly URLs, Paystack keys, and SMTP email parameters.',
-      fields: ['discovery_calendly_url', 'consulting_calendly_url', 'mba_calendly_url', 'paystack_public_key', 'paystack_secret_key', 'mail_host', 'mail_port', 'mail_username', 'mail_password', 'mail_encryption', 'mail_from_address', 'mail_from_name'],
+      desc: 'Configure Calendly URLs and external integration endpoints.',
+      fields: ['discovery_calendly_url', 'consulting_calendly_url', 'mba_calendly_url'],
       bg: 'bg-cyan-500/5'
     },
-    { 
-      id: 'email_templates', 
-      title: 'Email Templates', 
-      icon: Mail, 
-      desc: 'Customize system email subjects, contents, and dynamic placeholders.',
-      fields: [
-        'template_subject_forgot_password', 'template_content_forgot_password',
-        'template_subject_two_factor', 'template_content_two_factor',
-        'template_subject_booking_success', 'template_content_booking_success',
-        'template_subject_booking_reminder', 'template_content_booking_reminder',
-        'template_subject_payment_success', 'template_content_payment_success'
-      ],
-      bg: 'bg-rose-500/5'
-    }
   ];
 
   return (
@@ -316,7 +321,7 @@ export default function CMSPage() {
 
                         <div className="space-y-4">
                            {getSectionsList().map((sectionId, idx) => {
-                              const sectionData: Record<string, { title: string; desc: string; icon: any; color: string }> = {
+                               const sectionData: Record<string, { title: string; desc: string; icon: React.ElementType; color: string }> = {
                                  hero: { 
                                     title: "Hero & Services Pathway", 
                                     desc: "Top section containing main brand headlines, backgrounds, and MBA/Consulting quick-link cards.",
@@ -521,122 +526,15 @@ export default function CMSPage() {
                           </div>
                        </div>
 
-                       {/* Right Column: Hero backgrounds for ALL pages */}
-                       <div className="space-y-6">
-                          <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4">Page Backgrounds Gallery (Images/Videos)</h4>
-                          <div className="h-[550px] overflow-y-auto pr-2 space-y-6 custom-scrollbar">
-                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
-                                <FilePondUploader 
-                                  uploadKey="hero_background_path"
-                                  label="Landing Page Hero Background"
-                                  onSuccess={(url) => setLocalSettings({...localSettings, hero_background_path: url})}
-                                  onProcessFile={() => setSaving(true)}
-                                  onProcessFileEnd={() => setSaving(false)}
-                                  acceptedFileTypes={['image/*', 'video/*']}
-                                  currentValue={localSettings['hero_background_path']}
-                                />
-                             </div>
-                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
-                                <FilePondUploader 
-                                  uploadKey="mba_hero_bg"
-                                  label="MBA Admissions Hero Background"
-                                  onSuccess={(url) => setLocalSettings({...localSettings, mba_hero_bg: url})}
-                                  onProcessFile={() => setSaving(true)}
-                                  onProcessFileEnd={() => setSaving(false)}
-                                  acceptedFileTypes={['image/*', 'video/*']}
-                                  currentValue={localSettings['mba_hero_bg']}
-                                />
-                             </div>
-                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
-                                <FilePondUploader 
-                                  uploadKey="consulting_hero_bg"
-                                  label="Consulting Prep Hero Background"
-                                  onSuccess={(url) => setLocalSettings({...localSettings, consulting_hero_bg: url})}
-                                  onProcessFile={() => setSaving(true)}
-                                  onProcessFileEnd={() => setSaving(false)}
-                                  acceptedFileTypes={['image/*', 'video/*']}
-                                  currentValue={localSettings['consulting_hero_bg']}
-                                />
-                             </div>
-                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
-                                <FilePondUploader 
-                                  uploadKey="testimonials_hero_bg"
-                                  label="Testimonials Hero Background"
-                                  onSuccess={(url) => setLocalSettings({...localSettings, testimonials_hero_bg: url})}
-                                  onProcessFile={() => setSaving(true)}
-                                  onProcessFileEnd={() => setSaving(false)}
-                                  acceptedFileTypes={['image/*', 'video/*']}
-                                  currentValue={localSettings['testimonials_hero_bg']}
-                                />
-                             </div>
-                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
-                                <FilePondUploader 
-                                  uploadKey="book_hero_bg"
-                                  label="Book/Discovery Hero Background"
-                                  onSuccess={(url) => setLocalSettings({...localSettings, book_hero_bg: url})}
-                                  onProcessFile={() => setSaving(true)}
-                                  onProcessFileEnd={() => setSaving(false)}
-                                  acceptedFileTypes={['image/*', 'video/*']}
-                                  currentValue={localSettings['book_hero_bg']}
-                                />
-                             </div>
-                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
-                                <FilePondUploader 
-                                  uploadKey="contact_hero_bg"
-                                  label="Contact Hero Background"
-                                  onSuccess={(url) => setLocalSettings({...localSettings, contact_hero_bg: url})}
-                                  onProcessFile={() => setSaving(true)}
-                                  onProcessFileEnd={() => setSaving(false)}
-                                  acceptedFileTypes={['image/*', 'video/*']}
-                                  currentValue={localSettings['contact_hero_bg']}
-                                />
-                             </div>
-                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
-                                <FilePondUploader 
-                                  uploadKey="guide_hero_bg"
-                                  label="MBA & Consulting Guide Hero Background"
-                                  onSuccess={(url) => setLocalSettings({...localSettings, guide_hero_bg: url})}
-                                  onProcessFile={() => setSaving(true)}
-                                  onProcessFileEnd={() => setSaving(false)}
-                                  acceptedFileTypes={['image/*', 'video/*']}
-                                  currentValue={localSettings['guide_hero_bg']}
-                                />
-                             </div>
-                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
-                                <FilePondUploader 
-                                  uploadKey="survey_hero_bg"
-                                  label="Survey Hero Background"
-                                  onSuccess={(url) => setLocalSettings({...localSettings, survey_hero_bg: url})}
-                                  onProcessFile={() => setSaving(true)}
-                                  onProcessFileEnd={() => setSaving(false)}
-                                  acceptedFileTypes={['image/*', 'video/*']}
-                                  currentValue={localSettings['survey_hero_bg']}
-                                />
-                             </div>
-                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
-                                <FilePondUploader 
-                                  uploadKey="africa_hero_bg"
-                                  label="Africa Story Hero Background"
-                                  onSuccess={(url) => setLocalSettings({...localSettings, africa_hero_bg: url})}
-                                  onProcessFile={() => setSaving(true)}
-                                  onProcessFileEnd={() => setSaving(false)}
-                                  acceptedFileTypes={['image/*', 'video/*']}
-                                  currentValue={localSettings['africa_hero_bg']}
-                                />
-                             </div>
-                             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/10">
-                                <FilePondUploader 
-                                  uploadKey="blog_hero_bg"
-                                  label="Blog Hero Background"
-                                  onSuccess={(url) => setLocalSettings({...localSettings, blog_hero_bg: url})}
-                                  onProcessFile={() => setSaving(true)}
-                                  onProcessFileEnd={() => setSaving(false)}
-                                  acceptedFileTypes={['image/*', 'video/*']}
-                                  currentValue={localSettings['blog_hero_bg']}
-                                />
-                             </div>
-                          </div>
-                       </div>
+                        {/* Right Column: Hero backgrounds for ALL pages */}
+                        <div className="space-y-6">
+                           <HeroBackgroundsSection
+                              backgrounds={HERO_BACKGROUNDS}
+                              localSettings={localSettings}
+                              setLocalSettings={setLocalSettings}
+                              setSaving={setSaving}
+                           />
+                        </div>
                     </div>
                  )}
 
@@ -823,7 +721,7 @@ export default function CMSPage() {
                              ))}
                              {getCredentialsList().length === 0 && (
                                 <div className="col-span-2 py-12 text-center text-muted-foreground font-medium italic border border-dashed rounded-3xl">
-                                   No credentials added yet. Click 'Add Credential' to start.
+                                    No credentials added yet. Click &apos;Add Credential&apos; to start.
                                 </div>
                              )}
                           </div>
@@ -1090,147 +988,46 @@ export default function CMSPage() {
                  )}
 
                   {activeModule === 'api_keys' && (
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full">
-                        {/* Left Column: API & Payment credentials */}
-                        <div className="space-y-6 bg-muted/5 p-6 md:p-8 rounded-3xl border border-primary/5">
-                           <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4 flex items-center gap-2">
-                              <KeyRound size={16} /> API & Payment Integrations
-                           </h4>
-                           
-                           <div className="space-y-3">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Paystack Public Key</label>
-                              <Input 
-                                value={localSettings['paystack_public_key'] || ''} 
-                                onChange={(e) => setLocalSettings({...localSettings, paystack_public_key: e.target.value})}
-                                className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm font-mono" 
-                                placeholder="pk_test_..."
-                              />
-                           </div>
-
-                           <div className="space-y-3">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Paystack Secret Key</label>
-                              <Input 
-                                type="password"
-                                value={localSettings['paystack_secret_key'] || ''} 
-                                onChange={(e) => setLocalSettings({...localSettings, paystack_secret_key: e.target.value})}
-                                className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm font-mono" 
-                                placeholder="sk_test_..."
-                              />
-                           </div>
-
-                           <div className="space-y-3">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Discovery Call Calendly URL</label>
-                              <Input 
-                                value={localSettings['discovery_calendly_url'] || ''} 
-                                onChange={(e) => setLocalSettings({...localSettings, discovery_calendly_url: e.target.value})}
-                                className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
-                                placeholder="https://calendly.com/your-id/discovery"
-                              />
-                           </div>
-
-                           <div className="space-y-3">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">MBA Strategy Calendly URL</label>
-                              <Input 
-                                value={localSettings['mba_calendly_url'] || ''} 
-                                onChange={(e) => setLocalSettings({...localSettings, mba_calendly_url: e.target.value})}
-                                className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
-                                placeholder="https://calendly.com/your-id/mba-prep"
-                              />
-                           </div>
-
-                           <div className="space-y-3">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Consulting Prep Calendly URL</label>
-                              <Input 
-                                value={localSettings['consulting_calendly_url'] || ''} 
-                                onChange={(e) => setLocalSettings({...localSettings, consulting_calendly_url: e.target.value})}
-                                className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
-                                placeholder="https://calendly.com/your-id/mock-interview"
-                              />
-                           </div>
+                     <div className="max-w-2xl mx-auto w-full space-y-6 bg-muted/5 p-6 md:p-8 rounded-3xl border border-primary/5">
+                        <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4 flex items-center gap-2">
+                           <KeyRound size={16} /> Calendly Integration URLs
+                        </h4>
+                        
+                        <div className="space-y-3">
+                           <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Discovery Call Calendly URL</label>
+                           <Input 
+                             value={localSettings['discovery_calendly_url'] || ''} 
+                             onChange={(e) => setLocalSettings({...localSettings, discovery_calendly_url: e.target.value})}
+                             className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
+                             placeholder="https://calendly.com/your-id/discovery"
+                           />
                         </div>
 
-                        {/* Right Column: SMTP Server configs */}
-                        <div className="space-y-6 bg-muted/5 p-6 md:p-8 rounded-3xl border border-primary/5">
-                           <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4 flex items-center gap-2">
-                              <Globe size={16} /> SMTP Email Configuration
-                           </h4>
-                           
-                           <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-3">
-                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">SMTP Host</label>
-                                 <Input 
-                                   value={localSettings['mail_host'] || ''} 
-                                   onChange={(e) => setLocalSettings({...localSettings, mail_host: e.target.value})}
-                                   className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
-                                   placeholder="smtp.mailtrap.io"
-                                 />
-                              </div>
+                        <div className="space-y-3">
+                           <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">MBA Strategy Calendly URL</label>
+                           <Input 
+                             value={localSettings['mba_calendly_url'] || ''} 
+                             onChange={(e) => setLocalSettings({...localSettings, mba_calendly_url: e.target.value})}
+                             className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
+                             placeholder="https://calendly.com/your-id/mba-prep"
+                           />
+                        </div>
 
-                              <div className="space-y-3">
-                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">SMTP Port</label>
-                                 <Input 
-                                   value={localSettings['mail_port'] || ''} 
-                                   onChange={(e) => setLocalSettings({...localSettings, mail_port: e.target.value})}
-                                   className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
-                                   placeholder="587"
-                                 />
-                              </div>
-                           </div>
+                        <div className="space-y-3">
+                           <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Consulting Prep Calendly URL</label>
+                           <Input 
+                             value={localSettings['consulting_calendly_url'] || ''} 
+                             onChange={(e) => setLocalSettings({...localSettings, consulting_calendly_url: e.target.value})}
+                             className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
+                             placeholder="https://calendly.com/your-id/mock-interview"
+                           />
+                        </div>
 
-                           <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-3">
-                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">SMTP Username</label>
-                                 <Input 
-                                   value={localSettings['mail_username'] || ''} 
-                                   onChange={(e) => setLocalSettings({...localSettings, mail_username: e.target.value})}
-                                   className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
-                                   placeholder="SMTP User"
-                                 />
-                              </div>
-
-                              <div className="space-y-3">
-                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">SMTP Password</label>
-                                 <Input 
-                                   type="password"
-                                   value={localSettings['mail_password'] || ''} 
-                                   onChange={(e) => setLocalSettings({...localSettings, mail_password: e.target.value})}
-                                   className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
-                                   placeholder="••••••••"
-                                 />
-                              </div>
-                           </div>
-
-                           <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-3">
-                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Encryption</label>
-                                 <Input 
-                                   value={localSettings['mail_encryption'] || ''} 
-                                   onChange={(e) => setLocalSettings({...localSettings, mail_encryption: e.target.value})}
-                                   className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
-                                   placeholder="tls"
-                                 />
-                              </div>
-
-                              <div className="space-y-3">
-                                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Sender Email</label>
-                                 <Input 
-                                   value={localSettings['mail_from_address'] || ''} 
-                                   onChange={(e) => setLocalSettings({...localSettings, mail_from_address: e.target.value})}
-                                   className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
-                                   placeholder="hello@coaching.com"
-                                 />
-                              </div>
-                           </div>
-
-                           <div className="space-y-3">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Sender Name</label>
-                              <Input 
-                                value={localSettings['mail_from_name'] || ''} 
-                                onChange={(e) => setLocalSettings({...localSettings, mail_from_name: e.target.value})}
-                                className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" 
-                                placeholder="Gathoni Mwai"
-                              />
-                           </div>
+                        <div className="p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10">
+                           <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-1">Payment & Email credentials</p>
+                           <p className="text-xs text-muted-foreground font-medium">
+                              Paystack keys and SMTP credentials are now managed via backend environment variables and Laravel config. They are no longer stored or exposed through this CMS.
+                           </p>
                         </div>
                      </div>
                   )}
@@ -1348,10 +1145,9 @@ export default function CMSPage() {
                                 setCurrentPassword("");
                                 setNewPassword("");
                                 setConfirmPassword("");
-                             } catch (err: any) {
-                                const msg = err.response?.data?.message || "Failed to update password";
-                                toast.error(msg);
-                             } finally {
+                              } catch (err) {
+                                 toast.error(getErrorMessage(err));
+                              } finally {
                                 setChangingPassword(false);
                              }
                           }} className="space-y-4">
@@ -1438,7 +1234,7 @@ export default function CMSPage() {
                                         });
                                         toast.success(`Two-Factor Authentication ${enabled === '1' ? 'enabled' : 'disabled'}`);
                                         refreshSettings();
-                                     } catch (err) {
+                                     } catch {
                                         toast.error("Failed to update 2FA setting");
                                      } finally {
                                         setSaving(false);
@@ -1479,7 +1275,7 @@ export default function CMSPage() {
                                               });
                                               toast.success("New backup codes generated!");
                                               refreshSettings();
-                                           } catch (err) {
+                                           } catch {
                                               toast.error("Failed to generate backup codes");
                                            } finally {
                                               setSaving(false);

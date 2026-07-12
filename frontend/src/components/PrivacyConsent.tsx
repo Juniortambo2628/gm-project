@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Info, Shield, Cookie, X, Lock, Eye, BarChart3, Target, CheckCircle2 } from "lucide-react";
+import { Shield, Lock, BarChart3, Target, CheckCircle2 } from "lucide-react";
 import { 
   Dialog
 } from "@/components/ui/dialog";
@@ -127,9 +127,9 @@ export function PrivacyConsent() {
                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 ${preferences.analytic ? 'translate-x-7' : 'translate-x-1'}`} />
                      </button>
                    </div>
-                   <p className="text-[13px] font-bold text-slate-400 dark:text-slate-500 leading-relaxed">
-                     Anonymized pattern detection to optimize survey flow and organizational health mapping.
-                   </p>
+                    <p className="text-[13px] font-bold text-slate-400 dark:text-slate-500 leading-relaxed">
+                      Anonymized pattern detection to optimize site experience and coaching content relevance.
+                    </p>
                  </div>
                </div>
 

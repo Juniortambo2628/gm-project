@@ -1,59 +1,78 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
-import { GraduationCap, Award, CheckCircle2, ArrowRight, ChevronDown, Plus, Minus, Search, Target, Users, Landmark } from "lucide-react";
-import Link from "next/link";
+import { Award, CheckCircle2, Target, Users, Landmark } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useSetting } from "@/context/SettingContext";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { useCMSContent } from "@/context/CMSContentContext";
 import { IconBlock } from "@/components/ui/IconBlock";
 import { PackageCard } from "@/components/ui/PackageCard";
-import { PageHero } from "@/components/PageHero";
+import { PublicLayout } from "@/components/layout/PublicLayout";
+import { FaqAccordion } from "@/components/FaqAccordion";
+import { CTABanner } from "@/components/CTABanner";
+import { FAQ } from "@/lib/api";
+import { HeroSkeleton, ServiceCardSkeleton } from "@/components/Skeletons";
+
+interface FaqItem {
+  question: string;
+  answer: string;
+}
 
 export default function MBAAdmissionsPage() {
-  const { services, faqs: allFaqs, getSetting, isLoading } = useSetting();
+  const { services, faqs: allFaqs } = useCMSContent();
+  const { getSetting, getHeroProps } = useSiteSettings();
   const [mounted, setMounted] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect
+  }, []);
 
-  if (!mounted) return null;
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background">
+        <HeroSkeleton />
+        <div className="max-w-7xl mx-auto px-6 py-20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <ServiceCardSkeleton />
+            <ServiceCardSkeleton />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const breadcrumbs = [
-    { label: "Services", path: "/services/mba-admissions" },
+    { label: "Services", path: "/services" },
     { label: "MBA Admissions" }
   ];
 
-  // Filter services for MBA type, excluding the introductory discovery call to prevent repetition
   const mbaServices = services.filter(s => s.type === 'mba' && Number(s.price) > 0);
+
+  const dynamicMbaFaqs = allFaqs.filter((f: FAQ) => f.category === 'mba' || f.category === 'MBA Admissions');
+  const faqs: FaqItem[] = dynamicMbaFaqs.length > 0
+    ? dynamicMbaFaqs.map((f) => ({ question: f.question, answer: f.answer }))
+    : [
+        {
+          question: "I went to a university in Africa. Can I still get into LBS or Oxford?",
+          answer: "Absolutely! And this is one of the most important things I help clients with. Top UK business schools actively seek diverse, international profiles. Graduates from many African universities have been admitted to the world&apos;s top MBAs. The key is knowing how to position your profile and tell your story compellingly. I did it from Strathmore University, and I can help you do it too."
+        },
+        {
+          question: "Are there scholarships available for African MBA applicants?",
+          answer: "Yes, and this is a major focus of my coaching. As a Laidlaw Foundation Scholar at Oxford (100% tuition funded), I have first-hand experience of the scholarship application process. Key awards include: the Laidlaw Foundation Scholarship, Mastercard AfOx Scholarship, Chevening Scholarships, the Commonwealth Scholarship, and school-specific bursaries at LBS, Oxford, Cambridge, and Imperial. I help clients identify the right scholarships and craft strong applications."
+        },
+        {
+          question: "How do I avoid sounding like every other African MBA applicant?",
+          answer: "This is one of the most important and underrated parts of the application. Many African applicants default to the same narrative—the poverty, the resilience, the desire to &apos;give back to Africa&apos;. Admissions committees have read this story thousands of times. I help you dig deeper to find what is genuinely specific, interesting, and authentic about your journey. Your African experience is an asset, but only if you tell it in a way that is yours alone."
+        },
+        {
+          question: "When should I start preparing?",
+          answer: "Ideally 9–12 months before your target intake. That said, I have successfully supported clients on shorter timelines. Reach out whenever you are, and we will build the right plan from where you are."
+        },
+        {
+          question: "Which schools do you specialise in?",
+          answer: "University of Oxford Said Business School, London Business School (LBS), Cambridge Judge Business School, Imperial College Business School, and Warwick Business School. I will help you decide which schools best match your profile and goals."
+        }
+      ];
   
-  const dynamicMbaFaqs = allFaqs.filter(f => f.category === 'mba' || f.category === 'MBA Admissions');
-  const faqs = dynamicMbaFaqs.length > 0 ? dynamicMbaFaqs.map((f: any) => ({ q: f.question, a: f.answer })) : [
-    {
-      q: "I went to a university in Africa. Can I still get into LBS or Oxford?",
-      a: "Absolutely! And this is one of the most important things I help clients with. Top UK business schools actively seek diverse, international profiles. Graduates from many African universities have been admitted to the world's top MBAs. The key is knowing how to position your profile and tell your story compellingly. I did it from Strathmore University, and I can help you do it too."
-    },
-    {
-      q: "Are there scholarships available for African MBA applicants?",
-      a: "Yes, and this is a major focus of my coaching. As a Laidlaw Foundation Scholar at Oxford (100% tuition funded), I have first-hand experience of the scholarship application process. Key awards include: the Laidlaw Foundation Scholarship, Mastercard AfOx Scholarship, Chevening Scholarships, the Commonwealth Scholarship, and school-specific bursaries at LBS, Oxford, Cambridge, and Imperial. I help clients identify the right scholarships and craft strong applications."
-    },
-    {
-      q: "How do I avoid sounding like every other African MBA applicant?",
-      a: "This is one of the most important and underrated parts of the application. Many African applicants default to the same narrative—the poverty, the resilience, the desire to 'give back to Africa'. Admissions committees have read this story thousands of times. I help you dig deeper to find what is genuinely specific, interesting, and authentic about your journey. Your African experience is an asset, but only if you tell it in a way that is yours alone."
-    },
-    {
-      q: "When should I start preparing?",
-      a: "Ideally 9–12 months before your target intake. That said, I have successfully supported clients on shorter timelines. Reach out whenever you are, and we will build the right plan from where you are."
-    },
-    {
-      q: "Which schools do you specialise in?",
-      a: "University of Oxford Said Business School, London Business School (LBS), Cambridge Judge Business School, Imperial College Business School, and Warwick Business School. I will help you decide which schools best match your profile and goals."
-    }
-  ];
-  
-  // Local packages with dynamic values mapped (excluding discovery call)
   const packages = [
     ...mbaServices.map(s => ({
       name: s.name,
@@ -65,26 +84,16 @@ export default function MBAAdmissionsPage() {
     }))
   ];
 
-  const schools = [
-    { name: "Oxford Saïd", logo: "/logos/oxford-said-business-school-logo.png" },
-    { name: "London Business School", logo: "" },
-    { name: "Cambridge Judge", logo: "/logos/laidlaw-scholars-logo.png" },
-    { name: "Imperial College", logo: "" },
-    { name: "Warwick", logo: "" }
-  ];
-
   return (
-    <div className="min-h-screen bg-background transition-colors duration-500">
-      <SiteHeader />
-
-      <PageHero 
-        title={getSetting('mba_hero_title', "UK MBA admissions coaching for African applicants")}
-        subtitle={getSetting('mba_hero_subtitle', "Personalized guidance from someone who got in, on a full scholarship, and understands exactly where you are starting from.")}
-        badge="MBA admissions pathway"
-        breadcrumbs={breadcrumbs}
-        videoSrc={getSetting('mba_hero_bg') || "/hero-bg.mp4"}
-      />
-
+    <PublicLayout
+      hero={{
+        title: getSetting('mba_hero_title', "UK MBA admissions coaching for African applicants"),
+        subtitle: getSetting('mba_hero_subtitle', "Personalized guidance from someone who got in, on a full scholarship, and understands exactly where you are starting from."),
+        badge: "MBA admissions pathway",
+        breadcrumbs,
+        ...getHeroProps('mba_hero_bg')
+      }}
+    >
       {/* Narrative & Strategy Section */}
       <section className="py-32">
         <div className="max-w-7xl mx-auto px-6">
@@ -92,14 +101,14 @@ export default function MBAAdmissionsPage() {
             <div className="space-y-10">
               <div className="space-y-4">
                 <h2 className="text-4xl md:text-5xl font-bold">
-                  {getSetting('mba_headline') ? (
-                    <>{getSetting('mba_headline').split(' ').slice(0, -2).join(' ')} <span className="text-primary italic underline underline-offset-8 decoration-primary/20">{getSetting('mba_headline').split(' ').slice(-2).join(' ')}</span></>
+                  {getSetting('mba_headline', '') ? (
+                    <>{String(getSetting('mba_headline', '')).split(' ').slice(0, -2).join(' ')} <span className="text-primary italic underline underline-offset-8 decoration-primary/20">{String(getSetting('mba_headline', '')).split(' ').slice(-2).join(' ')}</span></>
                   ) : (
                     <>Your African story is <span className="text-primary italic underline underline-offset-8 decoration-primary/20">an asset.</span></>
                   )}
                 </h2>
                 <p className="text-xl text-muted-foreground font-medium leading-relaxed">
-                  {getSetting('mba_description') || "But it has to be told right. I help you move beyond the tired narratives admissions readers have seen before and craft something authentic, specific, and compelling."}
+                  {getSetting('mba_description', "But it has to be told right. I help you move beyond the tired narratives admissions readers have seen before and craft something authentic, specific, and compelling.")}
                 </p>
               </div>
 
@@ -145,9 +154,9 @@ export default function MBAAdmissionsPage() {
                   ))}
                </div>
                
-               <div className="mt-12 p-6 bg-primary/5 rounded-3xl border border-primary/10 italic text-sm font-medium text-primary/70">
-                 "Special focus on the UK's most competitive business schools where my firsthand experience can give you the edge."
-               </div>
+                <div className="mt-12 p-6 bg-primary/5 rounded-3xl border border-primary/10 italic text-sm font-medium text-primary/70">
+                  &ldquo;Special focus on the UK&apos;s most competitive business schools where my firsthand experience can give you the edge.&rdquo;
+                </div>
             </div>
           </div>
         </div>
@@ -157,14 +166,14 @@ export default function MBAAdmissionsPage() {
       <section className="py-20 bg-background px-6">
          <div className="max-w-5xl mx-auto p-10 md:p-16 bg-[#470f0b] text-white rounded-3xl text-center shadow-2xl relative overflow-hidden group">
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
-            <Award className="mx-auto mb-6 text-white group-hover:scale-110 transition-transform" size={48} />
-            <h2 className="text-3xl md:text-5xl font-bold mb-8 italic leading-none">
+            <Award className="mx-auto mb-6 text-white group-hover:scale-110 transition-transform relative z-10" size={48} />
+            <h2 className="text-3xl md:text-5xl font-bold mb-8 italic leading-none relative z-10">
               Scholarship focused <br/><span className="text-white/60">African opportunities</span>
             </h2>
-            <p className="text-lg font-medium text-white/80 max-w-2xl mx-auto mb-10">
+            <p className="text-lg font-medium text-white/80 max-w-2xl mx-auto mb-10 relative z-10">
               As a Laidlaw Scholar (100% funding), I prioritize helping African candidates identity and win top-tier scholarships.
             </p>
-            <div className="flex flex-wrap justify-center gap-x-12 gap-y-6 text-sm font-bold">
+            <div className="flex flex-wrap justify-center gap-x-12 gap-y-6 text-sm font-bold relative z-10">
                <span>Laidlaw Foundation</span>
                <span>Mastercard AfOx</span>
                <span>Rhodes Scholar</span>
@@ -227,7 +236,7 @@ export default function MBAAdmissionsPage() {
                  { step: "04", label: "Interview Prep" },
                  { step: "05", label: "Application" }
                ].map((item, i) => (
-                 <div key={i} className="group flex flex-col items-center">
+                 <div key={i} className="group flex flex-col items-center relative">
                     <div className="w-16 h-16 rounded-full bg-card border-2 border-border flex items-center justify-center mb-6 group-hover:border-primary group-hover:text-primary transition-all shadow-xl">
                        <span className="text-xl font-bold italic">{item.step}</span>
                     </div>
@@ -246,49 +255,17 @@ export default function MBAAdmissionsPage() {
              <h2 className="text-4xl md:text-5xl font-bold">MBA admissions <br/><span className="text-primary">FAQ</span></h2>
           </div>
 
-          <div className="space-y-4">
-            {faqs.map((faq, i) => (
-              <div key={i} className="border-2 border-border rounded-[32px] overflow-hidden bg-card hover:border-primary/20 transition-all">
-                <button 
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between p-8 text-left group"
-                >
-                  <span className="text-xl font-bold pr-6">{faq.q}</span>
-                  <div className={`shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center transition-transform duration-300 ${openFaq === i ? 'rotate-180 bg-primary text-white' : 'group-hover:bg-primary/10'}`}>
-                     <ChevronDown size={20} />
-                  </div>
-                </button>
-                {openFaq === i && (
-                  <div className="px-8 pb-8 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="p-8 bg-background/50 rounded-2xl text-lg text-muted-foreground font-medium leading-relaxed border-l-4 border-primary italic">
-                      {faq.a}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+          <FaqAccordion faqs={faqs} />
         </div>
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 px-6">
-         <div className="max-w-4xl mx-auto p-12 md:p-20 bg-[#470f0b] text-white rounded-3xl text-center relative overflow-hidden group">
-            <h3 className="text-4xl md:text-5xl font-bold mb-8 italic leading-none">
-              Ready to win <br/><span className="text-white/60">your place?</span>
-            </h3>
-            <p className="text-lg font-medium mb-10 text-white/80 leading-relaxed max-w-xl mx-auto">
-              Don't leave your application to chance. Book a strategy session today and start your journey to a world-class MBA.
-            </p>
-            <Link href="/book" className="inline-block w-full sm:w-auto">
-               <Button className="w-full sm:w-auto bg-white text-primary hover:bg-white/90 px-6 sm:px-10 md:px-12 h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg font-bold rounded-full group shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center">
-                  Start my strategy <ArrowRight className="ml-2 sm:ml-3 group-hover:translate-x-2 transition-transform shrink-0" />
-               </Button>
-            </Link>
-         </div>
-      </section>
-
-      <SiteFooter />
-    </div>
+      <CTABanner
+        title={<>Ready to win <br/><span className="text-white/60">your place?</span></>}
+        description="Don't leave your application to chance. Book a strategy session today and start your journey to a world-class MBA."
+        buttonText="Start my strategy"
+        buttonHref="/book"
+      />
+    </PublicLayout>
   );
 }

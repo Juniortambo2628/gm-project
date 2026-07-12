@@ -3,264 +3,265 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\StoreFaqRequest;
+use App\Http\Requests\StoreServiceRequest;
+use App\Http\Requests\StoreTestimonialRequest;
+use App\Http\Requests\UpdateFaqRequest;
+use App\Http\Requests\UpdateServiceRequest;
+use App\Http\Requests\UpdateTestimonialRequest;
+use App\Http\Resources\FaqResource;
+use App\Http\Resources\ServiceResource;
+use App\Http\Resources\TestimonialResource;
 use App\Models\Faq;
+use App\Models\Service;
+use App\Models\Setting;
 use App\Models\Testimonial;
+use App\Services\MediaService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 
 class CMSController extends Controller
 {
+    public function __construct(protected MediaService $mediaService)
+    {
+    }
+
     /**
      * Update bulk settings.
      */
-    public function updateSettings(Request $request)
+    public function updateSettings(Request $request): JsonResponse
     {
         $settings = $request->input('settings', []);
-        
+
         foreach ($settings as $key => $value) {
-            \App\Models\Setting::set($key, $value);
+            Setting::set($key, $value);
         }
 
         return response()->json(['message' => 'Settings updated successfully']);
     }
 
     /**
-     * Update or create a service.
+     * Handle file uploads with compression and metadata.
      */
-    public function saveService(Request $request)
+    public function uploadFile(Request $request): JsonResponse
     {
-        $id = $request->input('id');
-        $data = $request->only(['name', 'type', 'duration', 'price', 'description', 'features', 'is_active']);
+        $request->validate([
+            'key' => 'required|string',
+        ]);
 
-        if ($id) {
-            $service = \App\Models\Service::findOrFail($id);
-            $service->update($data);
-        } else {
-            $service = \App\Models\Service::create($data);
+        try {
+            $result = $this->mediaService->upload($request);
+
+            Setting::set($request->input('key'), $result['url'], 'media', 'string');
+
+            return response()->json([
+                'message' => 'File uploaded successfully',
+                'url' => $result['url'],
+                'path' => $result['path'],
+                'filename' => $result['filename'],
+                'mime' => $result['mime'],
+                'size' => $result['size'],
+                'width' => $result['width'],
+                'height' => $result['height'],
+                'thumbnail_url' => $result['thumbnail_url'],
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * Get metadata for an existing uploaded file.
+     */
+    public function fileMetadata(Request $request): JsonResponse
+    {
+        $request->validate([
+            'path' => 'required|string',
+        ]);
+
+        try {
+            $metadata = $this->mediaService->getMetadata($request->input('path'));
+            return response()->json($metadata);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 404);
+        }
+    }
+
+    /**
+     * Download an uploaded file.
+     */
+    public function downloadFile(Request $request): Response
+    {
+        $request->validate([
+            'path' => 'required|string',
+        ]);
+
+        $path = $request->input('path');
+
+        // Path traversal protection: reject paths with .. or that escape storage root
+        $realStorageRoot = realpath(Storage::disk('public')->path(''));
+        $requestedPath = realpath(Storage::disk('public')->path($path));
+
+        if ($requestedPath === false || $realStorageRoot === false || str_starts_with($requestedPath, $realStorageRoot) === false) {
+            abort(403, 'Access denied.');
         }
 
-        return response()->json(['message' => 'Service saved successfully', 'service' => $service]);
+        if (! Storage::disk('public')->exists($path)) {
+            abort(404, 'File not found.');
+        }
+
+        $fullPath = Storage::disk('public')->path($path);
+        $filename = basename($path);
+
+        return response()->download($fullPath, $filename, [
+            'Content-Type' => Storage::disk('public')->mimeType($path),
+        ]);
+    }
+
+    /**
+     * Update image focal point / position for a setting key.
+     */
+    public function updatePosition(Request $request): JsonResponse
+    {
+        $request->validate([
+            'key' => 'required|string',
+            'x' => 'required|numeric|between:0,100',
+            'y' => 'required|numeric|between:0,100',
+            'mobile_x' => 'nullable|numeric|between:0,100',
+            'mobile_y' => 'nullable|numeric|between:0,100',
+        ]);
+
+        $position = [
+            'x' => (float) $request->input('x'),
+            'y' => (float) $request->input('y'),
+        ];
+
+        if ($request->has('mobile_x') && $request->has('mobile_y')) {
+            $position['mobile_x'] = (float) $request->input('mobile_x');
+            $position['mobile_y'] = (float) $request->input('mobile_y');
+        }
+
+        Setting::set($request->input('key') . '_position', json_encode($position), 'media', 'json');
+
+        return response()->json([
+            'message' => 'Image position updated successfully',
+            'position' => $position,
+        ]);
+    }
+
+    /**
+     * Store a new service.
+     */
+    public function saveService(StoreServiceRequest $request): JsonResponse
+    {
+        $service = Service::create($request->validated());
+
+        return response()->json([
+            'message' => 'Service created successfully',
+            'service' => new ServiceResource($service),
+        ], 201);
+    }
+
+    /**
+     * Update an existing service.
+     */
+    public function updateService(UpdateServiceRequest $request, $id): JsonResponse
+    {
+        $service = Service::query()->findOrFail($id);
+        $service->update($request->validated());
+
+        return response()->json([
+            'message' => 'Service updated successfully',
+            'service' => new ServiceResource($service),
+        ]);
     }
 
     /**
      * Delete a service.
      */
-    public function deleteService($id)
+    public function deleteService($id): JsonResponse
     {
-        \App\Models\Service::destroy($id);
+        $service = Service::query()->findOrFail($id);
+        $service->delete();
+
         return response()->json(['message' => 'Service deleted successfully']);
     }
 
-    public function uploadFile(Request $request)
+    /**
+     * Store a new FAQ.
+     */
+    public function saveFaq(StoreFaqRequest $request): JsonResponse
     {
-        // Extract the file directly from the files bag to prevent name-collision where FilePond/plugins send metadata string with same name 'file'
-        $file = null;
-        if ($request->hasFile('file')) {
-            $file = $request->file('file');
-        } elseif ($request->files->has('file')) {
-            $file = $request->files->get('file');
-        }
-
-        // Validate key
-        $request->validate([
-            'key' => 'required|string'
-        ]);
-
-        // Manually validate that a valid uploaded file exists
-        if (!$file || !($file instanceof \Illuminate\Http\UploadedFile) || !$file->isValid()) {
-            return response()->json(['error' => 'The file field must be a valid uploaded file.'], 422);
-        }
-
-        // Validate max size (25.6MB)
-        if ($file->getSize() > 25600 * 1024) {
-            return response()->json(['error' => 'The file size must not exceed 25.6MB.'], 422);
-        }
-
-        $mime = $file->getClientMimeType();
-        $ext = strtolower($file->getClientOriginalExtension());
-
-        // Programmatic MIME and extension check to prevent Windows server mismatched validation blocks
-        $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp', 'video/mp4', 'video/webm', 'video/ogg'];
-        $allowedExts = ['jpeg', 'jpg', 'png', 'gif', 'svg', 'webp', 'mp4', 'webm', 'ogg'];
-        
-        if (!in_array($mime, $allowedMimes) && !in_array($ext, $allowedExts)) {
-            return response()->json(['error' => 'Unsupported file format: ' . $mime], 422);
-        }
-
-        $filename = time() . '_' . $file->getClientOriginalName();
-        $path = $file->storeAs('cms', $filename, 'public');
-        
-        $fullPath = \Illuminate\Support\Facades\Storage::disk('public')->path($path);
-        $mime = $file->getClientMimeType();
-
-        // Compress Image (GD library)
-        if (strpos($mime, 'image/') !== false) {
-            $this->compressImage($fullPath, $fullPath, $mime);
-        }
-
-        // Compress Video (FFmpeg fallback)
-        if (strpos($mime, 'video/') !== false) {
-            $tempVideoPath = $fullPath . '_temp.mp4';
-            if ($this->compressVideo($fullPath, $tempVideoPath)) {
-                @unlink($fullPath);
-                @rename($tempVideoPath, $fullPath);
-            } else {
-                @unlink($tempVideoPath);
-            }
-        }
-        
-        $url = \Illuminate\Support\Facades\Storage::disk('public')->url($path);
-        
-        // Save to settings automatically if key provided
-        \App\Models\Setting::set($request->key, $url, 'media', $mime);
+        $faq = Faq::create($request->validated());
 
         return response()->json([
-            'message' => 'File uploaded successfully',
-            'url' => $url,
-            'path' => $path
-        ]);
-    }
-
-    private function compressImage($sourcePath, $destinationPath, $mimeType)
-    {
-        ini_set('memory_limit', '256M');
-
-        switch ($mimeType) {
-            case 'image/jpeg':
-            case 'image/jpg':
-                $image = @imagecreatefromjpeg($sourcePath);
-                break;
-            case 'image/png':
-                $image = @imagecreatefrompng($sourcePath);
-                break;
-            case 'image/gif':
-                $image = @imagecreatefromgif($sourcePath);
-                break;
-            case 'image/webp':
-                $image = @imagecreatefromwebp($sourcePath);
-                break;
-            default:
-                return false;
-        }
-
-        if (!$image) {
-            return false;
-        }
-
-        $width = imagesx($image);
-        $height = imagesy($image);
-
-        $maxDimension = 1600;
-        if ($width > $maxDimension || $height > $maxDimension) {
-            if ($width > $height) {
-                $newWidth = $maxDimension;
-                $newHeight = intval($height * ($maxDimension / $width));
-            } else {
-                $newHeight = $maxDimension;
-                $newWidth = intval($width * ($maxDimension / $height));
-            }
-
-            $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
-
-            if ($mimeType === 'image/png' || $mimeType === 'image/gif') {
-                imagealphablending($resizedImage, false);
-                imagesavealpha($resizedImage, true);
-                $transparent = imagecolorallocatealpha($resizedImage, 255, 255, 255, 127);
-                imagefilledrectangle($resizedImage, 0, 0, $newWidth, $newHeight, $transparent);
-            }
-
-            imagecopyresampled($resizedImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-            imagedestroy($image);
-            $image = $resizedImage;
-        }
-
-        $success = false;
-        if ($mimeType === 'image/png') {
-            $success = imagepng($image, $destinationPath, 7);
-        } elseif ($mimeType === 'image/gif') {
-            $success = imagegif($image, $destinationPath);
-        } elseif (function_exists('imagewebp') && $mimeType === 'image/webp') {
-            $success = imagewebp($image, $destinationPath, 80);
-        } else {
-            $success = imagejpeg($image, $destinationPath, 75);
-        }
-
-        imagedestroy($image);
-        return $success;
-    }
-
-    private function compressVideo($sourcePath, $destinationPath)
-    {
-        if (!function_exists('shell_exec')) {
-            return false;
-        }
-
-        $ffmpegCheck = @shell_exec('ffmpeg -version 2>&1');
-        if (!$ffmpegCheck || (strpos($ffmpegCheck, 'ffmpeg version') === false && strpos($ffmpegCheck, 'FFmpeg') === false)) {
-            return false;
-        }
-
-        $cmd = sprintf(
-            'ffmpeg -y -i %s -vcodec libx264 -crf 28 -preset fast -acodec aac -b:a 128k -movflags +faststart %s 2>&1',
-            escapeshellarg($sourcePath),
-            escapeshellarg($destinationPath)
-        );
-
-        @exec($cmd, $output, $resultCode);
-
-        return $resultCode === 0;
+            'message' => 'FAQ created successfully',
+            'faq' => new FaqResource($faq),
+        ], 201);
     }
 
     /**
-     * Update or create a FAQ.
+     * Update an existing FAQ.
      */
-    public function saveFaq(Request $request)
+    public function updateFaq(UpdateFaqRequest $request, $id): JsonResponse
     {
-        $id = $request->input('id');
-        $data = $request->only(['question', 'answer', 'category', 'order']);
+        $faq = Faq::query()->findOrFail($id);
+        $faq->update($request->validated());
 
-        if ($id) {
-            $faq = Faq::findOrFail($id);
-            $faq->update($data);
-        } else {
-            $faq = Faq::create($data);
-        }
-
-        return response()->json(['message' => 'FAQ saved successfully', 'faq' => $faq]);
+        return response()->json([
+            'message' => 'FAQ updated successfully',
+            'faq' => new FaqResource($faq),
+        ]);
     }
 
     /**
      * Delete a FAQ.
      */
-    public function deleteFaq($id)
+    public function deleteFaq($id): JsonResponse
     {
-        Faq::destroy($id);
+        $faq = Faq::query()->findOrFail($id);
+        $faq->delete();
+
         return response()->json(['message' => 'FAQ deleted successfully']);
     }
 
     /**
-     * Update or create a Testimonial.
+     * Store a new testimonial.
      */
-    public function saveTestimonial(Request $request)
+    public function saveTestimonial(StoreTestimonialRequest $request): JsonResponse
     {
-        $id = $request->input('id');
-        $data = $request->only(['client_name', 'client_role', 'content', 'portrait_path', 'is_featured', 'tag']);
+        $testimonial = Testimonial::create($request->validated());
 
-        if ($id) {
-            $testimonial = Testimonial::findOrFail($id);
-            $testimonial->update($data);
-        } else {
-            $testimonial = Testimonial::create($data);
-        }
-
-        return response()->json(['message' => 'Testimonial saved successfully', 'testimonial' => $testimonial]);
+        return response()->json([
+            'message' => 'Testimonial created successfully',
+            'testimonial' => new TestimonialResource($testimonial),
+        ], 201);
     }
 
     /**
-     * Delete a Testimonial.
+     * Update an existing testimonial.
      */
-    public function deleteTestimonial($id)
+    public function updateTestimonial(UpdateTestimonialRequest $request, $id): JsonResponse
     {
-        Testimonial::destroy($id);
+        $testimonial = Testimonial::query()->findOrFail($id);
+        $testimonial->update($request->validated());
+
+        return response()->json([
+            'message' => 'Testimonial updated successfully',
+            'testimonial' => new TestimonialResource($testimonial),
+        ]);
+    }
+
+    /**
+     * Delete a testimonial.
+     */
+    public function deleteTestimonial($id): JsonResponse
+    {
+        $testimonial = Testimonial::query()->findOrFail($id);
+        $testimonial->delete();
+
         return response()->json(['message' => 'Testimonial deleted successfully']);
     }
 }

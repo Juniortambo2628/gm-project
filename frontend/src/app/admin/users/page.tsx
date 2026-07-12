@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import DashboardHero from "@/components/DashboardHero";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   User, 
@@ -10,19 +9,29 @@ import {
   Trash2, 
   Calendar, 
   Mail, 
-  Search, 
-  Sparkles 
+  Search 
 } from "lucide-react";
 import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
+import { AdminListPage } from "@/components/admin/AdminListPage";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { getErrorMessage, extractList } from "@/lib/api";
+
+interface UserRecord {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  created_at: string;
+}
 
 export default function UserManagementPage() {
   const { user: currentUser } = useAuth();
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -31,8 +40,8 @@ export default function UserManagementPage() {
   const fetchUsers = async () => {
     try {
       const res = await axiosInstance.get("/cms/users");
-      setUsers(res.data);
-    } catch (e) {
+      setUsers(extractList<UserRecord>(res));
+    } catch {
       toast.error("Failed to load user list");
     } finally {
       setLoading(false);
@@ -58,8 +67,8 @@ export default function UserManagementPage() {
       await axiosInstance.put(`/cms/users/${id}/role`, { role: newRole });
       toast.success(`Role updated successfully to ${newRole}`);
       fetchUsers();
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || "Failed to update role");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
     }
   };
 
@@ -71,14 +80,14 @@ export default function UserManagementPage() {
       return;
     }
 
-    if (!confirm("Are you sure you want to permanently delete this user account? This action cannot be undone.")) return;
-
     try {
       await axiosInstance.delete(`/cms/users/${id}`);
       toast.success("User account successfully deleted");
       fetchUsers();
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || "Failed to delete user account");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -91,31 +100,14 @@ export default function UserManagementPage() {
     );
   });
 
-  if (loading) {
-    return (
-      <div className="space-y-10 pb-20 animate-pulse">
-        <div className="h-44 bg-muted/40 rounded-2xl border p-8 space-y-4">
-          <Skeleton variant="text" className="w-48 h-8" />
-          <Skeleton variant="text" className="w-96 h-5" />
-        </div>
-        <div className="space-y-4">
-          <Skeleton variant="table-row" />
-          <Skeleton variant="table-row" />
-          <Skeleton variant="table-row" />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="animate-fade-in space-y-10 pb-20">
-      <DashboardHero 
-        title="User & Privilege Control" 
-        description="Monitor registered participant accounts and promote staff to administrative roles." 
-      />
-
+    <AdminListPage
+      title="User & Privilege Control"
+      description="Monitor registered participant accounts and promote staff to administrative roles."
+      isLoading={loading}
+    >
       {/* Filter and stats row */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border rounded-2xl p-4 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border rounded-2xl p-4 shadow-sm mb-4">
         <div className="relative flex-1 max-w-md">
           <Search size={16} className="absolute left-4 top-3.5 text-muted-foreground" />
           <input 
@@ -218,7 +210,7 @@ export default function UserManagementPage() {
                   </Button>
 
                   <Button 
-                    onClick={() => deleteUser(item.id)} 
+                    onClick={() => setDeleteTarget(item.id)} 
                     disabled={item.id === currentUser?.id}
                     variant="ghost" 
                     title="Delete Account"
@@ -239,6 +231,14 @@ export default function UserManagementPage() {
           </Card>
         )}
       </div>
-    </div>
+
+      <ConfirmDeleteDialog
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { if (deleteTarget) deleteUser(deleteTarget); }}
+        title="Delete user account"
+        description="Are you sure you want to permanently delete this user account? This action cannot be undone."
+      />
+    </AdminListPage>
   );
 }

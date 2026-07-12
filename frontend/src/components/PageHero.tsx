@@ -5,51 +5,96 @@ import { Badge } from "@/components/ui/Badge";
 import { Breadcrumbs, BreadcrumbItem } from "@/components/ui/Breadcrumbs";
 import { cn } from "@/lib/utils";
 
-interface PageHeroProps {
+export interface PageHeroProps {
   title: string;
   subtitle: string;
   breadcrumbs: BreadcrumbItem[];
   badge?: string;
   videoSrc?: string;
+  mobileVideoSrc?: string;
+  position?: { x: number; y: number; mobile_x?: number; mobile_y?: number };
   overlayClassName?: string;
 }
 
-export function PageHero({ 
-  title, 
-  subtitle, 
-  breadcrumbs, 
-  badge, 
+export function PageHero({
+  title,
+  subtitle,
+  breadcrumbs,
+  badge,
   videoSrc = "/hero-bg.mp4",
-  overlayClassName 
+  mobileVideoSrc,
+  position,
+  overlayClassName,
 }: PageHeroProps) {
+  const desktopX = position?.x ?? 50;
+  const desktopY = position?.y ?? 50;
+  const mobileX = position?.mobile_x ?? desktopX;
+  const mobileY = position?.mobile_y ?? desktopY;
+
+  const isVideo = (src: string) => src.match(/\.(mp4|webm|ogg)$/i);
+
   return (
     <section className="relative min-h-[60vh] flex items-center pt-32 pb-20 overflow-hidden border-b border-border">
       {/* Background Media */}
       <div className="absolute inset-0 z-0">
-        {videoSrc.match(/\.(mp4|webm|ogg)$/i) ? (
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover"
-          >
-            <source src={videoSrc} type="video/mp4" />
-          </video>
-        ) : (
-          <img 
-            src={videoSrc} 
-            alt={title} 
-            className="w-full h-full object-cover opacity-90"
-          />
+        {/* Mobile background (hidden on md+) */}
+        {mobileVideoSrc && (
+          <div className="md:hidden absolute inset-0">
+            {isVideo(mobileVideoSrc) ? (
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+                style={{ objectPosition: `${mobileX}% ${mobileY}%` }}
+              >
+                <source src={mobileVideoSrc} type="video/mp4" />
+              </video>
+            ) : (
+              <div
+                className="absolute inset-0 w-full h-full bg-cover bg-no-repeat opacity-90 transition-opacity duration-700"
+                style={{
+                  backgroundImage: `url(${mobileVideoSrc})`,
+                  backgroundPosition: `${mobileX}% ${mobileY}%`,
+                }}
+              />
+            )}
+          </div>
         )}
-        
+
+        {/* Desktop background */}
+        <div className={cn(mobileVideoSrc && "hidden md:block", "absolute inset-0")}>
+          {isVideo(videoSrc) ? (
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+              style={{ objectPosition: `${desktopX}% ${desktopY}%` }}
+            >
+              <source src={videoSrc} type="video/mp4" />
+            </video>
+          ) : (
+            <div
+              className="absolute inset-0 w-full h-full bg-cover bg-no-repeat opacity-90 transition-opacity duration-700"
+              style={{
+                backgroundImage: `url(${videoSrc})`,
+                backgroundPosition: `${desktopX}% ${desktopY}%`,
+              }}
+            />
+          )}
+        </div>
+
         {/* Dynamic Gradient Overlay */}
-        <div className={cn(
-          "absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background transition-colors duration-700",
-          overlayClassName
-        )} />
-        
+        <div
+          className={cn(
+            "absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background transition-colors duration-700",
+            overlayClassName
+          )}
+        />
+
         {/* Subtle noise/texture overlay */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
       </div>
@@ -65,19 +110,19 @@ export function PageHero({
 
           {/* 2. Breadcrumbs */}
           <Breadcrumbs items={breadcrumbs} className="opacity-80" />
-          
+
           {/* 3. Heading */}
           <h1 className="text-5xl md:text-7xl font-bold text-foreground leading-[1.05] tracking-tight">
-            {title.split(' ').map((word, i) => (
+            {title.split(" ").map((word, i) => (
               <span key={i} className="inline-block mr-[0.2em]">
                 {word}
               </span>
             ))}
           </h1>
-          
+
           {/* 4. Subtitle/Description */}
           <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed font-medium max-w-2xl border-l-4 border-primary/30 pl-8 py-2 italic animate-fade-in transition-all">
-             {subtitle}
+            {subtitle}
           </p>
         </div>
       </div>

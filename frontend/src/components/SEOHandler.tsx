@@ -1,43 +1,53 @@
 "use client";
 
-import { useCMS } from "@/context/SettingContext";
-import { useEffect } from "react";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { useEffect, useRef } from "react";
+
+declare global {
+  interface Window {
+    gaLoaded?: boolean;
+  }
+}
 
 export function SEOHandler() {
-  const { settings } = useCMS();
+  const { settings, getSetting } = useSiteSettings();
+  const initialized = useRef(false);
 
   useEffect(() => {
-    if (settings['meta_title']) {
-      document.title = settings['meta_title'];
+    const metaTitle = getSetting('meta_title', '');
+    const metaDescription = getSetting('meta_description', '');
+    const favicon = getSetting('favicon', '');
+
+    if (metaTitle) {
+      document.title = String(metaTitle);
     }
-    if (settings['meta_description']) {
-      let metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      const metaDesc = document.querySelector('meta[name="description"]');
       if (metaDesc) {
-        metaDesc.setAttribute('content', settings['meta_description']);
+        metaDesc.setAttribute('content', String(metaDescription));
       } else {
         const meta = document.createElement('meta');
         meta.name = "description";
-        meta.content = settings['meta_description'];
+        meta.content = String(metaDescription);
         document.head.appendChild(meta);
       }
     }
-    if (settings['favicon']) {
-      let favicon = document.querySelector('link[rel="icon"]');
-      if (favicon) {
-        favicon.setAttribute('href', settings['favicon']);
+    if (favicon && !initialized.current) {
+      const faviconEl = document.querySelector('link[rel="icon"]');
+      if (faviconEl) {
+        faviconEl.setAttribute('href', String(favicon));
       } else {
         const link = document.createElement('link');
         link.rel = "icon";
-        link.href = settings['favicon'];
+        link.href = String(favicon);
         document.head.appendChild(link);
       }
     }
 
-    if (window && !(window as any).gaLoaded) {
-       console.log("GA4 Initialized for: ", settings['meta_title'] || "Gathoni Mwai");
-       (window as any).gaLoaded = true;
+    if (!initialized.current) {
+      initialized.current = true;
     }
-  }, [settings]);
+  }, [settings, getSetting]);
 
   return null;
 }

@@ -1,27 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { Globe, Cpu, ShieldCheck, Database, Zap, Share2, MessageSquare, Users, Smartphone } from "lucide-react";
-import { useSetting } from "@/context/SettingContext";
+import { ShieldCheck, Zap, Share2, MessageSquare, Users, Smartphone } from "lucide-react";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { IconBlock } from "@/components/ui/IconBlock";
+import { SafeImage } from "@/components/SafeImage";
 
 export function SiteFooter() {
   const currentYear = new Date().getFullYear();
-  const { getSetting } = useSetting();
+  const { getSetting } = useSiteSettings();
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
-
-  const { settings } = useSetting();
   const currentTheme = mounted ? (resolvedTheme || theme) : 'light';
-  const logoSrc = currentTheme === 'dark' 
-    ? (settings['logo_dark'] || "/branding/GM-logo-dark-final.png") 
-    : (settings['logo_light'] || "/branding/GM-logo-light-final.png");
+  const logoSrc = currentTheme === 'dark'
+    ? String(getSetting('logo_dark', "/branding/GM-logo-dark-final.png"))
+    : String(getSetting('logo_light', "/branding/GM-logo-light-final.png"));
 
   return (
     <footer className="relative bg-background border-t border-border transition-colors duration-300 pt-20 pb-10 overflow-hidden">
@@ -34,24 +34,22 @@ export function SiteFooter() {
           
           {/* Brand Column */}
           <div className="space-y-6">
-            <Link href="/" className="flex items-center group mb-4">
-                 {mounted ? (
-                   <img 
-                     src={logoSrc} 
-                     alt="Gathoni Mwai Logo" 
-                     className="h-16 md:h-20 w-auto object-contain transition-all rounded-xl"
-                     onError={(e) => {
-                       const target = e.currentTarget;
-                       const fallback = currentTheme === 'dark' ? "/branding/GM-logo-dark-final.png" : "/branding/GM-logo-light-final.png";
-                       if (target.src !== window.location.origin + fallback && target.src !== fallback) {
-                         target.src = fallback;
-                       }
-                     }}
-                   />
-                 ) : (
-                   <div className="h-16 md:h-20 w-40 bg-muted/10 animate-pulse rounded-xl" />
-                 )}
-            </Link>
+             <Link href="/" className="flex items-center group mb-4">
+                  {mounted ? (
+                    <div className="relative h-16 md:h-20 w-40 shrink-0 overflow-hidden">
+                      <SafeImage
+                        src={logoSrc}
+                        fallback={currentTheme === 'dark' ? "/branding/GM-logo-dark-final.png" : "/branding/GM-logo-light-final.png"}
+                        alt="Gathoni Mwai Logo"
+                        fill
+                        sizes="(max-width: 768px) 160px, 192px"
+                        className="object-contain transition-all rounded-xl"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-16 md:h-20 w-40 bg-muted/10 animate-pulse rounded-xl" />
+                  )}
+             </Link>
             <p className="text-sm font-medium text-muted-foreground leading-relaxed max-w-xs">
               Empowering African talent to access global MBA opportunities and elite consulting careers. 
               Authentic guidance from Nairobi to Oxford and beyond.

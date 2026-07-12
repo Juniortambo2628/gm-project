@@ -1,19 +1,34 @@
 "use client";
 
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
-import { Button } from "@/components/ui/button";
-import { Quote, Star, GraduationCap, Briefcase, ArrowRight, CheckCircle2 } from "lucide-react";
-import Link from "next/link";
+import { Quote, Star, GraduationCap, Briefcase, CheckCircle2 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useSetting } from "@/context/SettingContext";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { useCMSContent } from "@/context/CMSContentContext";
 import { IconBlock } from "@/components/ui/IconBlock";
-import { PageHero } from "@/components/PageHero";
+import { PublicLayout } from "@/components/layout/PublicLayout";
+import { CTABanner } from "@/components/CTABanner";
+
+interface Testimonial {
+  name?: string;
+  client_name?: string;
+  outcome?: string;
+  client_role?: string;
+  quote?: string;
+  content?: string;
+  scholarship?: string;
+  award?: string;
+  firm?: string;
+  tag?: string;
+}
 
 export default function TestimonialsPage() {
-  const { testimonials, getSetting } = useSetting();
+  const { testimonials } = useCMSContent();
+  const { getSetting, getHeroProps } = useSiteSettings();
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect
+  }, []);
 
   if (!mounted) return null;
 
@@ -22,12 +37,11 @@ export default function TestimonialsPage() {
     { label: "Testimonials" }
   ];
 
-  // Split testimonials based on Tag.
-  // Fall back to hardcoded ones if the DB is empty (i.e. not yet seeded by user).
-  const dynamicMBA = testimonials.filter(t => t.tag === 'MBA Admissions');
-  const dynamicConsulting = testimonials.filter(t => t.tag === 'Consulting Prep');
+  const allTestimonials = testimonials as Testimonial[];
+  const dynamicMBA = allTestimonials.filter((t) => t.tag === 'MBA Admissions');
+  const dynamicConsulting = allTestimonials.filter((t) => t.tag === 'Consulting Prep');
 
-  const mbaStories = dynamicMBA.length > 0 ? dynamicMBA : [
+  const mbaStories: Testimonial[] = dynamicMBA.length > 0 ? dynamicMBA : [
     {
        name: "K. Mutua",
        outcome: "Oxford Saïd MBA",
@@ -51,7 +65,7 @@ export default function TestimonialsPage() {
     }
   ];
 
-  const consultingStories = dynamicConsulting.length > 0 ? dynamicConsulting : [
+  const consultingStories: Testimonial[] = dynamicConsulting.length > 0 ? dynamicConsulting : [
     {
        name: "S. Abdi",
        outcome: "McKinsey Africa",
@@ -76,17 +90,15 @@ export default function TestimonialsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-500">
-      <SiteHeader />
-
-      <PageHero 
-        title={getSetting('testimonials_hero_title', "Our clients win")}
-        subtitle={getSetting('testimonials_hero_subtitle', "From Nairobi to Oxford, Lagos to London. Meet the African professionals who turned their ambitions into reality.")}
-        badge="Success stories"
-        breadcrumbs={breadcrumbs}
-        videoSrc={getSetting('testimonials_hero_bg') || "/hero-bg.mp4"}
-      />
-
+    <PublicLayout
+      hero={{
+        title: getSetting('testimonials_hero_title', "Our clients win"),
+        subtitle: getSetting('testimonials_hero_subtitle', "From Nairobi to Oxford, Lagos to London. Meet the African professionals who turned their ambitions into reality."),
+        badge: "Success stories",
+        breadcrumbs,
+        ...getHeroProps('testimonials_hero_bg')
+      }}
+    >
       {/* MBA Success Stories */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-6">
@@ -104,22 +116,22 @@ export default function TestimonialsPage() {
                 <Quote className="absolute top-8 right-8 opacity-5 text-primary group-hover:scale-110 transition-transform" size={60} />
                 
                 <div className="space-y-6 relative z-10">
-                   <p className="text-lg font-medium text-foreground leading-relaxed italic">
-                      "{story.quote || story.content}"
-                   </p>
-                   
-                   <div className="pt-6 border-t border-border">
-                      <p className="font-bold text-primary text-xl">{story.name || story.client_name}</p>
-                      <p className="text-sm font-bold text-foreground/80">{story.outcome || story.client_role}</p>
-                      <div className="mt-2 inline-flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-1 rounded-full">
-                         {(story.scholarship || story.award) && (
-                           <>
-                             <CheckCircle2 size={10} />
-                             {story.scholarship || story.award}
-                           </>
-                         )}
-                      </div>
-                   </div>
+                    <p className="text-lg font-medium text-foreground leading-relaxed italic">
+                       &ldquo;{story.quote || story.content}&rdquo;
+                    </p>
+
+                    <div className="pt-6 border-t border-border">
+                       <p className="font-bold text-primary text-xl">{story.name || story.client_name}</p>
+                       <p className="text-sm font-bold text-foreground/80">{story.outcome || story.client_role}</p>
+                       <div className="mt-2 inline-flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-1 rounded-full">
+                          {(story.scholarship || story.award) && (
+                            <>
+                              <CheckCircle2 size={10} />
+                              {story.scholarship || story.award}
+                            </>
+                          )}
+                       </div>
+                    </div>
                 </div>
               </div>
             ))}
@@ -144,15 +156,15 @@ export default function TestimonialsPage() {
                 <Quote className="absolute top-8 right-8 opacity-5 text-primary group-hover:scale-110 transition-transform" size={60} />
                 
                 <div className="space-y-6 relative z-10">
-                   <p className="text-lg font-medium text-foreground leading-relaxed italic">
-                      "{story.quote || story.content}"
-                   </p>
-                   
-                   <div className="pt-6 border-t border-border">
-                      <p className="font-bold text-primary text-xl">{story.name || story.client_name}</p>
-                      <p className="text-sm font-bold text-foreground/80">{story.outcome || story.client_role}</p>
-                      <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{story.firm || 'Consulting'}</p>
-                   </div>
+                    <p className="text-lg font-medium text-foreground leading-relaxed italic">
+                       &ldquo;{story.quote || story.content}&rdquo;
+                    </p>
+
+                    <div className="pt-6 border-t border-border">
+                       <p className="font-bold text-primary text-xl">{story.name || story.client_name}</p>
+                       <p className="text-sm font-bold text-foreground/80">{story.outcome || story.client_role}</p>
+                       <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{story.firm || 'Consulting'}</p>
+                    </div>
                 </div>
               </div>
             ))}
@@ -167,13 +179,13 @@ export default function TestimonialsPage() {
                <Star size={240} />
             </div>
             
-            <h3 className="text-3xl md:text-5xl font-bold mb-8 italic leading-none">
+            <h3 className="text-3xl md:text-5xl font-bold mb-8 italic leading-none relative z-10">
               {getSetting('testimonials_success_headline', "90% Success rate for Africans")}
             </h3>
-            <p className="text-lg font-medium mb-10 text-white/80 leading-relaxed max-w-2xl mx-auto border-y border-white/10 py-8">
+            <p className="text-lg font-medium mb-10 text-white/80 leading-relaxed max-w-2xl mx-auto border-y border-white/10 py-8 relative z-10">
               {getSetting('testimonials_success_description', "When you have a coach who understands your context, your success becomes predictable, not lucky.")}
             </p>
-             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 relative z-10">
                 {[
                   { label: "UK MBAs", val: "Oxford, LBS" },
                   { label: "Scholarships", val: "Full funding" },
@@ -190,23 +202,12 @@ export default function TestimonialsPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-6 text-center">
-          <div className="max-w-4xl mx-auto space-y-10">
-             <h2 className="text-3xl md:text-5xl font-bold italic leading-tight">
-               Ready to write your <br/><span className="text-primary italic">success story?</span>
-             </h2>
-            <p className="text-xl font-medium text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Don't wait for the 'perfect' time. Start your preparation today and join our list of winners.
-            </p>
-             <Link href="/book" className="inline-block w-full sm:w-auto">
-                <Button className="w-full sm:w-auto bg-primary text-white hover:bg-primary/90 px-6 sm:px-10 md:px-16 h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg font-bold rounded-full group shadow-2xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 flex items-center justify-center">
-                   Book a strategy session <ArrowRight className="ml-2 sm:ml-3 group-hover:translate-x-2 transition-transform shrink-0" />
-                </Button>
-             </Link>
-         </div>
-      </section>
-
-      <SiteFooter />
-    </div>
+      <CTABanner
+        title={<>Ready to write your <br/><span className="text-white/60">success story?</span></>}
+        description="Don't wait for the 'perfect' time. Start your preparation today and join our list of winners."
+        buttonText="Book a strategy session"
+        buttonHref="/book"
+      />
+    </PublicLayout>
   );
 }

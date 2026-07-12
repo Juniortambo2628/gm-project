@@ -1,15 +1,14 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import DashboardHero from "@/components/DashboardHero";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { DollarSign, Calendar, User, CreditCard, ExternalLink, Activity } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { CreditCard, ExternalLink, Activity } from "lucide-react";
 import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
-
-import { Skeleton } from "@/components/ui/skeleton";
+import { AdminListPage } from "@/components/admin/AdminListPage";
+import { Booking, extractList } from "@/lib/api";
 
 export default function BookingsPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,38 +18,16 @@ export default function BookingsPage() {
   const fetchData = async () => {
     try {
       const res = await axiosInstance.get("/cms/orders");
-      setData(res.data);
-    } catch (e) {
+      setData(extractList<Booking>(res));
+    } catch {
       toast.error("Failed to fetch bookings");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-10 pb-20 animate-pulse">
-         <div className="h-44 bg-muted/40 rounded-2xl border p-8 space-y-4">
-            <Skeleton variant="text" className="w-48 h-8" />
-            <Skeleton variant="text" className="w-96 h-5" />
-         </div>
-         <div className="space-y-4">
-            <Skeleton variant="table-row" />
-            <Skeleton variant="table-row" />
-            <Skeleton variant="table-row" />
-            <Skeleton variant="table-row" />
-         </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="animate-fade-in space-y-10 pb-20">
-      <DashboardHero 
-        title="Bookings & Payments" 
-        description="Monitor successful registrations and consulting payments." 
-      />
-
+    <AdminListPage title="Bookings & Payments" description="Monitor successful registrations and consulting payments." isLoading={loading}>
       <div className="grid grid-cols-1 gap-4">
         {data.length > 0 ? data.map((item) => (
           <Card key={item.id} className="rounded-2xl border shadow-sm hover:border-primary/20 transition-all overflow-hidden bg-card">
@@ -96,6 +73,6 @@ export default function BookingsPage() {
           </Card>
         )}
       </div>
-    </div>
+    </AdminListPage>
   );
 }

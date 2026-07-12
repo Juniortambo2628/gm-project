@@ -1,17 +1,18 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import DashboardHero from "@/components/DashboardHero";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Mail, Trash2, Calendar, User, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
-
-import { Skeleton } from "@/components/ui/skeleton";
+import { AdminListPage } from "@/components/admin/AdminListPage";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { Message, extractList } from "@/lib/api";
 
 export default function InquiriesPage() {
-  const [inquiries, setInquiries] = useState<any[]>([]);
+  const [inquiries, setInquiries] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   useEffect(() => {
     fetchInquiries();
@@ -20,8 +21,8 @@ export default function InquiriesPage() {
   const fetchInquiries = async () => {
     try {
       const res = await axiosInstance.get("/cms/inquiries");
-      setInquiries(res.data);
-    } catch (e) {
+      setInquiries(extractList<Message>(res));
+    } catch {
       toast.error("Failed to fetch inquiries");
     } finally {
       setLoading(false);
@@ -29,39 +30,19 @@ export default function InquiriesPage() {
   };
 
   const deleteInquiry = async (id: number) => {
-    if (!confirm("Are you sure?")) return;
     try {
       await axiosInstance.delete(`/cms/inquiries/${id}`);
       toast.success("Inquiry deleted");
       fetchInquiries();
-    } catch (e) {
+    } catch {
       toast.error("Failed to delete");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-10 pb-20 animate-pulse">
-         <div className="h-44 bg-muted/40 rounded-2xl border p-8 space-y-4">
-            <Skeleton variant="text" className="w-48 h-8" />
-            <Skeleton variant="text" className="w-96 h-5" />
-         </div>
-         <div className="space-y-6">
-            <Skeleton variant="rect" className="h-56 rounded-3xl" />
-            <Skeleton variant="rect" className="h-56 rounded-3xl" />
-            <Skeleton variant="rect" className="h-56 rounded-3xl" />
-         </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="animate-fade-in space-y-10 pb-20">
-      <DashboardHero 
-        title="Client Inquiries" 
-        description="Manage messages from your website contact form." 
-      />
-
+    <AdminListPage title="Client Inquiries" description="Manage messages from your website contact form." isLoading={loading}>
       <div className="grid grid-cols-1 gap-6">
         {inquiries.length > 0 ? inquiries.map((item) => (
           <Card key={item.id} className="rounded-3xl border shadow-sm hover:border-primary/20 transition-all overflow-hidden">
@@ -84,7 +65,7 @@ export default function InquiriesPage() {
 
                   <div className="bg-muted/30 p-6 rounded-2xl border-l-4 border-primary/20">
                      <p className="text-xs font-bold text-primary mb-2 italic">Subject: {item.subject}</p>
-                     <p className="text-sm text-foreground font-medium leading-relaxed italic line-clamp-3">"{item.content}"</p>
+                      <p className="text-sm text-foreground font-medium leading-relaxed italic line-clamp-3">&ldquo;{item.content}&rdquo;</p>
                   </div>
                </div>
                
@@ -92,7 +73,7 @@ export default function InquiriesPage() {
                   <a href={`mailto:${item.email}`} className="w-full h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-[12px] flex items-center justify-center gap-2">
                      <Mail size={16} /> Reply
                   </a>
-                  <Button onClick={() => deleteInquiry(item.id)} variant="ghost" className="w-full h-11 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50 text-[12px] font-bold">
+                  <Button onClick={() => setDeleteTarget(item.id)} variant="ghost" className="w-full h-11 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50 text-[12px] font-bold">
                      <Trash2 size={16} className="mr-2" /> Delete
                   </Button>
                </div>
@@ -104,6 +85,14 @@ export default function InquiriesPage() {
           </Card>
         )}
       </div>
-    </div>
+
+      <ConfirmDeleteDialog
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { if (deleteTarget) deleteInquiry(deleteTarget); }}
+        title="Delete inquiry"
+        description="Are you sure you want to delete this inquiry? This action cannot be undone."
+      />
+    </AdminListPage>
   );
 }

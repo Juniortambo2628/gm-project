@@ -31,7 +31,7 @@ class InquiryReceived extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New Website Inquiry: ' . $this->inquiryMessage->service_interest,
+            subject: 'New Website Inquiry: ' . ($this->inquiryMessage->subject ?: 'General Coaching Inquiry'),
         );
     }
 

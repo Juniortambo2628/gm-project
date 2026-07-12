@@ -1,23 +1,18 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
 import { Mail, Linkedin, MapPin, Send, MessageSquare, Loader2 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { IconBlock } from "@/components/ui/IconBlock";
-import { PageHero } from "@/components/PageHero";
-
-import { useCMS } from "@/context/SettingContext";
-
-const africanCountries = [
-  "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon", "Central African Republic", "Chad", "Comoros", "Congo (Congo-Brazzaville)", "Côte d'Ivoire", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe", "Other"
-];
+import { PublicLayout } from "@/components/layout/PublicLayout";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { africanCountries } from "@/lib/data/countries";
+import { createMessage, getErrorMessage } from "@/lib/api";
 
 export default function ContactPage() {
-  const { getSetting } = useCMS();
+  const { getSetting, getHeroProps } = useSiteSettings();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -32,30 +27,14 @@ export default function ContactPage() {
     setIsSubmitting(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-      const response = await fetch(`${apiUrl}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(formData),
+      await createMessage(formData);
+      toast.success("Message Sent", {
+        description: "Thank you for reaching out. I'll get back to you shortly.",
       });
-
-      if (response.ok) {
-        toast.success("Message Sent", {
-          description: "Thank you for reaching out. I'll get back to you shortly.",
-        });
-        setFormData({ name: "", email: "", country: "", subject: "", content: "" });
-      } else {
-        const errorData = await response.json();
-        toast.error("Error", {
-          description: errorData.message || "Failed to send message. Please try again.",
-        });
-      }
+      setFormData({ name: "", email: "", country: "", subject: "", content: "" });
     } catch (error) {
       toast.error("Error", {
-        description: "An unexpected error occurred. Please try again later.",
+        description: getErrorMessage(error),
       });
     } finally {
       setIsSubmitting(false);
@@ -67,25 +46,23 @@ export default function ContactPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-500">
-      <SiteHeader />
-
-      <PageHero 
-        title={getSetting('contact_hero_title', "Get in touch")}
-        subtitle={getSetting('contact_hero_subtitle', "Have a question about MBA applications or consulting careers? I respond to all messages within 24 hours.")}
-        badge="Direct channel"
-        breadcrumbs={breadcrumbs}
-        videoSrc={getSetting('contact_hero_bg') || "/hero-bg.mp4"}
-      />
-
+    <PublicLayout
+      hero={{
+        title: getSetting('contact_hero_title', "Get in touch"),
+        subtitle: getSetting('contact_hero_subtitle', "Have a question about MBA applications or consulting careers? I respond to all messages within 24 hours."),
+        badge: "Direct channel",
+        breadcrumbs,
+        ...getHeroProps('contact_hero_bg')
+      }}
+    >
       <main className="max-w-7xl mx-auto px-6 py-24">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-20">
           {/* Contact Info */}
           <div className="space-y-10">
             <div>
-               <h2 className="text-3xl md:text-4xl font-bold mb-6">I'm in your <span className="text-primary">corner.</span></h2>
+               <h2 className="text-3xl md:text-4xl font-bold mb-6">I&apos;m in your <span className="text-primary">corner.</span></h2>
                <p className="text-lg md:text-xl text-muted-foreground font-medium leading-relaxed mb-6">
-                  Whether you're just starting to think about an Oxford MBA or you're days away from a McKinsey interview in Lagos, feel free to reach out. 
+                  Whether you&apos;re just starting to think about an Oxford MBA or you&apos;re days away from a McKinsey interview in Lagos, feel free to reach out.
                </p>
             </div>
 
@@ -122,7 +99,7 @@ export default function ContactPage() {
                </div>
                <h4 className="text-xl font-bold mb-3">Looking for a session?</h4>
                <p className="text-sm text-muted-foreground font-medium mb-6 leading-relaxed">
-                  If you're ready to start your journey, booking a call is the fastest way to get started.
+                   If you&apos;re ready to start your journey, booking a call is the fastest way to get started.
                </p>
                <Link href="/book">
                   <Button className="bg-primary hover:bg-primary/90 text-white px-8 rounded-full font-bold text-[11px] h-10">
@@ -216,8 +193,6 @@ export default function ContactPage() {
           </div>
         </div>
       </main>
-
-      <SiteFooter />
-    </div>
+    </PublicLayout>
   );
 }

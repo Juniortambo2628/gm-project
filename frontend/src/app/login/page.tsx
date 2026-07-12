@@ -7,7 +7,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Mail, Lock, ArrowRight, ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useCMS } from "@/context/SettingContext";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import axiosInstance from "@/lib/axios";
+import { login as loginApi, verifyResetCode as verifyResetCodeApi, forgotPassword as forgotPasswordApi, resetPassword as resetPasswordApi } from "@/lib/api";
+import { getApiErrorMessage } from "@/lib/utils";
+import { SafeImage } from "@/components/SafeImage";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -35,28 +39,15 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-      const res = await fetch(`${apiUrl}/forgot-password`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        },
-        body: JSON.stringify({ email: forgotEmail })
+      const data = await forgotPasswordApi(forgotEmail);
+      setResetTempToken(data.temp_token);
+      setDebugResetCode(data.debug_code || "");
+      toast.success("Security code generated", {
+        description: `A dynamic verification code has been dispatched to ${forgotEmail}.`
       });
-      if (res.ok) {
-        const data = await res.json();
-        setResetTempToken(data.temp_token);
-        setDebugResetCode(data.debug_code || "");
-        toast.success("Security code generated", {
-          description: `A dynamic verification code has been dispatched to ${forgotEmail}.`
-        });
-        setFlow('reset-code');
-      } else {
-        toast.error("Request Failed", { description: "Failed to request password reset code." });
-      }
-    } catch (err) {
-      toast.error("Error", { description: "Failed to request password reset." });
+      setFlow('reset-code');
+    } catch (err: unknown) {
+      toast.error("Request Failed", { description: getApiErrorMessage(err, "Failed to request password reset code.") });
     } finally {
       setLoading(false);
     }
@@ -66,30 +57,16 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-      const res = await fetch(`${apiUrl}/verify-reset-code`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        },
-        body: JSON.stringify({ temp_token: resetTempToken, code: resetCode })
+      const data = await verifyResetCodeApi(resetTempToken, resetCode);
+      setResetToken(data.reset_token);
+      toast.success("Code verified successfully!", {
+        description: "Please configure your new security credentials."
       });
-      if (res.ok) {
-        const data = await res.json();
-        setResetToken(data.reset_token);
-        toast.success("Code verified successfully!", {
-          description: "Please configure your new security credentials."
-        });
-        setFlow('new-password');
-      } else {
-        const data = await res.json();
-        toast.error("Verification Failed", {
-          description: data.message || "Invalid or expired security reset code."
-        });
-      }
-    } catch (err) {
-      toast.error("Error", { description: "Unable to reach the verification server." });
+      setFlow('new-password');
+    } catch (err: unknown) {
+      toast.error("Verification Failed", {
+        description: getApiErrorMessage(err, "Invalid or expired security reset code.")
+      });
     } finally {
       setLoading(false);
     }
@@ -107,33 +84,16 @@ export default function LoginPage() {
     }
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-      const res = await fetch(`${apiUrl}/reset-password`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        },
-        body: JSON.stringify({ 
-          reset_token: resetToken, 
-          password: newPassword,
-          password_confirmation: confirmNewPassword
-        })
+      await resetPasswordApi(resetToken, newPassword, confirmNewPassword);
+      toast.success("Security credentials updated", {
+        description: "You may now sign in using your new password."
       });
-      if (res.ok) {
-        toast.success("Security credentials updated", {
-          description: "You may now sign in using your new password."
-        });
-        setEmail(forgotEmail);
-        setFlow('login');
-      } else {
-        const data = await res.json();
-        toast.error("Reset Failed", {
-          description: data.message || "Unable to reset password."
-        });
-      }
-    } catch (err) {
-      toast.error("Error", { description: "Unable to reach the password reset server." });
+      setEmail(forgotEmail);
+      setFlow('login');
+    } catch (err: unknown) {
+      toast.error("Reset Failed", {
+        description: getApiErrorMessage(err, "Unable to reset password.")
+      });
     } finally {
       setLoading(false);
     }
@@ -141,7 +101,7 @@ export default function LoginPage() {
 
   const router = useRouter();
   const { login, isAuthenticated, user, isLoading } = useAuth();
-  const { settings } = useCMS();
+  const { getSetting } = useSiteSettings();
 
   // Auth Guard: Redirect if already logged in
   useEffect(() => {
@@ -158,77 +118,46 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-      const res = await fetch(`${apiUrl}/login`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        },
-        body: JSON.stringify({ email, password })
-      });
-      if (res.ok) {
-         const data = await res.json();
-         if (data.requires_2fa) {
-            setRequires2FA(true);
-            setEmailMasked(data.email_masked);
-            setTempToken(data.temp_token);
-            setDebugCode(data.debug_code || "");
-            toast.success("Verification required", {
-               description: `A dynamic security code has been sent to ${data.email_masked}`
-            });
-         } else {
-            toast.success("Welcome back!", {
-               description: `Successfully signed in as ${data.user.name}`
-            });
-            login(data.access_token, data.user);
-         }
+      const data = await loginApi({ email, password });
+      if (data.requires_2fa) {
+        setRequires2FA(true);
+        setEmailMasked(data.email_masked);
+        setTempToken(data.temp_token);
+        setDebugCode(data.debug_code || "");
+        toast.success("Verification required", {
+          description: `A dynamic security code has been sent to ${data.email_masked}`
+        });
       } else {
-         toast.error("Authentication Failed", {
-            description: "Check your email and password and try again."
-         });
+        toast.success("Welcome back!", {
+          description: `Successfully signed in as ${data.user.name}`
+        });
+        login(data.access_token, data.user);
       }
-    } catch (err) {
-       toast.error("Connection Error", {
-          description: "Unable to reach the authentication server."
-       });
+    } catch (err: unknown) {
+      toast.error("Authentication Failed", {
+        description: getApiErrorMessage(err, "Check your email and password and try again.")
+      });
     } finally {
-       setLoading(false);
+      setLoading(false);
     }
   };
 
   const handleVerify2FA = async (e: React.FormEvent) => {
-     e.preventDefault();
-     setLoading(true);
-     try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-        const res = await fetch(`${apiUrl}/login/verify-2fa`, {
-           method: "POST",
-           headers: {
-               "Content-Type": "application/json",
-               "Accept": "application/json"
-           },
-           body: JSON.stringify({ temp_token: tempToken, code })
-        });
-        if (res.ok) {
-           const data = await res.json();
-           toast.success("Identity Verified!", {
-              description: `Successfully signed in as ${data.user.name}`
-           });
-           login(data.access_token, data.user);
-        } else {
-           const data = await res.json();
-           toast.error("Verification Failed", {
-              description: data.message || "Invalid or expired security code."
-           });
-        }
-     } catch (err) {
-        toast.error("Connection Error", {
-           description: "Unable to reach the verification server."
-        });
-     } finally {
-        setLoading(false);
-     }
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const data = await axiosInstance.post("/login/verify-2fa", { temp_token: tempToken, code });
+      toast.success("Identity Verified!", {
+        description: `Successfully signed in as ${data.data.user.name}`
+      });
+      login(data.data.access_token, data.data.user);
+    } catch (err: unknown) {
+      toast.error("Verification Failed", {
+        description: getApiErrorMessage(err, "Invalid or expired security code.")
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (isLoading || isAuthenticated) {
@@ -236,7 +165,7 @@ export default function LoginPage() {
        <div className="h-screen w-full flex items-center justify-center bg-background">
            <div className="flex flex-col items-center gap-4">
               <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-               <p className="text-[13px] font-medium text-slate-500 whitespace-nowrap">Logged in? Let's get you set up.</p>
+               <p className="text-[13px] font-medium text-slate-500 whitespace-nowrap">Logged in? Let&apos;s get you set up.</p>
            </div>
        </div>
     );
@@ -265,22 +194,19 @@ export default function LoginPage() {
          
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-slate-900/40 p-10 flex flex-col justify-between">
              <div className="flex items-center gap-3">
-                <img 
-                  src={settings['logo_light'] || "/branding/GM-logo-light-final.png"} 
-                  alt="Logo" 
+                <SafeImage
+                  src={getSetting('logo_light', '')}
+                  fallback="/branding/GM-logo-light-final.png"
+                  alt="Logo"
+                  width={120}
+                  height={40}
                   className="h-10 w-auto object-contain rounded-xl"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    const fallback = "/branding/GM-logo-light-final.png";
-                    if (target.src !== window.location.origin + fallback && target.src !== fallback) {
-                      target.src = fallback;
-                    }
-                  }}
+                  style={{ width: 'auto', height: 'auto' }}
                 />
              </div>
  
               <div className="max-w-md hidden lg:block pb-12">
-                 <h2 className="text-3xl font-bold text-white leading-tight mb-4">Helping Africans access the world's <span className="text-primary bg-white px-2 py-0.5 rounded-lg">best</span> opportunities</h2>
+                 <h2 className="text-3xl font-bold text-white leading-tight mb-4">Helping Africans access the world&apos;s <span className="text-primary bg-white px-2 py-0.5 rounded-lg">best</span> opportunities</h2>
                  <p className="text-slate-300 font-medium leading-relaxed text-sm">
                     Join talented professionals leveraging authentic stories to win global admissions and career breakthroughs.
                  </p>
@@ -301,7 +227,7 @@ export default function LoginPage() {
                      </div>
                      <h3 className="text-3xl font-bold text-foreground mb-2">Enter code</h3>
                      <p className="text-slate-500 font-bold text-sm">
-                        We've sent a 6-digit confirmation code to <span className="text-primary font-black">{emailMasked}</span>. Enter it below, or use one of your recovery backup codes.
+                        We&apos;ve sent a 6-digit confirmation code to <span className="text-primary font-black">{emailMasked}</span>. Enter it below, or use one of your recovery backup codes.
                      </p>
                   </div>
 
@@ -361,7 +287,7 @@ export default function LoginPage() {
                <>
                   <div className="mb-8 text-center lg:text-left">
                      <h3 className="text-3xl font-bold text-foreground mb-2">Reset password</h3>
-                     <p className="text-slate-500 font-bold text-sm">Enter your email address and we'll dispatch a password reset code.</p>
+                     <p className="text-slate-500 font-bold text-sm">Enter your email address and we&apos;ll dispatch a password reset code.</p>
                   </div>
 
                   <form onSubmit={handleForgotEmailSubmit} className="space-y-5">

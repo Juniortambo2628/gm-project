@@ -1,96 +1,83 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import DashboardHero from "@/components/DashboardHero";
-import { Card, CardContent } from "@/components/ui/card";
-import { HelpCircle, MessageSquare, Plus, Trash2, Save, RefreshCcw } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import axiosInstance from "@/lib/axios";
-import { useCMS } from "@/context/SettingContext";
+import { useCMSContent } from "@/context/CMSContentContext";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AdminListPage } from "@/components/admin/AdminListPage";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { FAQ, Testimonial } from "@/lib/api";
 
 export default function ContentManagementPage() {
-  const { faqs, testimonials, refreshSettings, isLoading: cmsLoading } = useCMS();
-  const [localFaqs, setLocalFaqs] = useState<any[]>([]);
-  const [localTestimonials, setLocalTestimonials] = useState<any[]>([]);
+  const { faqs, testimonials, refreshCMSContent, isLoading: cmsLoading } = useCMSContent();
+  const [localFaqs, setLocalFaqs] = useState<FAQ[]>([]);
+  const [localTestimonials, setLocalTestimonials] = useState<Testimonial[]>([]);
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: number } | null>(null);
 
   useEffect(() => {
     if (!cmsLoading) {
-      setLocalFaqs(faqs || []);
-      setLocalTestimonials(testimonials || []);
+      setLocalFaqs((faqs || []) as FAQ[]);
+      setLocalTestimonials((testimonials || []) as Testimonial[]);
     }
   }, [cmsLoading, faqs, testimonials]);
 
-  const handleSaveFaq = async (faq: any) => {
+  const handleSaveFaq = async (faq: FAQ) => {
     setSaving(true);
     try {
       await axiosInstance.post("/cms/faqs", faq);
       toast.success("FAQ updated");
-      refreshSettings();
-    } catch (e) {
+      refreshCMSContent();
+    } catch {
       toast.error("Failed to save FAQ");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSaveTestimonial = async (t: any) => {
+  const handleSaveTestimonial = async (t: Testimonial) => {
     setSaving(true);
     try {
       await axiosInstance.post("/cms/testimonials", t);
       toast.success("Testimonial updated");
-      refreshSettings();
-    } catch (e) {
+      refreshCMSContent();
+    } catch {
       toast.error("Failed to save testimonial");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDeleteItem = async (type: string, id: number) => {
-    if (!confirm('Are you sure?')) return;
+  const handleDeleteItem = async () => {
+    if (!deleteTarget) return;
     setSaving(true);
     try {
-      await axiosInstance.delete(`/cms/${type}/${id}`);
+      await axiosInstance.delete(`/cms/${deleteTarget.type}/${deleteTarget.id}`);
       toast.success("Item deleted");
-      refreshSettings();
-    } catch (e) {
+      refreshCMSContent();
+    } catch {
       toast.error("Failed to delete item");
     } finally {
       setSaving(false);
+      setDeleteTarget(null);
     }
   };
 
   if (cmsLoading) {
     return (
-      <div className="space-y-10 pb-20 animate-pulse">
-         <div className="h-44 bg-muted/40 rounded-2xl border p-8 space-y-4">
-            <Skeleton variant="text" className="w-48 h-8" />
-            <Skeleton variant="text" className="w-96 h-5" />
-         </div>
-         <div className="h-14 w-64 bg-muted/50 rounded-2xl p-1 mb-10 flex gap-2">
-            <Skeleton variant="rect" className="flex-1 h-full rounded-xl" />
-            <Skeleton variant="rect" className="flex-1 h-full rounded-xl" />
-         </div>
-         <div className="space-y-6">
-            <Skeleton variant="card" className="h-48 rounded-3xl" />
-            <Skeleton variant="card" className="h-48 rounded-3xl" />
-         </div>
-      </div>
+      <AdminListPage title="Social Proof & FAQs" description="Manage your customer reviews and frequently asked questions." isLoading>
+        <></>
+      </AdminListPage>
     );
   }
 
   return (
-    <div className="animate-fade-in space-y-10 pb-20">
-      <DashboardHero 
-        title="Social Proof & FAQs" 
-        description="Manage your customer reviews and frequently asked questions." 
-      />
-
+    <AdminListPage title="Social Proof & FAQs" description="Manage your customer reviews and frequently asked questions.">
       <Tabs defaultValue="testimonials" className="w-full">
          <TabsList className="bg-muted/50 p-1 rounded-2xl mb-10 inline-flex">
             <TabsTrigger value="testimonials" className="rounded-xl px-8 py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm">Testimonials</TabsTrigger>
@@ -147,12 +134,12 @@ export default function ContentManagementPage() {
                            />
                         </div>
                         <div className="md:w-48 flex flex-col gap-3 justify-center border-l pl-10 border-border">
-                           <Button onClick={() => handleSaveTestimonial(t)} className="h-11 rounded-xl shadow-lg shadow-primary/5">Save</Button>
-                           {t.id && (
-                              <Button variant="ghost" onClick={() => handleDeleteItem('testimonials', t.id)} className="h-11 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50">
-                                 <Trash2 size={16} className="mr-2" /> Delete
-                              </Button>
-                           )}
+                            <Button onClick={() => handleSaveTestimonial(t)} disabled={saving} className="h-11 rounded-xl shadow-lg shadow-primary/5">Save</Button>
+                            {t.id && (
+                               <Button variant="ghost" onClick={() => setDeleteTarget({ type: 'testimonials', id: t.id! })} className="h-11 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50">
+                                  <Trash2 size={16} className="mr-2" /> Delete
+                               </Button>
+                            )}
                         </div>
                      </div>
                   </Card>
@@ -198,12 +185,12 @@ export default function ContentManagementPage() {
                            />
                         </div>
                         <div className="md:w-48 flex flex-col gap-3 justify-center border-l pl-10 border-border">
-                           <Button onClick={() => handleSaveFaq(faq)} className="h-11 rounded-xl shadow-lg shadow-primary/5">Save</Button>
-                           {faq.id && (
-                              <Button variant="ghost" onClick={() => handleDeleteItem('faqs', faq.id)} className="h-11 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50">
-                                 <Trash2 size={16} className="mr-2" /> Delete
-                              </Button>
-                           )}
+                            <Button onClick={() => handleSaveFaq(faq)} disabled={saving} className="h-11 rounded-xl shadow-lg shadow-primary/5">Save</Button>
+                            {faq.id && (
+                               <Button variant="ghost" onClick={() => setDeleteTarget({ type: 'faqs', id: faq.id! })} className="h-11 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50">
+                                  <Trash2 size={16} className="mr-2" /> Delete
+                               </Button>
+                            )}
                         </div>
                      </div>
                   </Card>
@@ -211,6 +198,14 @@ export default function ContentManagementPage() {
             </div>
          </TabsContent>
       </Tabs>
-    </div>
+
+      <ConfirmDeleteDialog
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteItem}
+        title="Delete item"
+        description="Are you sure you want to delete this item? This action cannot be undone."
+      />
+    </AdminListPage>
   );
 }

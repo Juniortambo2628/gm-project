@@ -3,14 +3,22 @@
 import { usePaystackPayment } from "react-paystack";
 import { CreditCard, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSetting } from "@/context/SettingContext";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+
+interface PaystackReference {
+  reference: string;
+  status?: string;
+  trans?: string;
+  transaction?: string;
+  message?: string;
+}
 
 interface PaystackButtonProps {
     email: string;
     amountInCents: number;
     serviceName: string;
     isRecording: boolean;
-    onSuccess: (reference: any) => void;
+    onSuccess: (reference: PaystackReference) => void;
     onClose: () => void;
     disabled?: boolean;
 }
@@ -24,13 +32,13 @@ export default function PaystackButton({
     onClose,
     disabled 
 }: PaystackButtonProps) {
-    const { getSetting } = useSetting();
+    const { getSetting } = useSiteSettings();
 
     const paystackConfig = {
         reference: (new Date()).getTime().toString(),
         email: email,
         amount: amountInCents,
-        publicKey: getSetting('paystack_public_key') || 'pk_test_d2d6d06d4e2a6d4e2a6d4e2a6d4e2a6d4e2a', // Dynamically loaded
+        publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || getSetting('paystack_public_key') || '',
     };
 
     const initializePayment = usePaystackPayment(paystackConfig);

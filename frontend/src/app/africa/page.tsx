@@ -1,19 +1,19 @@
 "use client";
 
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
-import { Button } from "@/components/ui/button";
-import { Globe, Heart, ShieldCheck, Zap, ArrowRight, Quote } from "lucide-react";
-import Link from "next/link";
+import { Heart, ShieldCheck, Zap, Quote } from "lucide-react";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { IconBlock } from "@/components/ui/IconBlock";
-import { PageHero } from "@/components/PageHero";
-import { useSetting } from "@/context/SettingContext";
+import { PublicLayout } from "@/components/layout/PublicLayout";
+import { CTABanner } from "@/components/CTABanner";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 export default function AfricaPage() {
-  const { getSetting } = useSetting();
+  const { getSetting, getHeroProps } = useSiteSettings();
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect
+  }, []);
 
   if (!mounted) return null;
 
@@ -23,17 +23,15 @@ export default function AfricaPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-500">
-      <SiteHeader />
-
-      <PageHero 
-        title={getSetting('africa_hero_title', "Why this matters")}
-        subtitle={getSetting('africa_hero_subtitle', "The global stage wasn't designed with the African journey in mind. I'm here to ensure that doesn't stop you from owning it.")}
-        badge="Our common context"
-        breadcrumbs={breadcrumbs}
-        videoSrc={getSetting('africa_hero_bg') || "/hero-bg.mp4"}
-      />
-
+    <PublicLayout
+      hero={{
+        title: getSetting('africa_hero_title', "Why this matters"),
+        subtitle: getSetting('africa_hero_subtitle', "The global stage wasn't designed with the African journey in mind. I'm here to ensure that doesn't stop you from owning it."),
+        badge: "Our common context",
+        breadcrumbs,
+        ...getHeroProps('africa_hero_bg')
+      }}
+    >
       {/* Core Mission Section */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-6">
@@ -106,10 +104,11 @@ export default function AfricaPage() {
       {/* Visual Impact Quote */}
       <section className="py-20 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full">
-           <img 
+           <Image 
              src="/portfolio-images/group-seminar-selfie-landscape.png" 
-             className="w-full h-full object-cover opacity-20 grayscale" 
              alt="African professionals"
+             fill
+             className="object-cover opacity-20 grayscale" 
            />
            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background" />
         </div>
@@ -125,23 +124,12 @@ export default function AfricaPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-6 bg-background">
-         <div className="max-w-4xl mx-auto p-10 md:p-16 bg-[#470f0b] text-white rounded-3xl text-center relative overflow-hidden group shadow-2xl">
-            <h3 className="text-3xl md:text-5xl font-bold mb-8 italic leading-none">
-              Start your <br/><span className="text-white/60">journey today</span>
-            </h3>
-            <p className="text-lg font-medium mb-10 text-white/80 leading-relaxed max-w-xl mx-auto">
-              Ready to turn your background into your greatest asset? Let's talk strategy.
-            </p>
-            <Link href="/book">
-               <Button className="bg-white text-primary hover:bg-white/90 px-16 h-16 text-lg font-bold rounded-full group shadow-2xl transition-all hover:scale-105 active:scale-95">
-                  Book a strategy session <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
-               </Button>
-            </Link>
-         </div>
-      </section>
-
-      <SiteFooter />
-    </div>
+      <CTABanner
+        title={<>Start your <br/><span className="text-white/60">journey today</span></>}
+        description="Ready to turn your background into your greatest asset? Let's talk strategy."
+        buttonText="Book a strategy session"
+        buttonHref="/book"
+      />
+    </PublicLayout>
   );
 }

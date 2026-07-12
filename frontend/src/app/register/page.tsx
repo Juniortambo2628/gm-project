@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { UserPlus, Mail, Lock, ArrowLeft, Loader2, Globe, Heart, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useCMS } from "@/context/SettingContext";
-import { IconBlock } from "@/components/ui/IconBlock";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { register as registerApi } from "@/lib/api";
+import { getApiErrorMessage } from "@/lib/utils";
+import { SafeImage } from "@/components/SafeImage";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -17,7 +19,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { login, isAuthenticated, user, isLoading } = useAuth();
-  const { settings } = useCMS();
+  const { getSetting } = useSiteSettings();
 
   // Auth Guard: Redirect if already logged in
   useEffect(() => {
@@ -34,30 +36,15 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-      const res = await fetch(`${apiUrl}/register`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        },
-        body: JSON.stringify({ name, email, password })
+      const data = await registerApi({ name, email, password });
+      toast.success("Account created!", {
+        description: "Welcome to the consultancy platform."
       });
-      if (res.ok) {
-         const data = await res.json();
-          toast.success("Account created!", {
-             description: "Welcome to the consultancy platform."
-          });
-         login(data.access_token, data.user);
-      } else {
-         toast.error("Registration failed", {
-            description: "Validation error or user already exists."
-         });
-      }
-    } catch (err) {
-       toast.error("Network Error", {
-          description: "Failed to connect to the registration server."
-       });
+      login(data.access_token, data.user);
+    } catch (err: unknown) {
+      toast.error("Registration failed", {
+        description: getApiErrorMessage(err, "Validation error or user already exists.")
+      });
     } finally {
       setLoading(false);
     }
@@ -97,20 +84,17 @@ export default function RegisterPage() {
          
          {/* Overlay Content */}
          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-slate-900/40 p-12 flex flex-col justify-between">
-            <div className="flex items-center gap-3">
-               <img 
-                 src={settings['logo_light'] || "/branding/GM-logo-light-final.png"} 
-                 alt="Logo" 
-                 className="h-10 w-auto object-contain rounded-xl"
-                 onError={(e) => {
-                   const target = e.currentTarget;
-                   const fallback = "/branding/GM-logo-light-final.png";
-                   if (target.src !== window.location.origin + fallback && target.src !== fallback) {
-                     target.src = fallback;
-                   }
-                 }}
-               />
-            </div>
+             <div className="flex items-center gap-3">
+                <SafeImage
+                  src={getSetting('logo_light', '')}
+                  fallback="/branding/GM-logo-light-final.png"
+                  alt="Logo"
+                  width={120}
+                  height={40}
+                  className="h-10 w-auto object-contain rounded-xl"
+                  style={{ width: 'auto', height: 'auto' }}
+                />
+             </div>
 
             <div className="max-w-md hidden lg:block text-right self-end">
                <h2 className="text-4xl font-bold text-white leading-tight mb-4">Empower your <span className="text-primary bg-white px-2 rounded-lg italic text-lg">voice</span> within the workplace</h2>

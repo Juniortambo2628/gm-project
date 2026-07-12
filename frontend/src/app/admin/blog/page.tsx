@@ -1,23 +1,36 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import DashboardHero from "@/components/DashboardHero";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FileText, Plus, Trash2, Edit, Calendar, Image as ImageIcon, X, Save, RefreshCcw } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Plus, Trash2, Edit, Calendar, Image as ImageIcon, X, Save, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Dialog } from "@/components/ui/dialog";
 import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
-import FilePondUploader from "@/components/admin/FilePondUploader";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AdminListPage } from "@/components/admin/AdminListPage";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { BlogPost, extractList } from "@/lib/api";
+import dynamic from "next/dynamic";
+import Image from "next/image";
+
+const FilePondUploader = dynamic(() => import("@/components/admin/FilePondUploader"), { ssr: false });
+
+const emptyPost: BlogPost = {
+  title: '',
+  excerpt: '',
+  content: '',
+  status: 'draft',
+  image_path: ''
+};
 
 export default function BlogManagementPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editingPost, setEditingPost] = useState<any>(null);
+  const [editingPost, setEditingPost] = useState<BlogPost>(emptyPost);
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -26,8 +39,8 @@ export default function BlogManagementPage() {
   const fetchData = async () => {
     try {
       const res = await axiosInstance.get("/cms/blog");
-      setData(res.data);
-    } catch (e) {
+      setData(extractList<BlogPost>(res));
+    } catch {
       toast.error("Failed to fetch blog posts");
     } finally {
       setLoading(false);
@@ -35,17 +48,11 @@ export default function BlogManagementPage() {
   };
 
   const handleCreateNew = () => {
-    setEditingPost({
-      title: '',
-      excerpt: '',
-      content: '',
-      status: 'draft',
-      image_path: ''
-    });
+    setEditingPost({ ...emptyPost });
     setIsModalOpen(true);
   };
 
-  const handleEdit = (post: any) => {
+  const handleEdit = (post: BlogPost) => {
     setEditingPost({ ...post });
     setIsModalOpen(true);
   };
@@ -67,7 +74,7 @@ export default function BlogManagementPage() {
       }
       setIsModalOpen(false);
       fetchData();
-    } catch (e) {
+    } catch {
       toast.error("Failed to save post");
     } finally {
       setSaving(false);
@@ -75,53 +82,36 @@ export default function BlogManagementPage() {
   };
 
   const deletePost = async (id: number) => {
-    if (!confirm("Are you sure?")) return;
     try {
       await axiosInstance.delete(`/cms/blog/${id}`);
       toast.success("Post deleted");
       fetchData();
-    } catch (e) {
+    } catch {
       toast.error("Failed to delete post");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-10 pb-20 animate-pulse">
-         <div className="flex justify-between items-end">
-            <div className="h-44 bg-muted/40 rounded-2xl border p-8 space-y-4 flex-1 mr-6">
-               <Skeleton variant="text" className="w-48 h-8" />
-               <Skeleton variant="text" className="w-96 h-5" />
-            </div>
-            <Skeleton variant="rect" className="w-44 h-12 rounded-full mb-10" />
-         </div>
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Skeleton variant="card" className="h-[420px] rounded-3xl" />
-            <Skeleton variant="card" className="h-[420px] rounded-3xl" />
-            <Skeleton variant="card" className="h-[420px] rounded-3xl" />
-         </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="animate-fade-in space-y-10 pb-20">
-      <div className="flex justify-between items-end">
-        <DashboardHero 
-          title="Blog Management" 
-          description="Manage your articles and published insights." 
-        />
-        <Button onClick={handleCreateNew} className="rounded-full px-8 h-12 shadow-lg shadow-primary/20 mb-10">
+    <AdminListPage
+      title="Blog Management"
+      description="Manage your articles and published insights."
+      isLoading={loading}
+      action={
+        <Button onClick={handleCreateNew} className="rounded-full px-8 h-12 shadow-lg shadow-primary/20">
            <Plus className="mr-2" size={18} /> New article
         </Button>
-      </div>
-
+      }
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {data.length > 0 ? data.map((post) => (
           <Card key={post.id} className="rounded-3xl border shadow-sm hover:translate-y-[-4px] transition-all overflow-hidden bg-card group">
             <div className="aspect-video bg-muted relative overflow-hidden">
                {post.image_path ? (
-                 <img src={post.image_path} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                 <div className="relative w-full h-full">
+                   <Image src={post.image_path} alt={post.title} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                 </div>
                ) : (
                  <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
                     <ImageIcon size={48} />
@@ -137,9 +127,9 @@ export default function BlogManagementPage() {
             <CardContent className="p-6 space-y-4">
                <div>
                   <h3 className="text-lg font-bold line-clamp-2 mb-1">{post.title}</h3>
-                  <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 uppercase tracking-tight">
-                    <Calendar size={12} /> {new Date(post.created_at).toLocaleDateString()}
-                  </p>
+                   <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 uppercase tracking-tight">
+                     <Calendar size={12} /> {post.created_at ? new Date(post.created_at).toLocaleDateString() : 'Draft'}
+                   </p>
                </div>
 
                <p className="text-xs text-muted-foreground font-medium leading-relaxed line-clamp-2 italic">
@@ -150,7 +140,7 @@ export default function BlogManagementPage() {
                   <Button onClick={() => handleEdit(post)} variant="outline" className="flex-1 rounded-xl h-10 text-[11px] font-bold">
                      <Edit size={14} className="mr-2" /> Edit
                   </Button>
-                  <Button onClick={() => deletePost(post.id)} variant="ghost" className="rounded-xl h-10 w-10 text-red-500 hover:text-red-600 hover:bg-red-50 p-0 flex items-center justify-center">
+                   <Button onClick={() => setDeleteTarget(post.id ?? null)} variant="ghost" className="rounded-xl h-10 w-10 text-red-500 hover:text-red-600 hover:bg-red-50 p-0 flex items-center justify-center">
                      <Trash2 size={16} />
                   </Button>
                </div>
@@ -200,7 +190,7 @@ export default function BlogManagementPage() {
                          <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Status</label>
                          <select 
                             value={editingPost?.status || 'draft'}
-                            onChange={(e) => setEditingPost({...editingPost, status: e.target.value})}
+                             onChange={(e) => setEditingPost({...editingPost, status: e.target.value as 'draft' | 'published'})}
                             className="w-full h-12 bg-muted/30 rounded-xl px-4 text-sm font-bold border-none outline-none"
                          >
                             <option value="draft">Draft</option>
@@ -230,7 +220,7 @@ export default function BlogManagementPage() {
                    />
                    {editingPost?.image_path && (
                       <div className="relative aspect-video rounded-2xl overflow-hidden border">
-                         <img src={editingPost.image_path} className="w-full h-full object-cover" />
+                         <Image src={editingPost.image_path} alt="Preview" fill className="object-cover" />
                          <Button onClick={() => setEditingPost({...editingPost, image_path: ''})} className="absolute top-2 right-2 w-8 h-8 rounded-full p-0 bg-red-500 text-white" size="sm">
                             <X size={14} />
                          </Button>
@@ -259,6 +249,14 @@ export default function BlogManagementPage() {
              </div>
           </div>
       </Dialog>
-    </div>
+
+      <ConfirmDeleteDialog
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { if (deleteTarget) deletePost(deleteTarget); }}
+        title="Delete blog post"
+        description="Are you sure you want to delete this blog post? This action cannot be undone."
+      />
+    </AdminListPage>
   );
 }

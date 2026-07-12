@@ -1,16 +1,42 @@
 "use client";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { MessageSquare, DollarSign, Activity, Eye, ArrowUpRight } from "lucide-react";
 import DashboardHero from "@/components/DashboardHero";
 import axiosInstance from "@/lib/axios";
-import { IconBlock } from "@/components/ui/IconBlock";
 import { useAuth } from "@/context/AuthContext";
-import { Skeleton } from "@/components/ui/skeleton";
+import dynamic from "next/dynamic";
+
+const RevenueChart = dynamic(() => import("@/components/admin/RevenueChart"), { ssr: false, loading: () => <div className="h-[350px] bg-muted/20 rounded-2xl animate-pulse" /> });
+
+interface DashboardTransaction {
+  id: number;
+  customer_email: string;
+  amount: string | number;
+  created_at: string;
+}
+
+interface DashboardMessage {
+  id: number;
+  name: string;
+  email: string;
+  message: string;
+  service_interest?: string;
+}
+
+interface DashboardData {
+  stats?: {
+    total_revenue?: number;
+    current_month_revenue?: number;
+    total_transactions?: number;
+    total_messages?: number;
+  };
+  recent_transactions?: DashboardTransaction[];
+  recent_messages?: DashboardMessage[];
+}
 
 export default function AdminDashboard() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
@@ -21,8 +47,8 @@ export default function AdminDashboard() {
       try {
         const res = await axiosInstance.get("/cms/dashboard");
         setData(res.data);
-      } catch (e) {
-        console.error("Failed to fetch dashboard data", e);
+      } catch (err) {
+        console.error("Failed to fetch dashboard data", err);
       } finally {
         setLoading(false);
       }
@@ -30,34 +56,19 @@ export default function AdminDashboard() {
     fetchDashboard();
   }, [isAuthenticated, authLoading]);
 
-  const revenueChartData = useMemo(() => {
-    const rev = data?.stats?.current_month_revenue || 0;
-    return [
-      { name: "Jan", total: 0 },
-      { name: "Feb", total: 0 },
-      { name: "Mar", total: 0 },
-      { name: "Apr", total: rev },
-      { name: "May", total: 0 },
-      { name: "Jun", total: 0 },
-    ];
-  }, [data]);
-
   if (authLoading || (loading && isAuthenticated)) {
     return (
       <div className="space-y-10 pb-20 animate-pulse">
          <div className="h-44 bg-muted/40 rounded-2xl border p-8 space-y-4">
-            <Skeleton variant="text" className="w-48 h-8" />
-            <Skeleton variant="text" className="w-96 h-5" />
+            <div className="h-8 w-48 bg-muted rounded-md" />
+            <div className="h-5 w-96 bg-muted rounded-md" />
          </div>
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Skeleton variant="rect" className="h-32 rounded-2xl" />
-            <Skeleton variant="rect" className="h-32 rounded-2xl" />
-            <Skeleton variant="rect" className="h-32 rounded-2xl" />
-            <Skeleton variant="rect" className="h-32 rounded-2xl" />
+            {[1,2,3,4].map(i => <div key={i} className="h-32 bg-muted rounded-2xl" />)}
          </div>
          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Skeleton variant="rect" className="h-96 rounded-2xl lg:col-span-2" />
-            <Skeleton variant="rect" className="h-96 rounded-2xl" />
+            <div className="h-96 bg-muted rounded-2xl lg:col-span-2" />
+            <div className="h-96 bg-muted rounded-2xl" />
          </div>
       </div>
     );
@@ -128,18 +139,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent className="pl-2 relative min-h-[350px]">
             <div className="w-full h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={revenueChartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
-                  <Tooltip 
-                    cursor={{fill: 'hsl(var(--primary)/0.05)'}} 
-                    contentStyle={{ borderRadius: '12px', border: 'none', background: 'hsl(var(--card))', boxShadow: 'var(--shadow)', fontWeight: 'bold' }} 
-                  />
-                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <RevenueChart revenue={data?.stats?.current_month_revenue || 0} />
             </div>
           </CardContent>
         </Card>
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
                 <CardDescription>Latest successful payments.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {data?.recent_transactions?.length > 0 ? data.recent_transactions.map((t: any) => (
+                {data?.recent_transactions && data.recent_transactions.length > 0 ? data.recent_transactions.map((t) => (
                   <div key={t.id} className="flex items-center justify-between bg-muted/20 p-4 rounded-xl border border-border">
                     <div className="space-y-1">
                       <p className="text-sm font-bold leading-none">{t.customer_email}</p>
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
                 <CardDescription>Inquiries from the contact form.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {data?.recent_messages?.length > 0 ? data.recent_messages.map((m: any) => (
+                {data?.recent_messages && data.recent_messages.length > 0 ? data.recent_messages.map((m) => (
                   <div key={m.id} className="bg-muted/20 p-4 rounded-xl border border-border">
                     <div className="flex justify-between items-start mb-2">
                        <p className="text-sm font-bold leading-none">{m.name}</p>
@@ -181,7 +181,7 @@ export default function AdminDashboard() {
                        </span>
                     </div>
                     <p className="text-xs text-muted-foreground font-medium mb-3">{m.email}</p>
-                    <p className="text-sm text-foreground italic border-l-2 border-primary/20 pl-3">"{m.message}"</p>
+                    <p className="text-sm text-foreground italic border-l-2 border-primary/20 pl-3">&ldquo;{m.message}&rdquo;</p>
                   </div>
                 )) : (
                   <p className="text-sm text-muted-foreground italic text-center py-4">No messages yet.</p>

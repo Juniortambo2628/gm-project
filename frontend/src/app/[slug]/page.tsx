@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { ArrowLeft, Cpu, ShieldCheck, Database, Globe, Layers, Zap, Hexagon, TerminalSquare } from "lucide-react";
+import { ArrowLeft, Cpu, ShieldCheck, Database, Globe, Layers, Zap, Hexagon, TerminalSquare, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-const pageConfig: Record<string, { title: string; description: string; icon: any; status: string; features: string[] }> = {
+const pageConfig: Record<string, { title: string; description: string; icon: LucideIcon; status: string; features: string[] }> = {
   "methodology": {
     title: "Diagnostic methodology",
     description: "Deep dive into the frameworks and approaches powering our consultancy assessment engines.",

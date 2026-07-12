@@ -1,52 +1,72 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
-import { Briefcase, Zap, ShieldCheck, CheckCircle2, ArrowRight, ChevronDown, Monitor, FileSearch, PieChart, MapPin, BarChart4 } from "lucide-react";
-import Link from "next/link";
+import { Briefcase, Zap, CheckCircle2, Monitor, FileSearch, PieChart, MapPin, BarChart4 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useSetting } from "@/context/SettingContext";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { useCMSContent } from "@/context/CMSContentContext";
 import { IconBlock } from "@/components/ui/IconBlock";
 import { PackageCard } from "@/components/ui/PackageCard";
-import { PageHero } from "@/components/PageHero";
+import { PublicLayout } from "@/components/layout/PublicLayout";
+import { FaqAccordion } from "@/components/FaqAccordion";
+import { CTABanner } from "@/components/CTABanner";
+import { FAQ } from "@/lib/api";
+import { HeroSkeleton, ServiceCardSkeleton } from "@/components/Skeletons";
+
+interface FaqItem {
+  question: string;
+  answer: string;
+}
 
 export default function ConsultingPrepPage() {
-  const { services, faqs: allFaqs, getSetting, isLoading } = useSetting();
+  const { services, faqs: allFaqs } = useCMSContent();
+  const { getSetting, getHeroProps } = useSiteSettings();
   const [mounted, setMounted] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect
+  }, []);
 
-  if (!mounted) return null;
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background">
+        <HeroSkeleton />
+        <div className="max-w-7xl mx-auto px-6 py-20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <ServiceCardSkeleton />
+            <ServiceCardSkeleton />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const breadcrumbs = [
-    { label: "Services", path: "/services/consulting-interviews" },
+    { label: "Services", path: "/services" },
     { label: "Consulting Prep" }
   ];
 
-  const dynamicConsultingFaqs = allFaqs ? allFaqs.filter(f => f.category === 'consulting' || f.category === 'Consulting Prep') : [];
-  const faqs = dynamicConsultingFaqs.length > 0 ? dynamicConsultingFaqs.map((f: any) => ({ q: f.question, a: f.answer })) : [
-    {
-      q: "Do you prepare clients for African consulting firms, or only global ones?",
-      a: "Both. I have direct experience at McKinsey Nairobi and Genesis Analytics, Africa's largest economics consulting firm. I can prepare you for MBB offices across Africa (Nairobi, Lagos, Johannesburg, Casablanca) as well as development consulting firms like Dalberg. Sessions are tailored to the specific firm and office you are targeting."
-    },
-    {
-      q: "I have never done a case interview. Where do I start?",
-      a: "Perfectly fine. Most of my clients start from scratch. I recommend a single introductory session where I assess your level, explain the format, and we can build a personalized plan. No prior experience required."
-    },
-    {
-      q: "Can my African work experience be a strength in consulting interviews?",
-      a: "Absolutely, and most African candidates do not realize this. Experience in markets like Kenya, Nigeria, or Ghana in financial inclusion, agriculture, or infrastructure gives you genuine insight that many candidates from Western universities simply do not have. I will help you frame your African experience as a competitive advantage."
-    },
-    {
-      q: "How many sessions will I need?",
-      a: "Most clients are interview-ready after 3–5 focused sessions, depending on starting point and dedicated independent practice. After your first session, I will give you an honest assessment and recommended plan."
-    }
-  ];
+  const dynamicConsultingFaqs = allFaqs ? allFaqs.filter((f: FAQ) => f.category === 'consulting' || f.category === 'Consulting Prep') : [];
+  const faqs: FaqItem[] = dynamicConsultingFaqs.length > 0
+    ? dynamicConsultingFaqs.map((f) => ({ question: f.question, answer: f.answer }))
+    : [
+        {
+          question: "Do you prepare clients for African consulting firms, or only global ones?",
+          answer: "Both. I have direct experience at McKinsey Nairobi and Genesis Analytics, Africa&apos;s largest economics consulting firm. I can prepare you for MBB offices across Africa (Nairobi, Lagos, Johannesburg, Casablanca) as well as development consulting firms like Dalberg. Sessions are tailored to the specific firm and office you are targeting."
+        },
+        {
+          question: "I have never done a case interview. Where do I start?",
+          answer: "Perfectly fine. Most of my clients start from scratch. I recommend a single introductory session where I assess your level, explain the format, and we can build a personalized plan. No prior experience required."
+        },
+        {
+          question: "Can my African work experience be a strength in consulting interviews?",
+          answer: "Absolutely, and most African candidates do not realize this. Experience in markets like Kenya, Nigeria, or Ghana in financial inclusion, agriculture, or infrastructure gives you genuine insight that many candidates from Western universities simply do not have. I will help you frame your African experience as a competitive advantage."
+        },
+        {
+          question: "How many sessions will I need?",
+          answer: "Most clients are interview-ready after 3–5 focused sessions, depending on starting point and dedicated independent practice. After your first session, I will give you an honest assessment and recommended plan."
+        }
+      ];
 
-  // Filter services for consulting type
   const consultingServices = services.filter(s => s.type === 'consulting');
 
   const packages = [
@@ -65,17 +85,15 @@ export default function ConsultingPrepPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-500">
-      <SiteHeader />
-
-      <PageHero 
-        title={getSetting('consulting_hero_title', "Consulting preparation for African candidates")}
-        subtitle={getSetting('consulting_hero_subtitle', "Coached by a former McKinsey fellow and Genesis Analytics consultant who knows exactly what African offices look for in top-tier talent.")}
-        badge="Consulting interview mastery"
-        breadcrumbs={breadcrumbs}
-        videoSrc={getSetting('consulting_hero_bg') || "/hero-bg.mp4"}
-      />
-
+    <PublicLayout
+      hero={{
+        title: getSetting('consulting_hero_title', "Consulting preparation for African candidates"),
+        subtitle: getSetting('consulting_hero_subtitle', "Coached by a former McKinsey fellow and Genesis Analytics consultant who knows exactly what African offices look for in top-tier talent."),
+        badge: "Consulting interview mastery",
+        breadcrumbs,
+        ...getHeroProps('consulting_hero_bg')
+      }}
+    >
       {/* Strategy Section */}
       <section className="py-32">
         <div className="max-w-7xl mx-auto px-6">
@@ -83,14 +101,14 @@ export default function ConsultingPrepPage() {
             <div className="space-y-12">
                <div className="space-y-4">
                   <h2 className="text-4xl md:text-5xl font-bold leading-tight">
-                    {getSetting('consulting_headline') ? (
-                      <>{getSetting('consulting_headline').split(' ').slice(0, -1).join(' ')} <br/><span className="text-primary italic">{getSetting('consulting_headline').split(' ').slice(-1)}</span></>
+                    {getSetting('consulting_headline', '') ? (
+                      <>{String(getSetting('consulting_headline', '')).split(' ').slice(0, -1).join(' ')} <br/><span className="text-primary italic">{String(getSetting('consulting_headline', '')).split(' ').slice(-1)}</span></>
                     ) : (
                       <>Cracking the case is <br/><span className="text-primary italic">contextual.</span></>
                     )}
                   </h2>
                   <p className="text-xl text-muted-foreground font-medium leading-relaxed">
-                    {getSetting('consulting_description') || "Generic prep platforms teach you logic. I teach you **impact**. I help African candidates leverage their unique market knowledge as a decisive advantage in the interview room."}
+                    {getSetting('consulting_description', "Generic prep platforms teach you logic. I teach you impact. I help African candidates leverage their unique market knowledge as a decisive advantage in the interview room.")}
                   </p>
                </div>
 
@@ -123,9 +141,9 @@ export default function ConsultingPrepPage() {
                   ))}
                </div>
                
-               <div className="mt-12 p-6 bg-primary/5 rounded-3xl border border-primary/10 italic text-sm font-medium text-primary/70">
-                 "Special focus on MBB offices across Nairobi, Lagos, Johannesburg, and Casablanca."
-               </div>
+                <div className="mt-12 p-6 bg-primary/5 rounded-3xl border border-primary/10 italic text-sm font-medium text-primary/70">
+                  &ldquo;Special focus on MBB offices across Nairobi, Lagos, Johannesburg, and Casablanca.&rdquo;
+                </div>
             </div>
           </div>
         </div>
@@ -138,16 +156,16 @@ export default function ConsultingPrepPage() {
                <MapPin size={150} />
             </div>
             
-            <h2 className="text-3xl md:text-5xl font-bold mb-8 italic leading-tight">
+            <h2 className="text-3xl md:text-5xl font-bold mb-8 italic leading-tight relative z-10">
                Leverage your <br/><span className="text-white/50">market intelligence</span>
              </h2>
-            <div className="space-y-6 text-xl font-medium text-white/80 leading-relaxed max-w-3xl border-l-4 border-white pl-8">
+            <div className="space-y-6 text-xl font-medium text-white/80 leading-relaxed max-w-3xl border-l-4 border-white pl-8 relative z-10">
                <p>
-                 African candidates often underplay their greatest asset: **Ground-level insight.** 
+                 African candidates often underplay their greatest asset: ground-level insight.
                </p>
-               <p>
-                 Whether it's financial inclusion in Kenya or infrastructure strategy in Nigeria, I help you frame your local experience as a unique competitive advantage that global firms crave.
-               </p>
+                <p>
+                  Whether it&apos;s financial inclusion in Kenya or infrastructure strategy in Nigeria, I help you frame your local experience as a unique competitive advantage that global firms crave.
+                </p>
             </div>
          </div>
       </section>
@@ -220,49 +238,18 @@ export default function ConsultingPrepPage() {
              <h2 className="text-4xl md:text-5xl font-bold">Consulting <br/><span className="text-primary">FAQ</span></h2>
           </div>
 
-          <div className="space-y-4">
-            {faqs.map((faq, i) => (
-              <div key={i} className="border-2 border-border rounded-[32px] overflow-hidden bg-card hover:border-primary/20 transition-all">
-                <button 
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between p-8 text-left group"
-                >
-                  <span className="text-xl font-bold pr-6">{faq.q}</span>
-                  <div className={`shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center transition-transform duration-300 ${openFaq === i ? 'rotate-180 bg-primary text-white' : 'group-hover:bg-primary/10'}`}>
-                     <ChevronDown size={20} />
-                  </div>
-                </button>
-                {openFaq === i && (
-                  <div className="px-8 pb-8 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="p-8 bg-background/50 rounded-2xl text-lg text-muted-foreground font-medium leading-relaxed border-l-4 border-primary italic">
-                      {faq.a}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+          <FaqAccordion faqs={faqs} />
         </div>
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 px-6">
-         <div className="max-w-4xl mx-auto p-12 md:p-20 bg-card border-2 border-primary/20 rounded-3xl text-center relative overflow-hidden group shadow-2xl">
-            <h3 className="text-4xl md:text-5xl font-bold mb-8 italic leading-none">
-              Land your <br/><span className="text-primary italic">consulting offer.</span>
-            </h3>
-            <p className="text-lg font-medium mb-10 text-muted-foreground leading-relaxed max-w-xl mx-auto">
-              Master the logic, the math, and the narrative. Start your preparation with a coach who knows the African market.
-            </p>
-             <Link href="/book" className="inline-block w-full sm:w-auto">
-                <Button className="w-full sm:w-auto bg-primary text-white hover:bg-primary/90 px-6 sm:px-10 md:px-16 h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg font-bold rounded-full group shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center">
-                   Book first mock case <ArrowRight className="ml-2 sm:ml-3 group-hover:translate-x-2 transition-transform shrink-0" />
-                </Button>
-             </Link>
-         </div>
-      </section>
-
-      <SiteFooter />
-    </div>
+      <CTABanner
+        title={<>Land your <br/><span className="text-primary italic">consulting offer.</span></>}
+        description="Master the logic, the math, and the narrative. Start your preparation with a coach who knows the African market."
+        buttonText="Book first mock case"
+        buttonHref="/book"
+        variant="card"
+      />
+    </PublicLayout>
   );
 }
