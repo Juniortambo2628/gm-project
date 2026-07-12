@@ -39,7 +39,7 @@ class IntegrationTestService
                 'configured' => false,
                 'connected' => false,
                 'message' => 'Unknown integration key.',
-            ],
+            ]
         ];
     }
 

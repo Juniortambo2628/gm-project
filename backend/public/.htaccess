@@ -21,12 +21,3 @@ RewriteRule ^ %1 [L,R=301]
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^ index.php [L]
-
-# CORS Headers — ensures headers are sent even on PHP fatal errors
-<IfModule mod_headers.c>
-    SetEnvIf Origin "https?://(www\.)?gm-coaching\.com" CORS_ALLOW_ORIGIN=$0
-    Header append Access-Control-Allow-Origin "%{CORS_ALLOW_ORIGIN}e" env=CORS_ALLOW_ORIGIN
-    Header set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" env=CORS_ALLOW_ORIGIN
-    Header set Access-Control-Allow-Headers "Authorization, Content-Type, X-Requested-With, X-XSRF-TOKEN" env=CORS_ALLOW_ORIGIN
-    Header set Access-Control-Allow-Credentials "true" env=CORS_ALLOW_ORIGIN
-</IfModule>
