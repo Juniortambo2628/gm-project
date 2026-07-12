@@ -10,9 +10,9 @@ return new class extends Migration
     {
         Schema::create('appointments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('transaction_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('service_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedBigInteger('transaction_id')->nullable();
+            $table->unsignedBigInteger('service_id')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->string('client_name');
             $table->string('client_email');
             $table->dateTime('scheduled_at');
@@ -25,6 +25,16 @@ return new class extends Migration
 
             $table->index(['status', 'scheduled_at']);
             $table->index('client_email');
+
+            if (Schema::hasTable('transactions')) {
+                $table->foreign('transaction_id')->references('id')->on('transactions')->nullOnDelete();
+            }
+            if (Schema::hasTable('services')) {
+                $table->foreign('service_id')->references('id')->on('services')->nullOnDelete();
+            }
+            if (Schema::hasTable('users')) {
+                $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
+            }
         });
     }
 
