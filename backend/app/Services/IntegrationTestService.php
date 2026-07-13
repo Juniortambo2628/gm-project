@@ -196,14 +196,14 @@ class IntegrationTestService
         $port = config('broadcasting.connections.reverb.options.port');
         $scheme = config('broadcasting.connections.reverb.options.scheme');
         $configured = !empty(config('broadcasting.connections.reverb.app_id'))
-            && !empty(config('broadcasting.connections.reverb.app_key'))
-            && !empty(config('broadcasting.connections.reverb.app_secret'));
+            && !empty(config('broadcasting.connections.reverb.key'))
+            && !empty(config('broadcasting.connections.reverb.secret'));
         $message = '';
         $status = 'ok';
         $connected = false;
         $details = [
             'app_id' => config('broadcasting.connections.reverb.app_id') ? '****' : null,
-            'app_key' => config('broadcasting.connections.reverb.app_key') ? '****' : null,
+            'app_key' => config('broadcasting.connections.reverb.key') ? '****' : null,
             'host' => $host,
             'port' => $port,
             'scheme' => $scheme,
