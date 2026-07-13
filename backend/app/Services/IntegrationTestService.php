@@ -40,7 +40,7 @@ class IntegrationTestService
                 'connected' => false,
                 'message' => 'Unknown integration key.',
             ]
-        ];
+        };
     }
 
     private function paystack(): array
