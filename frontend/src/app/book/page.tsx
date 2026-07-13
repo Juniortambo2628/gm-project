@@ -338,8 +338,8 @@ export default function BookingPage() {
                     
                      <div className="relative h-full">
                         <InlineWidget 
-                           key={calendlyUrl}
-                           url={calendlyUrl}
+                           key={calendlyUrl as string}
+                           url={calendlyUrl as string}
                            styles={{ height: '100%', width: '100%' }}
                            prefill={{
                              email: formData.email,
