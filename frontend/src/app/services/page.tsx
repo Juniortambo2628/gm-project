@@ -64,7 +64,7 @@ export default function ServicesPage() {
                 </div>
                 <div className="flex items-center gap-6 mt-4 md:mt-0">
                   <p className="text-xl font-bold text-primary">
-                    {service.currency === 'USD' ? '$' : ''}{service.price}
+                    {service.currency === 'KES' ? 'KSh ' : '$'}{Number(service.price).toLocaleString()}
                   </p>
                   <Link href="/book">
                     <Button size="sm" className="rounded-xl font-bold text-xs">

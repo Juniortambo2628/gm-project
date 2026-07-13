@@ -77,7 +77,7 @@ export default function MBAAdmissionsPage() {
     ...mbaServices.map(s => ({
       name: s.name,
       duration: s.duration || "60 Min",
-      price: `${s.currency === 'USD' ? '$' : ''}${s.price}`,
+      price: s.currency === 'KES' ? `KSh ${Number(s.price).toLocaleString()}` : `$${Number(s.price).toLocaleString()}`,
       features: Array.isArray(s.features) ? s.features : (s.features ? JSON.parse(s.features) : []),
       cta: "Book Session",
       popular: true

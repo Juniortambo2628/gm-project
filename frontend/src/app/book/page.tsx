@@ -48,10 +48,46 @@ export default function BookingPage() {
     }
   }, [services, selectedServiceId]);
 
-  if (!mounted) return null;
-
   const selectedService = services.find(s => s.id === selectedServiceId) || services[0];
   const price = selectedService?.price || 0;
+
+  useEffect(() => {
+    const handleCalendlyEvent = async (e: MessageEvent) => {
+      if (e.data.event === 'calendly.event_scheduled' && price === 0) {
+        const inviteeUri = e.data.payload.invitee.uri;
+        
+        setIsRecording(true);
+        try {
+          await createTransaction({
+            name: formData.name,
+            email: formData.email,
+            amount: 0,
+            currency: selectedService?.currency || 'USD',
+            service_id: selectedService?.id,
+            paystack_ref: `calendly_${inviteeUri.split('/').pop()}`,
+            status: 'success'
+          });
+          
+          toast.success("Booking confirmed!", {
+            description: "Your session has been recorded. Check your email for details."
+          });
+          setFormData({ name: "", email: "", phone: "", location: "", expectations: "" });
+        } catch (err) {
+          console.error(err);
+          toast.error("Booking recording error", {
+            description: "Session scheduled on Calendly, but we couldn't log it on our website. Please notify support."
+          });
+        } finally {
+          setIsRecording(false);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleCalendlyEvent);
+    return () => window.removeEventListener('message', handleCalendlyEvent);
+  }, [formData, price, selectedService]);
+
+  if (!mounted) return null;
   
   const canPay = !!(formData.email && formData.name && formData.phone);
 
@@ -130,7 +166,7 @@ export default function BookingPage() {
                     <div>
                       <p className="font-bold italic">{s.name}</p>
                       <p className="text-2xl font-bold text-primary">
-                        {s.currency === 'USD' ? '$' : ''}{s.price} 
+                        {s.currency === 'KES' ? 'KSh ' : '$'}{Number(s.price).toLocaleString()} 
                         <span className="text-[10px] opacity-40 font-bold"> / hr</span>
                       </p>
                     </div>
@@ -216,15 +252,24 @@ export default function BookingPage() {
                   />
                 </div>
 
-                 <PaystackButton 
-                    email={formData.email}
-                    amountInCents={price * 100}
-                    serviceName={selectedService?.name || 'Session'}
-                    isRecording={isRecording}
-                    disabled={!canPay}
-                    onSuccess={handlePaymentSuccess}
-                    onClose={handlePaymentClose}
-                 />
+                  {price > 0 ? (
+                     <PaystackButton 
+                        email={formData.email}
+                        amountInCents={price * 100}
+                        serviceName={selectedService?.name || 'Session'}
+                        isRecording={isRecording}
+                        disabled={!canPay}
+                        onSuccess={handlePaymentSuccess}
+                        onClose={handlePaymentClose}
+                     />
+                  ) : (
+                     <Button 
+                        disabled={true} 
+                        className="w-full h-16 rounded-2xl bg-emerald-500/10 text-emerald-600 font-bold border border-emerald-500/20"
+                     >
+                        Free Session — Complete booking on the calendar →
+                     </Button>
+                  )}
                 
                 <div className="flex items-center justify-center gap-2 opacity-40 grayscale group-hover:grayscale-0 transition-all">
                    <p className="text-[10px] font-bold">Secured by</p>

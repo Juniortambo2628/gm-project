@@ -73,7 +73,7 @@ export default function ConsultingPrepPage() {
     ...consultingServices.map(s => ({
       name: s.name,
       duration: s.duration || "60 Min",
-      price: `${s.currency === 'USD' ? '$' : ''}${s.price}`,
+      price: s.currency === 'KES' ? `KSh ${Number(s.price).toLocaleString()}` : `$${Number(s.price).toLocaleString()}`,
       features: Array.isArray(s.features) ? s.features : (s.features ? JSON.parse(s.features) : []),
       cta: s.name.toLowerCase().includes('review') ? "Book Review Call" : "Book Mock Interview",
       popular: true
