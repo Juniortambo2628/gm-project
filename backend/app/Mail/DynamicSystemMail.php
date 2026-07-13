@@ -16,8 +16,8 @@ class DynamicSystemMail extends Mailable
 
     public string $htmlContent;
     public string $mailSubject;
-    private ?string $fromAddress;
-    private ?string $fromName;
+    public ?string $fromAddress;
+    public ?string $fromName;
 
     public function __construct(string $templateKey, array $placeholders = [])
     {
@@ -122,13 +122,15 @@ class DynamicSystemMail extends Mailable
             border: 1px solid #f1f5f9;
         }
         .header {
-            background-color: #0f172a;
+            background-color: #6a1c14;
             padding: 40px;
             text-align: center;
         }
         .logo {
             height: 48px;
             width: auto;
+            display: block;
+            margin: 0 auto;
         }
         .body {
             padding: 48px;

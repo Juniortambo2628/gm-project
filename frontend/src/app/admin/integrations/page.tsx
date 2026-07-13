@@ -17,14 +17,17 @@ import {
   ChevronRight,
   ChevronDown,
   Zap,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import {
   getIntegrationTests,
   runIntegrationTest,
   runAllIntegrationTests,
+  sendTestEmail,
   type IntegrationTestResult,
   getErrorMessage,
 } from "@/lib/api";
@@ -63,12 +66,29 @@ const statusConfig: Record<string, { color: string; bg: string; icon: React.Elem
   },
 };
 
+const templateOptions = [
+  { value: "welcome", label: "Welcome Email" },
+  { value: "forgot_password", label: "Forgot Password" },
+  { value: "two_factor", label: "2FA Code" },
+  { value: "payment_success", label: "Payment Success" },
+  { value: "booking_success", label: "Booking Confirmation" },
+  { value: "booking_reminder", label: "Booking Reminder" },
+  { value: "meeting_followup", label: "Session Follow-Up" },
+  { value: "inquiry_received", label: "Inquiry (Admin)" },
+  { value: "inquiry_auto_reply", label: "Inquiry Auto-Reply" },
+];
+
 export default function IntegrationsPage() {
   const [results, setResults] = useState<IntegrationTestResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [testingAll, setTestingAll] = useState(false);
   const [testingKey, setTestingKey] = useState<string | null>(null);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+
+  // Test email state
+  const [testEmailAddress, setTestEmailAddress] = useState("");
+  const [testEmailTemplate, setTestEmailTemplate] = useState("welcome");
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   useEffect(() => {
     fetchResults();
@@ -109,6 +129,26 @@ export default function IntegrationsPage() {
       toast.error("Test failed", { description: getErrorMessage(err) });
     } finally {
       setTestingKey(null);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testEmailAddress) {
+      toast.error("Please enter an email address");
+      return;
+    }
+    setSendingTestEmail(true);
+    try {
+      const result = await sendTestEmail(testEmailAddress, testEmailTemplate);
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err) {
+      toast.error("Failed to send test email", { description: getErrorMessage(err) });
+    } finally {
+      setSendingTestEmail(false);
     }
   };
 
@@ -162,6 +202,49 @@ export default function IntegrationsPage() {
             </Button>
           </Card>
         </div>
+
+        {/* Send Test Email Section */}
+        <Card className="rounded-2xl border shadow-sm p-6 bg-card">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-500/10 border border-blue-500/20">
+              <Send size={18} className="text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-foreground">Send Test Email</h3>
+              <p className="text-xs text-muted-foreground font-medium">Verify email delivery by sending a sample template to any address.</p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Input
+              type="email"
+              placeholder="recipient@example.com"
+              value={testEmailAddress}
+              onChange={(e) => setTestEmailAddress(e.target.value)}
+              className="flex-1 h-12 rounded-xl bg-secondary/50 border-none font-medium"
+            />
+            <select
+              value={testEmailTemplate}
+              onChange={(e) => setTestEmailTemplate(e.target.value)}
+              className="h-12 px-4 rounded-xl bg-secondary/50 border-none font-medium text-sm outline-none min-w-[200px]"
+            >
+              {templateOptions.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+            <Button
+              onClick={handleSendTestEmail}
+              disabled={sendingTestEmail || !testEmailAddress}
+              className="rounded-xl h-12 px-6 font-bold"
+            >
+              {sendingTestEmail ? (
+                <RefreshCcw className="animate-spin mr-2" size={16} />
+              ) : (
+                <Send size={16} className="mr-2" />
+              )}
+              {sendingTestEmail ? "Sending..." : "Send Test"}
+            </Button>
+          </div>
+        </Card>
 
         {/* Integration Cards */}
         <div className="grid grid-cols-1 gap-4">

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, Briefcase, MapPin, Phone, MessageSquare, CheckCircle2, Globe, Loader2 } from "lucide-react";
+import { GraduationCap, Briefcase, MapPin, Phone, MessageSquare, CheckCircle2, Globe, Loader2, PhoneCall } from "lucide-react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { useCMSContent } from "@/context/CMSContentContext";
 import { IconBlock } from "@/components/ui/IconBlock";
@@ -26,6 +26,20 @@ const PaystackButton = dynamic(() => import("@/components/PaystackButton"), {
 const InlineWidget = dynamic(() => import("react-calendly").then((mod) => mod.InlineWidget), {
   ssr: false,
 });
+
+// Map service type to the correct Calendly Setting key
+const calendlySettingKeyMap: Record<string, string> = {
+  mba: 'mba_calendly_url',
+  consulting: 'consulting_calendly_url',
+  discovery: 'discovery_calendly_url',
+};
+
+// Map service type to icons
+const serviceIconMap: Record<string, React.ElementType> = {
+  mba: GraduationCap,
+  consulting: Briefcase,
+  discovery: PhoneCall,
+};
 
 export default function BookingPage() {
   const { services } = useCMSContent();
@@ -50,6 +64,12 @@ export default function BookingPage() {
 
   const selectedService = services.find(s => s.id === selectedServiceId) || services[0];
   const price = selectedService?.price || 0;
+
+  // Resolve the correct Calendly URL for the selected service
+  const calendlySettingKey = selectedService
+    ? (calendlySettingKeyMap[selectedService.type] || 'discovery_calendly_url')
+    : 'discovery_calendly_url';
+  const calendlyUrl = getSetting(calendlySettingKey) || "https://calendly.com/gathoni-mwai0/gm-discovery-call";
 
   useEffect(() => {
     const handleCalendlyEvent = async (e: MessageEvent) => {
@@ -155,23 +175,32 @@ export default function BookingPage() {
             {/* Left Column: Form & Selection */}
             <div className="flex-1 space-y-10">
               {/* Service Selection */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {services.map((s) => (
-                  <button 
-                    key={s.id}
-                    onClick={() => setSelectedServiceId(s.id)}
-                    className={`p-6 rounded-2xl border-2 transition-all text-left flex items-start gap-4 h-full ${selectedServiceId === s.id ? 'bg-primary/5 border-primary ring-4 ring-primary/5' : 'bg-card border-border hover:border-primary/20'}`}
-                  >
-                    <IconBlock icon={s.type === 'mba' ? GraduationCap : Briefcase} className={selectedServiceId === s.id ? 'bg-primary text-white' : 'bg-secondary text-primary'} />
-                    <div>
-                      <p className="font-bold italic">{s.name}</p>
-                      <p className="text-2xl font-bold text-primary">
-                        {s.currency === 'KES' ? 'KSh ' : '$'}{Number(s.price).toLocaleString()} 
-                        <span className="text-[10px] opacity-40 font-bold"> / hr</span>
-                      </p>
-                    </div>
-                  </button>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {services.map((s) => {
+                  const ServiceIcon = serviceIconMap[s.type] || Briefcase;
+                  return (
+                    <button 
+                      key={s.id}
+                      onClick={() => setSelectedServiceId(s.id)}
+                      className={`p-6 rounded-2xl border-2 transition-all text-left flex items-start gap-4 h-full ${selectedServiceId === s.id ? 'bg-primary/5 border-primary ring-4 ring-primary/5' : 'bg-card border-border hover:border-primary/20'}`}
+                    >
+                      <IconBlock icon={ServiceIcon} className={selectedServiceId === s.id ? 'bg-primary text-white' : 'bg-secondary text-primary'} />
+                      <div>
+                        <p className="font-bold italic">{s.name}</p>
+                        <p className="text-2xl font-bold text-primary">
+                          {s.price === 0 ? (
+                            <span className="text-emerald-600">Free</span>
+                          ) : (
+                            <>
+                              {s.currency === 'KES' ? 'KSh ' : '$'}{Number(s.price).toLocaleString()} 
+                              <span className="text-[10px] opacity-40 font-bold"> / hr</span>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Booking Form */}
@@ -309,7 +338,8 @@ export default function BookingPage() {
                     
                      <div className="relative h-full">
                         <InlineWidget 
-                           url={getSetting('discovery_calendly_url') || "https://calendly.com/your-calendly-id/60min?hide_event_type_details=1&hide_gdpr_banner=1"} 
+                           key={calendlyUrl}
+                           url={calendlyUrl}
                            styles={{ height: '100%', width: '100%' }}
                            prefill={{
                              email: formData.email,
@@ -317,7 +347,7 @@ export default function BookingPage() {
                            }}
                         />
                        
-                       {/* Blur Overlay if form not filled (optional UX choice) */}
+                       {/* Blur Overlay if form not filled */}
                        {(!formData.name || !formData.email) && (
                          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-12 text-center space-y-4">
                             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">

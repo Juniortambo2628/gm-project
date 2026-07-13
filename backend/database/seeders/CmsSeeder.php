@@ -44,13 +44,13 @@ class CmsSeeder extends Seeder
 
         // 4. Integrations & API configurations (non-sensitive only)
         $this->seedSettings('integrations', [
-            'discovery_calendly_url' => 'https://calendly.com/gathoni-mwai/discovery',
-            'mba_calendly_url' => 'https://calendly.com/gathoni-mwai/mba-prep',
-            'consulting_calendly_url' => 'https://calendly.com/gathoni-mwai/mock-interview',
+            'discovery_calendly_url' => 'https://calendly.com/gathoni-mwai0/gm-discovery-call',
+            'mba_calendly_url' => 'https://calendly.com/gathoni-mwai0/30min',
+            'consulting_calendly_url' => 'https://calendly.com/gathoni-mwai0/30min',
         ]);
 
         // 4. Services
-        Service::updateOrCreate(['name' => 'MBA Admissions Coaching'], [
+        Service::updateOrCreate(['name' => 'MBA Application Coaching'], [
             'type' => 'mba',
             'duration' => '60 Min',
             'price' => 17,
@@ -82,6 +82,21 @@ class CmsSeeder extends Seeder
             ],
             'description' => 'Coached by a former McKinsey fellow and Genesis Analytics consultant.'
         ]);
+
+        Service::updateOrCreate(['name' => 'Discovery Call'], [
+            'type' => 'discovery',
+            'duration' => '30 Min',
+            'price' => 0,
+            'currency' => 'USD',
+            'is_active' => true,
+            'features' => [
+                'Get to know your coaching options',
+                'Ask any questions about MBA or consulting prep',
+                'Personalized advice on next steps',
+                'No commitment required'
+            ],
+            'description' => 'A free introductory call to explore how coaching can help you achieve your goals.'
+        ]);
     }
 
     private function seedSettings(string $group, array $data): void
@@ -94,3 +109,4 @@ class CmsSeeder extends Seeder
         }
     }
 }
+

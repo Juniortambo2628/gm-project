@@ -89,6 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/cms/integrations', [IntegrationTestController::class, 'index']);
         Route::post('/cms/integrations/test/{key}', [IntegrationTestController::class, 'test']);
         Route::post('/cms/integrations/test-all', [IntegrationTestController::class, 'testAll']);
+        Route::post('/cms/integrations/send-test-email', [IntegrationTestController::class, 'sendTestEmail']);
 
         // Email Template Management
         Route::get('/cms/mail-templates', [MailTemplateController::class, 'index']);

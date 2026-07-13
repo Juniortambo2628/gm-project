@@ -366,6 +366,11 @@ export async function runAllIntegrationTests(): Promise<IntegrationTestResult[]>
   return res.data.data;
 }
 
+export async function sendTestEmail(email: string, templateKey: string = 'welcome'): Promise<{ success: boolean; message: string }> {
+  const res = await axiosInstance.post('/cms/integrations/send-test-email', { email, template_key: templateKey });
+  return res.data;
+}
+
 // Media upload helpers
 export async function getMediaMetadata(path: string): Promise<MediaMetadata> {
   const res = await axiosInstance.post('/cms/upload/metadata', { path });
