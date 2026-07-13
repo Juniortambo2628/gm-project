@@ -1,0 +1,55 @@
+name: Deploy to cPanel
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          script: |
+            echo "Starting deployment..."
+            
+            # 1. Update the git repository on the server
+            cd /home/zhpebukm/repositories/gm-project
+            git pull origin main
+            
+            # 2. Set Paths
+            export CORE=/home/zhpebukm/gmconsulting-core
+            export API=/home/zhpebukm/gm-consulting.okjtech.co.ke/api
+            
+            # 3. Synchronize backend files (using tar for speed)
+            /bin/mkdir -p $CORE $API
+            /bin/tar cf - -C backend app bootstrap config database resources routes | /bin/tar xf - -C $CORE
+            /bin/cp -f backend/artisan backend/composer.json backend/composer.lock $CORE/
+            
+            # 4. Synchronize public API entry points
+            /bin/tar cf - -C backend public | /bin/tar xf - -C $API
+            /bin/cp -f backend/public/.htaccess $API/ 2>/dev/null || true
+            
+            # 5. Build/Restore symlinks and create directories
+            /bin/mkdir -p $CORE/storage/app/public/cms $CORE/storage/framework/cache/data $CORE/storage/framework/sessions $CORE/storage/framework/views $CORE/storage/logs $CORE/bootstrap/cache
+            /bin/chmod -R 775 $CORE/storage 2>/dev/null || true
+            /bin/chmod -R 775 $CORE/bootstrap/cache 2>/dev/null || true
+            /bin/chmod 755 $CORE/artisan 2>/dev/null || true
+            /bin/ln -sfn $CORE/storage/app/public $API/storage
+            
+            # 6. Run Composer Install on the backend
+            cd $CORE
+            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+            
+            # 7. Clear Laravel caches
+            php artisan config:clear
+            php artisan route:clear
+            php artisan view:clear
+            
+            echo "Deployment finished successfully!"
