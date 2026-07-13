@@ -35,7 +35,7 @@ const calendlySettingKeyMap: Record<string, string> = {
 };
 
 // Map service type to icons
-const serviceIconMap: Record<string, React.ElementType> = {
+const serviceIconMap: Record<string, any> = {
   mba: GraduationCap,
   consulting: Briefcase,
   discovery: PhoneCall,
