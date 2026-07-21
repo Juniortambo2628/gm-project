@@ -34,8 +34,10 @@ const calendlySettingKeyMap: Record<string, string> = {
   discovery: 'discovery_calendly_url',
 };
 
+import type { LucideIcon } from "lucide-react";
+
 // Map service type to icons
-const serviceIconMap: Record<string, React.ComponentType<{ size?: number }>> = {
+const serviceIconMap: Record<string, LucideIcon> = {
   mba: GraduationCap,
   consulting: Briefcase,
   discovery: PhoneCall,
