@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { useRef } from 'react';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -46,13 +45,13 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
   });
 
-  it('provides login function', () => {
-    let loginRef: ReturnType<typeof useRef<((token: string, user: { id: number; name: string; email: string; role: string }) => void) | undefined>>;
+  it('provides login function', async () => {
+    let loginFn: ((token: string, user: { id: number; name: string; email: string; role: string }) => void) | undefined;
 
     function LoginChecker() {
       const auth = useAuth();
-      loginRef = useRef(auth.login);
-      loginRef.current = auth.login;
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      loginFn = auth.login;
       return <div>{auth.isAuthenticated ? 'auth' : 'no-auth'}</div>;
     }
 
@@ -62,16 +61,16 @@ describe('AuthContext', () => {
       </AuthProvider>
     );
 
-    expect(typeof loginRef?.current).toBe('function');
+    expect(typeof loginFn).toBe('function');
   });
 
-  it('provides logout function', () => {
-    let logoutRef: ReturnType<typeof useRef<(() => Promise<void>) | undefined>>;
+  it('provides logout function', async () => {
+    let logoutFn: (() => Promise<void>) | undefined;
 
     function LogoutChecker() {
       const auth = useAuth();
-      logoutRef = useRef(auth.logout);
-      logoutRef.current = auth.logout;
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      logoutFn = auth.logout;
       return <div>{auth.isAuthenticated ? 'auth' : 'no-auth'}</div>;
     }
 
@@ -81,6 +80,6 @@ describe('AuthContext', () => {
       </AuthProvider>
     );
 
-    expect(typeof logoutRef?.current).toBe('function');
+    expect(typeof logoutFn).toBe('function');
   });
 });
