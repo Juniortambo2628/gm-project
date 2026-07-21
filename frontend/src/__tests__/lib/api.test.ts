@@ -41,7 +41,7 @@ describe('getErrorMessage', () => {
   it('extracts message from real AxiosError', () => {
     const error = new AxiosError('Request failed', '404', undefined, undefined, {
       data: { message: 'Not found' },
-    } as Partial<import('axios').AxiosResponse>);
+    } as import('axios').AxiosResponse);
     expect(getErrorMessage(error)).toBe('Not found');
   });
 

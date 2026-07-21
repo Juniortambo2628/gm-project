@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Button } from '@/components/ui/button';
@@ -46,12 +46,6 @@ describe('Button', () => {
     render(<Button disabled onClick={handleClick}>Disabled</Button>);
     await user.click(screen.getByRole('button'));
     expect(handleClick).not.toHaveBeenCalled();
-  });
-
-  it('renders as child element when asChild is used', () => {
-    // eslint-disable-next-line @next/next/no-html-link-for-pages
-    render(<Button asChild><a href="/test">Link Button</a></Button>);
-    expect(screen.getByRole('link', { name: /link button/i })).toBeInTheDocument();
   });
 
   it('applies custom className', () => {

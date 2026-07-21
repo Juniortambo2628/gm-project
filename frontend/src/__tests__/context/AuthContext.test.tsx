@@ -65,7 +65,7 @@ describe('AuthContext', () => {
   });
 
   it('provides logout function', async () => {
-    let logoutFn: (() => Promise<void>) | undefined;
+    let logoutFn: (() => void) | undefined;
 
     function LogoutChecker() {
       const auth = useAuth();

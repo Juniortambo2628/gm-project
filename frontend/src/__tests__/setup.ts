@@ -4,17 +4,14 @@ import { afterEach, beforeAll, afterAll } from 'vitest';
 
 // Polyfill TransformStream and ReadableStream for MSW v2 in jsdom
 if (typeof globalThis.TransformStream === 'undefined') {
-  globalThis.TransformStream = class TransformStream {
-    constructor() {
-      this.readable = new ReadableStream();
-      this.writable = new WritableStream();
-    }
+  globalThis.TransformStream = class {
+    readable = new ReadableStream();
+    writable = new WritableStream();
   } as unknown as typeof TransformStream;
 }
 
 if (typeof globalThis.ReadableStream === 'undefined') {
-  globalThis.ReadableStream = class ReadableStream {
-    constructor() {}
+  globalThis.ReadableStream = class {
     getReader() {
       return {
         read: async () => ({ done: true, value: undefined }),
@@ -25,12 +22,11 @@ if (typeof globalThis.ReadableStream === 'undefined') {
 }
 
 if (typeof globalThis.WritableStream === 'undefined') {
-  globalThis.WritableStream = class WritableStream {
-    constructor() {}
-  } as unknown as typeof WritableStream;
+  globalThis.WritableStream = class {} as unknown as typeof WritableStream;
 }
 
-let server: { listen: (opts: { onUnhandledRequest: string }) => void; resetHandlers: () => void; close: () => void };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let server: any;
 
 beforeAll(async () => {
   const { server: mswServer } = await import('../__test-utils__/server');
