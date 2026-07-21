@@ -21,7 +21,7 @@ import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { toast } from "sonner";
 
 export default function EmailTemplatesPage() {
-  const { data: templates, loading, refetch } = useAdminFetch<MailTemplate[]>(
+  useAdminFetch<MailTemplate[]>(
     "" as string,
     {
       extractAsList: false,
@@ -34,7 +34,7 @@ export default function EmailTemplatesPage() {
     }
   );
 
-  // Override fetch to use getMailTemplates helper
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [fetched, setFetched] = useState(false);
   const [templateList, setTemplateList] = useState<MailTemplate[]>([]);
   const [templateLoading, setTemplateLoading] = useState(true);

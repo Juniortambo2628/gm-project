@@ -1,4 +1,4 @@
-import type { SiteContentResponse, Service, FAQ, Testimonial, BlogPost, Booking, Message, MailTemplate, IntegrationTestResult } from '@/lib/api';
+import type { SiteContentResponse, Service, FAQ, Testimonial, BlogPost, Booking, MailTemplate, IntegrationTestResult } from '@/lib/api';
 
 export function makeService(overrides: Partial<Service> = {}): Service {
   return {

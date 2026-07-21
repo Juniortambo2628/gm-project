@@ -95,15 +95,15 @@ abstract class BaseCrudController extends Controller
         $item->delete();
 
         return response()->json([
-            'message' => class_basename($this->modelClass) . ' deleted successfully.',
+            'message' => class_basename($this->modelClass).' deleted successfully.',
         ]);
     }
 
     /**
      * Hook called before saving data to the model. Override to transform input.
      *
-     * @param array<string, mixed> $data
-     * @param Model|null $model Null during store; populated during update.
+     * @param  array<string, mixed>  $data
+     * @param  Model|null  $model  Null during store; populated during update.
      * @return array<string, mixed>
      */
     protected function beforeSave(array $data, ?Model $model): array
@@ -114,9 +114,7 @@ abstract class BaseCrudController extends Controller
     /**
      * Hook called after the model has been saved.
      *
-     * @param Model $model
-     * @param array<string, mixed> $data
-     * @param Model|null $previousModel
+     * @param  array<string, mixed>  $data
      */
     protected function afterSave(Model $model, array $data, ?Model $previousModel): void
     {
@@ -127,14 +125,13 @@ abstract class BaseCrudController extends Controller
      * Validate the incoming request using the configured form request class,
      * or fall back to the raw input when no form request is configured.
      *
-     * @param Request $request
-     * @param class-string<FormRequest>|null $formRequestClass
+     * @param  class-string<FormRequest>|null  $formRequestClass
      * @return array<string, mixed>
      */
     protected function validated(Request $request, ?string $formRequestClass): array
     {
         if ($formRequestClass) {
-            $formRequest = new $formRequestClass();
+            $formRequest = new $formRequestClass;
             $formRequest->setContainer(app());
 
             if ($request->hasSession()) {
@@ -149,7 +146,7 @@ abstract class BaseCrudController extends Controller
                 }
             }
 
-            $validator = \Illuminate\Support\Facades\Validator::make(
+            $validator = Validator::make(
                 $request->all(),
                 $formRequest->rules(),
                 $formRequest->messages(),

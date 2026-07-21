@@ -122,15 +122,6 @@ vi.mock('@/components/ThemeProvider', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-function smokeTest(name: string, Component: React.ComponentType) {
-  it(`${name} renders without crashing`, async () => {
-    render(<Component />);
-    await waitFor(() => {
-      expect(document.body).toBeTruthy();
-    });
-  });
-}
-
 describe('Page Smoke Tests', () => {
   it('Homepage renders header and footer', async () => {
     const { default: HomePage } = await import('@/app/page');

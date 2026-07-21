@@ -37,12 +37,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'is_provisioned')) {
+            if (! Schema::hasColumn('users', 'is_provisioned')) {
                 $table->boolean('is_provisioned')->default(false)->after('role');
             }
         });
 
-        if (!Schema::hasTable('organizations')) {
+        if (! Schema::hasTable('organizations')) {
             Schema::create('organizations', function (Blueprint $table) {
                 $table->id();
                 $table->string('name');
@@ -51,7 +51,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('factors')) {
+        if (! Schema::hasTable('factors')) {
             Schema::create('factors', function (Blueprint $table) {
                 $table->id();
                 $table->string('name');
@@ -59,7 +59,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('polls')) {
+        if (! Schema::hasTable('polls')) {
             Schema::create('polls', function (Blueprint $table) {
                 $table->id();
                 $table->string('title');
@@ -73,7 +73,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('questions')) {
+        if (! Schema::hasTable('questions')) {
             Schema::create('questions', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('poll_id')->index();
@@ -84,7 +84,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('responses')) {
+        if (! Schema::hasTable('responses')) {
             Schema::create('responses', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('user_id')->index();

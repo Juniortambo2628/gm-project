@@ -35,6 +35,7 @@ class OrderController extends Controller
         $existing = Transaction::where('paystack_ref', $reference)->first();
         if ($existing) {
             $existing->load('service');
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Transaction already recorded.',
@@ -55,7 +56,7 @@ class OrderController extends Controller
         $amount = $verified['amount'] / 100; // Convert from kobo/cents
         $currency = $verified['currency'];
         $customerEmail = $verified['customer']['email'] ?? $validated['email'];
-        $customerName = trim(($verified['customer']['first_name'] ?? '') . ' ' . ($verified['customer']['last_name'] ?? '')) ?: $validated['name'];
+        $customerName = trim(($verified['customer']['first_name'] ?? '').' '.($verified['customer']['last_name'] ?? '')) ?: $validated['name'];
 
         $transaction = Transaction::create([
             'name' => $customerName,
@@ -88,7 +89,7 @@ class OrderController extends Controller
         $this->mailDeliveryService->send($transaction->email, 'payment_success', [
             'name' => $transaction->name,
             'service_name' => $serviceName,
-            'amount' => $transaction->currency . ' ' . number_format($transaction->amount, 2),
+            'amount' => $transaction->currency.' '.number_format($transaction->amount, 2),
             'transaction_id' => $transaction->paystack_ref,
             'date' => $scheduledAt->format('F d, Y'),
             'time' => $scheduledAt->format('g:i A (T)'),
@@ -99,8 +100,8 @@ class OrderController extends Controller
             'service_name' => $serviceName,
             'date' => $scheduledAt->format('F d, Y'),
             'time' => $scheduledAt->format('g:i A (T)'),
-            'duration' => $durationMinutes . ' minutes',
-            'amount' => $transaction->currency . ' ' . number_format($transaction->amount, 2),
+            'duration' => $durationMinutes.' minutes',
+            'amount' => $transaction->currency.' '.number_format($transaction->amount, 2),
         ]);
 
         $transaction->update(['email_sent_at' => now()]);
@@ -108,7 +109,7 @@ class OrderController extends Controller
         $this->notificationService->notifyAdmins(
             'booking',
             'New Service Booking',
-            "{$transaction->name} completed payment of {$transaction->currency} " . number_format($transaction->amount, 2) . " for '{$serviceName}'.",
+            "{$transaction->name} completed payment of {$transaction->currency} ".number_format($transaction->amount, 2)." for '{$serviceName}'.",
             [
                 'transaction_id' => $transaction->id,
                 'email' => $transaction->email,
@@ -132,12 +133,13 @@ class OrderController extends Controller
         $secret = config('services.paystack.secret');
         if (! $secret) {
             Log::error('Paystack secret key not configured');
+
             return null;
         }
 
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $secret,
+                'Authorization' => 'Bearer '.$secret,
                 'Content-Type' => 'application/json',
             ])->timeout(10)->get("https://api.paystack.co/transaction/verify/{$reference}");
 
@@ -150,7 +152,8 @@ class OrderController extends Controller
 
             return null;
         } catch (\Exception $e) {
-            Log::error('Paystack verification API error: ' . $e->getMessage());
+            Log::error('Paystack verification API error: '.$e->getMessage());
+
             return null;
         }
     }

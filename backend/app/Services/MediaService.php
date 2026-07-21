@@ -6,25 +6,30 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Interfaces\EncodedImageInterface;
 
 class MediaService
 {
     protected ImageManager $imageManager;
+
     protected int $maxFileSize = 20 * 1024 * 1024; // 20MB
+
     protected int $maxImageDimension = 2400;
+
     protected int $thumbnailDimension = 400;
 
     public function __construct()
     {
-        $this->imageManager = new ImageManager(new Driver());
+        $this->imageManager = new ImageManager(new Driver);
     }
 
     /**
      * Handle a file upload, compress images/videos, generate thumbnails, and persist to public storage.
      *
      * @return array{url: string, path: string, filename: string, mime: string, size: int, width: int|null, height: int|null, thumbnail_url: string|null}
+     *
      * @throws \InvalidArgumentException
      */
     public function upload(Request $request): array
@@ -38,7 +43,7 @@ class MediaService
         $originalSize = $file->getSize();
         if ($originalSize > $this->maxFileSize) {
             $maxMb = round($this->maxFileSize / 1024 / 1024, 1);
-            throw new \InvalidArgumentException("File size must not exceed {$maxMb}MB. Current size: " . round($originalSize / 1024 / 1024, 2) . "MB.");
+            throw new \InvalidArgumentException("File size must not exceed {$maxMb}MB. Current size: ".round($originalSize / 1024 / 1024, 2).'MB.');
         }
 
         $mime = $file->getClientMimeType();
@@ -52,10 +57,10 @@ class MediaService
         $allowedExts = ['jpeg', 'jpg', 'png', 'gif', 'svg', 'webp', 'avif', 'mp4', 'webm', 'ogg'];
 
         if (! in_array($mime, $allowedMimes) && ! in_array($ext, $allowedExts)) {
-            throw new \InvalidArgumentException('Unsupported file format: ' . $mime);
+            throw new \InvalidArgumentException('Unsupported file format: '.$mime);
         }
 
-        $filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName());
+        $filename = time().'_'.preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName());
         $path = $file->storeAs('cms', $filename, 'public');
         $fullPath = Storage::disk('public')->path($path);
 
@@ -75,7 +80,7 @@ class MediaService
         }
 
         if (str_starts_with($mime, 'video/')) {
-            $tempVideoPath = $fullPath . '_temp.mp4';
+            $tempVideoPath = $fullPath.'_temp.mp4';
             if ($this->compressVideo($fullPath, $tempVideoPath)) {
                 @unlink($fullPath);
                 @rename($tempVideoPath, $fullPath);
@@ -108,7 +113,7 @@ class MediaService
         $fullPath = Storage::disk('public')->path($path);
 
         if (! Storage::disk('public')->exists($path)) {
-            throw new \InvalidArgumentException('File not found: ' . $path);
+            throw new \InvalidArgumentException('File not found: '.$path);
         }
 
         $mime = Storage::disk('public')->mimeType($path);
@@ -153,7 +158,7 @@ class MediaService
         return null;
     }
 
-    private function encodeImage($image, string $mimeType, int $quality): \Intervention\Image\Interfaces\EncodedImageInterface
+    private function encodeImage($image, string $mimeType, int $quality): EncodedImageInterface
     {
         return $image->encodeUsingMediaType($mimeType, $quality);
     }
@@ -187,7 +192,8 @@ class MediaService
                 'height' => $image->height(),
             ];
         } catch (\Exception $e) {
-            Log::warning('Intervention Image compression failed, falling back to GD: ' . $e->getMessage());
+            Log::warning('Intervention Image compression failed, falling back to GD: '.$e->getMessage());
+
             return $this->compressImageFallback($sourcePath, $mimeType);
         }
     }
@@ -249,8 +255,8 @@ class MediaService
             $image->coverDown($this->thumbnailDimension, $this->thumbnailDimension);
 
             $ext = pathinfo($sourcePath, PATHINFO_EXTENSION);
-            $thumbFilename = pathinfo($sourcePath, PATHINFO_FILENAME) . '_thumb.' . $ext;
-            $thumbPath = 'cms/' . $thumbFilename;
+            $thumbFilename = pathinfo($sourcePath, PATHINFO_FILENAME).'_thumb.'.$ext;
+            $thumbPath = 'cms/'.$thumbFilename;
 
             $quality = match ($mimeType) {
                 'image/png' => 7,
@@ -265,7 +271,8 @@ class MediaService
 
             return $thumbPath;
         } catch (\Exception $e) {
-            Log::warning('Thumbnail generation failed: ' . $e->getMessage());
+            Log::warning('Thumbnail generation failed: '.$e->getMessage());
+
             return null;
         }
     }
@@ -306,6 +313,7 @@ class MediaService
         $output = @shell_exec($cmd);
         if ($output && str_contains($output, ',')) {
             [$w, $h] = explode(',', trim($output));
+
             return ['width' => (int) $w, 'height' => (int) $h];
         }
 

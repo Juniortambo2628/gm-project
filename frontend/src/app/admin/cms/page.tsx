@@ -11,7 +11,6 @@ import {
   ShieldCheck,
   Type,
   Layout,
-  Image as ImageIcon,
   MousePointer2,
   Lock,
   ArrowRight,

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -58,7 +59,7 @@ class Appointment extends Model
         $this->update(['followup_sent_at' => now(), 'status' => 'completed']);
     }
 
-    public function getEndTime(): \Carbon\Carbon
+    public function getEndTime(): Carbon
     {
         return $this->scheduled_at->copy()->addMinutes($this->duration_minutes);
     }

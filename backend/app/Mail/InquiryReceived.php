@@ -2,14 +2,13 @@
 
 namespace App\Mail;
 
+use App\Models\Message;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use App\Models\Message;
 
 class InquiryReceived extends Mailable
 {
@@ -31,7 +30,7 @@ class InquiryReceived extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New Website Inquiry: ' . ($this->inquiryMessage->subject ?: 'General Coaching Inquiry'),
+            subject: 'New Website Inquiry: '.($this->inquiryMessage->subject ?: 'General Coaching Inquiry'),
         );
     }
 

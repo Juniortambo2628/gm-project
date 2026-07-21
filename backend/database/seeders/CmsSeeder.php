@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Setting;
 use App\Models\Service;
+use App\Models\Setting;
+use Illuminate\Database\Seeder;
 
 class CmsSeeder extends Seeder
 {
@@ -31,7 +31,7 @@ class CmsSeeder extends Seeder
                 "I'm a Kenyan professional currently completing my Masters in Business Administration (MBA) at Oxford's Saïd Business School. I am one of fewer than 10% of Africans in my cohort, and one of the even smaller number who got here on a full scholarship.",
                 "Before Oxford, I spent five years in consulting across roughly 15 African countries, advising development finance institutions (DFIs), banks, and NGOs on some of the continent's toughest economic challenges.",
                 "I've worked at McKinsey & Company's Nairobi office, risen to Senior Associate at Genesis Analytics, and worked at Rogers MacJohn, an impact-driven management consultancy.",
-                "But here's the honest truth: none of that path was straightforward or obvious when I was where you are now. You're talented. You just need someone in your corner who actually gets it."
+                "But here's the honest truth: none of that path was straightforward or obvious when I was where you are now. You're talented. You just need someone in your corner who actually gets it.",
             ]),
         ]);
 
@@ -62,9 +62,9 @@ class CmsSeeder extends Seeder
                 'CV / resume review',
                 'Essay strategy & review',
                 'Interview preparation',
-                'Scholarship guidance'
+                'Scholarship guidance',
             ],
-            'description' => 'Personalized guidance from someone who got in, on a full scholarship.'
+            'description' => 'Personalized guidance from someone who got in, on a full scholarship.',
         ]);
 
         Service::updateOrCreate(['name' => 'Consulting Interview Prep'], [
@@ -78,9 +78,9 @@ class CmsSeeder extends Seeder
                 'PEI / Fit behavioral prep',
                 'Structured feedback & scoring',
                 'African market intelligence',
-                'Improvement roadmap'
+                'Improvement roadmap',
             ],
-            'description' => 'Coached by a former McKinsey fellow and Genesis Analytics consultant.'
+            'description' => 'Coached by a former McKinsey fellow and Genesis Analytics consultant.',
         ]);
 
         Service::updateOrCreate(['name' => 'Discovery Call'], [
@@ -93,9 +93,9 @@ class CmsSeeder extends Seeder
                 'Get to know your coaching options',
                 'Ask any questions about MBA or consulting prep',
                 'Personalized advice on next steps',
-                'No commitment required'
+                'No commitment required',
             ],
-            'description' => 'A free introductory call to explore how coaching can help you achieve your goals.'
+            'description' => 'A free introductory call to explore how coaching can help you achieve your goals.',
         ]);
     }
 
@@ -109,4 +109,3 @@ class CmsSeeder extends Seeder
         }
     }
 }
-

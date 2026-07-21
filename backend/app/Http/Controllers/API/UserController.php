@@ -14,9 +14,13 @@ use Illuminate\Support\Facades\Hash;
 class UserController extends BaseCrudController
 {
     protected string $modelClass = User::class;
+
     protected string $resourceClass = UserResource::class;
+
     protected ?string $storeRequestClass = StoreUserRequest::class;
+
     protected ?string $updateRequestClass = UpdateUserRequest::class;
+
     protected ?int $perPage = 15;
 
     /**

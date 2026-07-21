@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { useRef } from 'react';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -46,11 +47,12 @@ describe('AuthContext', () => {
   });
 
   it('provides login function', () => {
-    let loginFn: ((token: string, user: { id: number; name: string; email: string; role: string }) => void) | undefined;
+    let loginRef: ReturnType<typeof useRef<((token: string, user: { id: number; name: string; email: string; role: string }) => void) | undefined>>;
 
     function LoginChecker() {
       const auth = useAuth();
-      loginFn = auth.login;
+      loginRef = useRef(auth.login);
+      loginRef.current = auth.login;
       return <div>{auth.isAuthenticated ? 'auth' : 'no-auth'}</div>;
     }
 
@@ -60,15 +62,16 @@ describe('AuthContext', () => {
       </AuthProvider>
     );
 
-    expect(typeof loginFn).toBe('function');
+    expect(typeof loginRef?.current).toBe('function');
   });
 
   it('provides logout function', () => {
-    let logoutFn: (() => Promise<void>) | undefined;
+    let logoutRef: ReturnType<typeof useRef<(() => Promise<void>) | undefined>>;
 
     function LogoutChecker() {
       const auth = useAuth();
-      logoutFn = auth.logout;
+      logoutRef = useRef(auth.logout);
+      logoutRef.current = auth.logout;
       return <div>{auth.isAuthenticated ? 'auth' : 'no-auth'}</div>;
     }
 
@@ -78,6 +81,6 @@ describe('AuthContext', () => {
       </AuthProvider>
     );
 
-    expect(typeof logoutFn).toBe('function');
+    expect(typeof logoutRef?.current).toBe('function');
   });
 });

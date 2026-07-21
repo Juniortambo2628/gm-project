@@ -11,11 +11,7 @@ class NotificationService
     /**
      * Notify all admin users.
      *
-     * @param string $type
-     * @param string $title
-     * @param string $message
-     * @param array<string, mixed> $metadata
-     * @return void
+     * @param  array<string, mixed>  $metadata
      */
     public function notifyAdmins(string $type, string $title, string $message, array $metadata = []): void
     {
@@ -33,7 +29,7 @@ class NotificationService
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error("Failed to notify admins ({$type}): " . $e->getMessage());
+            Log::error("Failed to notify admins ({$type}): ".$e->getMessage());
         }
     }
 }

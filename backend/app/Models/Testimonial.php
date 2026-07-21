@@ -2,19 +2,20 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Testimonial extends Model
 {
     use HasFactory;
+
     protected $fillable = [
-        'client_name', 
-        'client_role', 
-        'content', 
-        'portrait_path', 
+        'client_name',
+        'client_role',
+        'content',
+        'portrait_path',
         'is_featured',
-        'tag'
+        'tag',
     ];
 
     protected $casts = [

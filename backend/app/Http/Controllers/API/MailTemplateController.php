@@ -60,7 +60,7 @@ class MailTemplateController extends Controller
                 'placeholders' => $placeholders,
             ]);
         } catch (\Exception $e) {
-            Log::error("Failed to generate email preview for {$key}: " . $e->getMessage());
+            Log::error("Failed to generate email preview for {$key}: ".$e->getMessage());
 
             return response()->json([
                 'message' => 'Unable to generate preview.',
@@ -125,7 +125,7 @@ class MailTemplateController extends Controller
                 'subject' => 'MBA Admissions Inquiry',
                 'country' => 'Kenya',
                 'message' => 'I would love to learn more about the MBA admissions coaching package.',
-                'admin_url' => config('app.frontend_url', config('app.url', 'https://example.com')) . '/admin',
+                'admin_url' => config('app.frontend_url', config('app.url', 'https://example.com')).'/admin',
             ],
             'inquiry_auto_reply' => [
                 'subject' => 'MBA Admissions Inquiry',

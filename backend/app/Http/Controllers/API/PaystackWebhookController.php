@@ -30,12 +30,14 @@ class PaystackWebhookController extends Controller
 
         if (! $signature) {
             Log::warning('Paystack webhook received without signature');
+
             return response()->json(['error' => 'Missing signature'], 400);
         }
 
         $webhookSecret = config('services.paystack.webhook_secret');
         if (! $webhookSecret) {
             Log::error('Paystack webhook secret not configured');
+
             return response()->json(['error' => 'Webhook not configured'], 500);
         }
 
@@ -43,6 +45,7 @@ class PaystackWebhookController extends Controller
         $calculatedHash = hash_hmac('sha512', $payload, $webhookSecret);
         if (! hash_equals($calculatedHash, $signature)) {
             Log::warning('Paystack webhook signature mismatch');
+
             return response()->json(['error' => 'Invalid signature'], 400);
         }
 
@@ -68,6 +71,7 @@ class PaystackWebhookController extends Controller
         $existing = Transaction::where('paystack_ref', $reference)->first();
         if ($existing && $existing->status === 'success') {
             Log::info('Paystack webhook: transaction already recorded', ['reference' => $reference]);
+
             return response()->json(['status' => 'already_processed']);
         }
 
@@ -75,6 +79,7 @@ class PaystackWebhookController extends Controller
         $verified = $this->verifyTransaction($reference);
         if (! $verified) {
             Log::error('Paystack webhook: API verification failed', ['reference' => $reference]);
+
             return response()->json(['error' => 'Verification failed'], 400);
         }
 
@@ -133,7 +138,7 @@ class PaystackWebhookController extends Controller
         $this->notificationService->notifyAdmins(
             'payment',
             'Payment Verified via Webhook',
-            "{$transaction->name} payment of {$transaction->currency} " . number_format($transaction->amount, 2) . " for '{$serviceName}' confirmed via Paystack webhook.",
+            "{$transaction->name} payment of {$transaction->currency} ".number_format($transaction->amount, 2)." for '{$serviceName}' confirmed via Paystack webhook.",
             [
                 'transaction_id' => $transaction->id,
                 'email' => $transaction->email,
@@ -156,7 +161,7 @@ class PaystackWebhookController extends Controller
 
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $secret,
+                'Authorization' => 'Bearer '.$secret,
                 'Content-Type' => 'application/json',
             ])->timeout(10)->get("https://api.paystack.co/transaction/verify/{$reference}");
 
@@ -166,7 +171,8 @@ class PaystackWebhookController extends Controller
 
             return null;
         } catch (\Exception $e) {
-            Log::error('Paystack verification API error: ' . $e->getMessage());
+            Log::error('Paystack verification API error: '.$e->getMessage());
+
             return null;
         }
     }
@@ -183,7 +189,7 @@ class PaystackWebhookController extends Controller
         $this->mailDeliveryService->send($transaction->email, 'payment_success', [
             'name' => $transaction->name,
             'service_name' => $serviceName,
-            'amount' => $transaction->currency . ' ' . number_format($transaction->amount, 2),
+            'amount' => $transaction->currency.' '.number_format($transaction->amount, 2),
             'transaction_id' => $transaction->paystack_ref,
             'date' => $scheduledAt->format('F d, Y'),
             'time' => $scheduledAt->format('g:i A (T)'),
@@ -194,8 +200,8 @@ class PaystackWebhookController extends Controller
             'service_name' => $serviceName,
             'date' => $scheduledAt->format('F d, Y'),
             'time' => $scheduledAt->format('g:i A (T)'),
-            'duration' => $durationMinutes . ' minutes',
-            'amount' => $transaction->currency . ' ' . number_format($transaction->amount, 2),
+            'duration' => $durationMinutes.' minutes',
+            'amount' => $transaction->currency.' '.number_format($transaction->amount, 2),
         ]);
     }
 

@@ -30,7 +30,7 @@ describe('getApiErrorMessage', () => {
   it('extracts message from real AxiosError', () => {
     const error = new AxiosError('Request failed', '404', undefined, undefined, {
       data: { message: 'Not found' },
-    } as any);
+    } as Partial<import('axios').AxiosResponse>);
     expect(getApiErrorMessage(error, 'Fallback')).toBe('Not found');
   });
 

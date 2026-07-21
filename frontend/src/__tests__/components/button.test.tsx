@@ -49,6 +49,7 @@ describe('Button', () => {
   });
 
   it('renders as child element when asChild is used', () => {
+    // eslint-disable-next-line @next/next/no-html-link-for-pages
     render(<Button asChild><a href="/test">Link Button</a></Button>);
     expect(screen.getByRole('link', { name: /link button/i })).toBeInTheDocument();
   });

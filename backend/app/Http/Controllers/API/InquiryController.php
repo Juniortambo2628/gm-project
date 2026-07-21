@@ -15,8 +15,11 @@ use Illuminate\Support\Facades\Log;
 class InquiryController extends BaseCrudController
 {
     protected string $modelClass = Message::class;
+
     protected string $resourceClass = MessageResource::class;
+
     protected ?string $storeRequestClass = StoreMessageRequest::class;
+
     protected ?int $perPage = 15;
 
     public function __construct(
@@ -43,7 +46,7 @@ class InquiryController extends BaseCrudController
             $this->notificationService->notifyAdmins(
                 'inquiry',
                 'New Client Inquiry Received',
-                "{$message->name} has submitted a new inquiry regarding " . ($message->subject ?: 'Coaching') . ".",
+                "{$message->name} has submitted a new inquiry regarding ".($message->subject ?: 'Coaching').'.',
                 [
                     'inquiry_id' => $message->id,
                     'email' => $message->email,
@@ -72,7 +75,7 @@ class InquiryController extends BaseCrudController
                 'data' => new MessageResource($message),
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Failed to store inquiry: ' . $e->getMessage());
+            Log::error('Failed to store inquiry: '.$e->getMessage());
 
             return response()->json([
                 'status' => 'error',

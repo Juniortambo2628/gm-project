@@ -28,7 +28,7 @@ function getBackupCodes(localSettings: CMSModuleProps["localSettings"]): string[
   }
 }
 
-export function TwoFactorSettings({ localSettings, setLocalSettings, saving, setSaving, refreshSettings }: CMSModuleProps) {
+export function TwoFactorSettings({ localSettings, setLocalSettings, saving: _saving, setSaving, refreshSettings }: CMSModuleProps) {
   const handleToggle = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const enabled = e.target.checked ? "1" : "0";
     let backupCodes = localSettings["admin_2fa_backup_codes"];

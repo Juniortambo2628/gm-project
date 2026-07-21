@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Service;
 use App\Services\NotificationService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -52,6 +53,7 @@ class CalendlyWebhookController extends Controller
 
         if (! $email || ! $startTime) {
             Log::warning('Calendly webhook missing required data', ['payload' => $data]);
+
             return;
         }
 
@@ -62,6 +64,7 @@ class CalendlyWebhookController extends Controller
 
         if ($existing) {
             Log::info('Calendly: appointment already exists', ['email' => $email]);
+
             return;
         }
 
@@ -69,9 +72,9 @@ class CalendlyWebhookController extends Controller
         $service = Service::where('name', 'like', '%Coaching%')->first()
             ?? Service::first();
 
-        $scheduledAt = \Carbon\Carbon::parse($startTime);
+        $scheduledAt = Carbon::parse($startTime);
         $durationMinutes = $startTime && $endTime
-            ? (int) \Carbon\Carbon::parse($startTime)->diffInMinutes(\Carbon\Carbon::parse($endTime))
+            ? (int) Carbon::parse($startTime)->diffInMinutes(Carbon::parse($endTime))
             : 60;
 
         Appointment::create([

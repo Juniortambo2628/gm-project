@@ -63,7 +63,7 @@ class AuthController extends Controller
         // 2FA Challenge check
         if ($user->role === 'admin' && Setting::get('admin_2fa_enabled') === '1') {
             $code = rand(100000, 999999);
-            Setting::set('temp_2fa_code_' . $user->id, json_encode([
+            Setting::set('temp_2fa_code_'.$user->id, json_encode([
                 'code' => $code,
                 'expires_at' => now()->addMinutes(10)->timestamp,
             ]), 'security');
@@ -75,7 +75,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'requires_2fa' => true,
-                'email_masked' => substr($user->email, 0, 3) . '***' . strstr($user->email, '@'),
+                'email_masked' => substr($user->email, 0, 3).'***'.strstr($user->email, '@'),
                 'temp_token' => encrypt(['user_id' => $user->id, 'expires_at' => now()->addMinutes(10)->timestamp]),
             ]);
         }
@@ -123,7 +123,7 @@ class AuthController extends Controller
 
     private function isOtpValid(int $userId, string $code): bool
     {
-        $saved = Setting::get('temp_2fa_code_' . $userId);
+        $saved = Setting::get('temp_2fa_code_'.$userId);
 
         if (! $saved) {
             return false;
@@ -135,7 +135,8 @@ class AuthController extends Controller
         }
 
         if ($data['expires_at'] >= now()->timestamp && strval($data['code']) === strval($code)) {
-            Setting::where('key', 'temp_2fa_code_' . $userId)->delete();
+            Setting::where('key', 'temp_2fa_code_'.$userId)->delete();
+
             return true;
         }
 
@@ -162,6 +163,7 @@ class AuthController extends Controller
             if (strval($cleanBCode) === strval($submittedCode)) {
                 unset($backupCodes[$idx]);
                 Setting::set('admin_2fa_backup_codes', json_encode(array_values($backupCodes)), 'security');
+
                 return true;
             }
         }
@@ -227,7 +229,7 @@ class AuthController extends Controller
         }
 
         $code = rand(100000, 999999);
-        Setting::set('temp_reset_code_' . $user->id, json_encode([
+        Setting::set('temp_reset_code_'.$user->id, json_encode([
             'code' => $code,
             'expires_at' => now()->addMinutes(15)->timestamp,
         ]), 'security');
@@ -261,7 +263,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid or expired security reset code.'], 422);
         }
 
-        $saved = Setting::get('temp_reset_code_' . $userId);
+        $saved = Setting::get('temp_reset_code_'.$userId);
         if (! $saved) {
             return response()->json(['message' => 'Invalid or expired security reset code.'], 422);
         }
@@ -271,7 +273,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid or expired security reset code.'], 422);
         }
 
-        Setting::where('key', 'temp_reset_code_' . $userId)->delete();
+        Setting::where('key', 'temp_reset_code_'.$userId)->delete();
 
         return response()->json([
             'message' => 'Security reset code verified.',

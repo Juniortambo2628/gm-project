@@ -15,8 +15,7 @@ class IntegrationTestController extends Controller
     public function __construct(
         protected IntegrationTestService $testService,
         protected MailDeliveryService $mailDeliveryService
-    ) {
-    }
+    ) {}
 
     public function index(): JsonResponse
     {
@@ -74,7 +73,7 @@ class IntegrationTestController extends Controller
                 'subject' => 'Test Inquiry',
                 'country' => 'Kenya',
                 'message' => 'This is a test email sent from the admin integrations page.',
-                'admin_url' => config('app.frontend_url', config('app.url')) . '/admin',
+                'admin_url' => config('app.frontend_url', config('app.url')).'/admin',
             ]);
 
             return response()->json([
@@ -87,9 +86,8 @@ class IntegrationTestController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error sending test email: ' . $e->getMessage(),
+                'message' => 'Error sending test email: '.$e->getMessage(),
             ], 500);
         }
     }
 }
-

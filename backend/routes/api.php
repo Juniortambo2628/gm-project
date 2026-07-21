@@ -1,25 +1,26 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\BlogController;
+use App\Http\Controllers\API\CalendlyWebhookController;
 use App\Http\Controllers\API\CMSController;
 use App\Http\Controllers\API\ContentController;
 use App\Http\Controllers\API\DashboardController;
+use App\Http\Controllers\API\FaqController;
 use App\Http\Controllers\API\InquiryController;
+use App\Http\Controllers\API\IntegrationTestController;
 use App\Http\Controllers\API\MailTemplateController;
 use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\OrderController;
-use App\Http\Controllers\API\CalendlyWebhookController;
-use App\Http\Controllers\API\PaystackWebhookController;
 use App\Http\Controllers\API\PaymentVerificationController;
-use App\Http\Controllers\API\IntegrationTestController;
-use App\Http\Controllers\API\SettingController;
-use App\Http\Controllers\API\UserController;
+use App\Http\Controllers\API\PaystackWebhookController;
 use App\Http\Controllers\API\ServiceController;
-use App\Http\Controllers\API\FaqController;
+use App\Http\Controllers\API\SettingController;
 use App\Http\Controllers\API\TestimonialController;
+use App\Http\Controllers\API\UserController;
+use App\Http\Resources\UserResource;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login');
 Route::post('/login/verify-2fa', [AuthController::class, 'verify2FA'])->middleware('throttle:10,1');
@@ -51,7 +52,7 @@ Route::post('/webhooks/calendly', [CalendlyWebhookController::class, 'handle'])
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
-        return response()->json(new \App\Http\Resources\UserResource($request->user()));
+        return response()->json(new UserResource($request->user()));
     });
     Route::put('/user', [AuthController::class, 'updateProfile']);
     Route::get('/user/bookings', [OrderController::class, 'userBookings']);
@@ -132,7 +133,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/cms/users/{id}', [UserController::class, 'update']);
         Route::put('/cms/users/{id}/role', [UserController::class, 'updateRole']);
         Route::delete('/cms/users/{id}', [UserController::class, 'destroy']);
-
 
     });
 });

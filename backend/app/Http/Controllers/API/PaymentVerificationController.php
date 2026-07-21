@@ -25,12 +25,13 @@ class PaymentVerificationController extends Controller
 
         if (! $secret) {
             Log::error('Paystack secret key not configured');
+
             return response()->json(['verified' => false, 'message' => 'Payment service not configured'], 500);
         }
 
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $secret,
+                'Authorization' => 'Bearer '.$secret,
                 'Content-Type' => 'application/json',
             ])->timeout(10)->get("https://api.paystack.co/transaction/verify/{$reference}");
 
@@ -39,6 +40,7 @@ class PaymentVerificationController extends Controller
                     'reference' => $reference,
                     'status' => $response->status(),
                 ]);
+
                 return response()->json([
                     'verified' => false,
                     'message' => 'Payment verification failed',
@@ -60,7 +62,7 @@ class PaymentVerificationController extends Controller
             if ($data['status'] !== 'success') {
                 return response()->json([
                     'verified' => false,
-                    'message' => 'Transaction was not successful: ' . $data['status'],
+                    'message' => 'Transaction was not successful: '.$data['status'],
                 ], 400);
             }
 
@@ -72,13 +74,14 @@ class PaymentVerificationController extends Controller
                     'amount' => $data['amount'] / 100, // Convert from kobo
                     'currency' => $data['currency'],
                     'customer_email' => $data['customer']['email'] ?? '',
-                    'customer_name' => trim(($data['customer']['first_name'] ?? '') . ' ' . ($data['customer']['last_name'] ?? '')),
+                    'customer_name' => trim(($data['customer']['first_name'] ?? '').' '.($data['customer']['last_name'] ?? '')),
                     'metadata' => $data['metadata'] ?? [],
                     'paid_at' => $data['paid_at'],
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Paystack verification error: ' . $e->getMessage(), ['reference' => $reference]);
+            Log::error('Paystack verification error: '.$e->getMessage(), ['reference' => $reference]);
+
             return response()->json([
                 'verified' => false,
                 'message' => 'Unable to verify payment at this time',

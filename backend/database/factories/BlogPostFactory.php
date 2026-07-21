@@ -12,6 +12,7 @@ class BlogPostFactory extends Factory
     public function definition(): array
     {
         $title = fake()->sentence();
+
         return [
             'title' => $title,
             'slug' => fake()->unique()->slug(),

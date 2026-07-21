@@ -39,7 +39,7 @@ class MailDeliveryService
 
             return true;
         } catch (\Exception $e) {
-            Log::error("Failed to dispatch email [{$templateKey}] to {$to}: " . $e->getMessage());
+            Log::error("Failed to dispatch email [{$templateKey}] to {$to}: ".$e->getMessage());
 
             $log->update([
                 'status' => 'failed',

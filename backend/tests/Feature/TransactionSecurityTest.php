@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Service;
 use App\Models\Transaction;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -124,7 +125,7 @@ class TransactionSecurityTest extends TestCase
 
     public function test_participant_cannot_access_admin_orders(): void
     {
-        $user = \App\Models\User::factory()->create(['role' => 'participant']);
+        $user = User::factory()->create(['role' => 'participant']);
         $this->actingAs($user);
 
         $response = $this->getJson('/api/cms/orders');

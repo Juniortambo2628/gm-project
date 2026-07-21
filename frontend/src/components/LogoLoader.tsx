@@ -13,7 +13,9 @@ export function LogoLoader({ className, fullScreen = true }: LogoLoaderProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    // Use requestAnimationFrame to defer setState outside of effect body
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   const logoSrc = mounted && resolvedTheme === "dark"

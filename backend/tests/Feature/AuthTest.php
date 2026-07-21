@@ -99,7 +99,7 @@ class AuthTest extends TestCase
         $response->assertJsonMissing(['debug_code']);
 
         // Verify 2FA code was stored
-        $this->assertNotNull(Setting::get('temp_2fa_code_' . $admin->id));
+        $this->assertNotNull(Setting::get('temp_2fa_code_'.$admin->id));
     }
 
     public function test_2fa_code_not_leaked_in_response(): void
@@ -154,7 +154,7 @@ class AuthTest extends TestCase
         $user = User::factory()->create();
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/logout');
 
         $response->assertStatus(200);
@@ -172,7 +172,7 @@ class AuthTest extends TestCase
         $user = User::factory()->create();
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->putJson('/api/user', [
                 'name' => 'Updated Name',
                 'email' => 'updated@example.com',
@@ -189,7 +189,7 @@ class AuthTest extends TestCase
         ]);
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/change-password', [
                 'current_password' => 'OldPassword123!',
                 'new_password' => 'NewPassword456!',
@@ -206,7 +206,7 @@ class AuthTest extends TestCase
         ]);
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/change-password', [
                 'current_password' => 'WrongPassword!',
                 'new_password' => 'NewPassword456!',
@@ -238,7 +238,7 @@ class AuthTest extends TestCase
         $tempToken = $response->json('temp_token');
 
         // Get the stored code and extract the actual code value
-        $storedData = json_decode(Setting::get('temp_2fa_code_' . $admin->id), true);
+        $storedData = json_decode(Setting::get('temp_2fa_code_'.$admin->id), true);
 
         // Verify with correct code
         $response = $this->postJson('/api/login/verify-2fa', [
@@ -293,7 +293,7 @@ class AuthTest extends TestCase
         $tempToken = $response->json('temp_token');
 
         // Get the stored code and extract the actual code value
-        $storedData = json_decode(Setting::get('temp_reset_code_' . $user->id), true);
+        $storedData = json_decode(Setting::get('temp_reset_code_'.$user->id), true);
 
         // Verify the code
         $response = $this->postJson('/api/verify-reset-code', [
@@ -320,7 +320,7 @@ class AuthTest extends TestCase
         ]);
 
         $tempToken = $response->json('temp_token');
-        $storedData = json_decode(Setting::get('temp_reset_code_' . $user->id), true);
+        $storedData = json_decode(Setting::get('temp_reset_code_'.$user->id), true);
 
         // Verify code to get reset token
         $response = $this->postJson('/api/verify-reset-code', [

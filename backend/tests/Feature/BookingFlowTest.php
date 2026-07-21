@@ -7,7 +7,6 @@ use App\Models\Service;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
@@ -27,7 +26,7 @@ class BookingFlowTest extends TestCase
             'status' => 'success',
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/user/bookings');
 
         $response->assertOk();
@@ -46,7 +45,7 @@ class BookingFlowTest extends TestCase
             'status' => 'success',
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/user/bookings');
 
         $response->assertOk();

@@ -2,21 +2,25 @@
 
 namespace App\Mail;
 
+use App\Models\MailTemplate;
+use App\Models\Setting;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use App\Models\MailTemplate;
-use App\Models\Setting;
 
 class DynamicSystemMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public string $htmlContent;
+
     public string $mailSubject;
+
     public ?string $fromAddress;
+
     public ?string $fromName;
 
     public function __construct(string $templateKey, array $placeholders = [])
@@ -34,8 +38,8 @@ class DynamicSystemMail extends Mailable
         $placeholders = array_merge($this->globalPlaceholders(), $placeholders);
 
         foreach ($placeholders as $key => $value) {
-            $subject = str_replace('{' . $key . '}', (string) $value, $subject);
-            $content = str_replace('{' . $key . '}', (string) $value, $content);
+            $subject = str_replace('{'.$key.'}', (string) $value, $subject);
+            $content = str_replace('{'.$key.'}', (string) $value, $content);
         }
 
         $this->mailSubject = $subject;
@@ -50,7 +54,7 @@ class DynamicSystemMail extends Mailable
 
         // Apply per-template from address if set
         if ($this->fromAddress) {
-            $envelope->from = new \Illuminate\Mail\Mailables\Address(
+            $envelope->from = new Address(
                 $this->fromAddress,
                 $this->fromName ?? config('mail.from.name', config('app.name'))
             );
@@ -87,7 +91,7 @@ class DynamicSystemMail extends Mailable
             return $logo;
         }
 
-        return rtrim(config('app.url', 'https://example.com'), '/') . $logo;
+        return rtrim(config('app.url', 'https://example.com'), '/').$logo;
     }
 
     private function wrapInPremiumLayout(string $subject, string $content): string

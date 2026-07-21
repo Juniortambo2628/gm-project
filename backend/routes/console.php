@@ -1,11 +1,12 @@
 <?php
 
+use App\Mail\DynamicSystemMail;
+use App\Models\Appointment;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schedule;
-use App\Models\Appointment;
-use App\Mail\DynamicSystemMail;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -31,13 +32,13 @@ Artisan::command('appointments:send-reminders', function () {
                     'service_name' => $appointment->service?->name ?? 'Coaching Session',
                     'date' => $appointment->scheduled_at->format('F d, Y'),
                     'time' => $appointment->scheduled_at->format('g:i A (T)'),
-                    'duration' => $appointment->duration_minutes . ' minutes',
+                    'duration' => $appointment->duration_minutes.' minutes',
                 ])
             );
             $appointment->markReminderSent();
             $count++;
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Failed to send reminder to {$appointment->client_email}: " . $e->getMessage());
+        } catch (Exception $e) {
+            Log::error("Failed to send reminder to {$appointment->client_email}: ".$e->getMessage());
         }
     }
 
@@ -67,8 +68,8 @@ Artisan::command('appointments:send-followups', function () {
             );
             $appointment->markFollowupSent();
             $count++;
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Failed to send follow-up to {$appointment->client_email}: " . $e->getMessage());
+        } catch (Exception $e) {
+            Log::error("Failed to send follow-up to {$appointment->client_email}: ".$e->getMessage());
         }
     }
 

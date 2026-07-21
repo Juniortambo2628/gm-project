@@ -12,9 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 class CMSController extends Controller
 {
-    public function __construct(protected MediaService $mediaService)
-    {
-    }
+    public function __construct(protected MediaService $mediaService) {}
 
     /**
      * Update bulk settings.
@@ -71,6 +69,7 @@ class CMSController extends Controller
 
         try {
             $metadata = $this->mediaService->getMetadata($request->input('path'));
+
             return response()->json($metadata);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['error' => $e->getMessage()], 404);
@@ -131,7 +130,7 @@ class CMSController extends Controller
             $position['mobile_y'] = (float) $request->input('mobile_y');
         }
 
-        Setting::set($request->input('key') . '_position', json_encode($position), 'media', 'json');
+        Setting::set($request->input('key').'_position', json_encode($position), 'media', 'json');
 
         return response()->json([
             'message' => 'Image position updated successfully',

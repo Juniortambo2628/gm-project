@@ -4,9 +4,7 @@ namespace App\Services;
 
 use App\Models\IntegrationTestResult;
 use App\Models\Setting;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class IntegrationTestService
 {
@@ -47,23 +45,23 @@ class IntegrationTestService
     {
         $secret = config('services.paystack.secret');
         $public = config('services.paystack.public');
-        $configured = !empty($secret) && !empty($public);
+        $configured = ! empty($secret) && ! empty($public);
         $message = 'Paystack is configured.';
         $status = 'ok';
         $connected = false;
         $details = [
-            'has_public_key' => !empty($public),
-            'has_secret_key' => !empty($secret),
-            'key_prefix' => $public ? substr($public, 0, 8) . '...' : null,
+            'has_public_key' => ! empty($public),
+            'has_secret_key' => ! empty($secret),
+            'key_prefix' => $public ? substr($public, 0, 8).'...' : null,
         ];
 
-        if (!$configured) {
+        if (! $configured) {
             $message = 'Paystack keys are not set. Add PAYSTACK_PUBLIC_KEY and PAYSTACK_SECRET_KEY to your .env file.';
             $status = 'warning';
         } else {
             try {
                 $response = Http::withHeaders([
-                    'Authorization' => 'Bearer ' . $secret,
+                    'Authorization' => 'Bearer '.$secret,
                     'Content-Type' => 'application/json',
                 ])->timeout(10)->get('https://api.paystack.co/transaction?perPage=1');
 
@@ -74,12 +72,12 @@ class IntegrationTestService
                     $details['api_response'] = $response->json('message', 'OK');
                 } else {
                     $status = 'error';
-                    $message = 'Paystack API returned an error. Status: ' . $response->status();
+                    $message = 'Paystack API returned an error. Status: '.$response->status();
                     $details['status_code'] = $response->status();
                 }
             } catch (\Exception $e) {
                 $status = 'error';
-                $message = 'Could not connect to Paystack API: ' . $e->getMessage();
+                $message = 'Could not connect to Paystack API: '.$e->getMessage();
                 $details['error'] = $e->getMessage();
             }
         }
@@ -93,9 +91,9 @@ class IntegrationTestService
         $host = config("mail.mailers.{$driver}.host");
         $port = config("mail.mailers.{$driver}.port");
         $username = config("mail.mailers.{$driver}.username");
-        $hasPassword = !empty(config("mail.mailers.{$driver}.password") ?? env('MAIL_PASSWORD'));
+        $hasPassword = ! empty(config("mail.mailers.{$driver}.password") ?? env('MAIL_PASSWORD'));
         $from = config('mail.from.address');
-        $configured = !empty($host) || in_array($driver, ['log', 'array']);
+        $configured = ! empty($host) || in_array($driver, ['log', 'array']);
         $message = '';
         $status = 'ok';
         $connected = false;
@@ -116,7 +114,7 @@ class IntegrationTestService
         } elseif (empty($host)) {
             $message = 'SMTP host is missing. Set MAIL_HOST in your .env file.';
             $status = 'error';
-        } elseif (!$hasPassword) {
+        } elseif (! $hasPassword) {
             $message = 'SMTP password is not set. Add MAIL_PASSWORD to your .env file.';
             $status = 'error';
         } else {
@@ -132,7 +130,7 @@ class IntegrationTestService
                     $status = 'error';
                 }
             } catch (\Exception $e) {
-                $message = "SMTP connection test failed: " . $e->getMessage();
+                $message = 'SMTP connection test failed: '.$e->getMessage();
                 $status = 'error';
             }
         }
@@ -161,7 +159,7 @@ class IntegrationTestService
             'total_expected' => 3,
         ];
 
-        if (!$configured) {
+        if (! $configured) {
             $message = 'No Calendly URLs configured. Set them in the CMS settings.';
             $status = 'warning';
         } else {
@@ -178,11 +176,11 @@ class IntegrationTestService
                     }
                 } else {
                     $status = 'warning';
-                    $message = "Calendly URL responded with status " . $response->status();
+                    $message = 'Calendly URL responded with status '.$response->status();
                 }
             } catch (\Exception $e) {
                 $status = 'error';
-                $message = 'Could not verify Calendly URL: ' . $e->getMessage();
+                $message = 'Could not verify Calendly URL: '.$e->getMessage();
                 $details['error'] = $e->getMessage();
             }
         }
@@ -195,9 +193,9 @@ class IntegrationTestService
         $host = config('broadcasting.connections.reverb.options.host');
         $port = config('broadcasting.connections.reverb.options.port');
         $scheme = config('broadcasting.connections.reverb.options.scheme');
-        $configured = !empty(config('broadcasting.connections.reverb.app_id'))
-            && !empty(config('broadcasting.connections.reverb.key'))
-            && !empty(config('broadcasting.connections.reverb.secret'));
+        $configured = ! empty(config('broadcasting.connections.reverb.app_id'))
+            && ! empty(config('broadcasting.connections.reverb.key'))
+            && ! empty(config('broadcasting.connections.reverb.secret'));
         $message = '';
         $status = 'ok';
         $connected = false;
@@ -209,7 +207,7 @@ class IntegrationTestService
             'scheme' => $scheme,
         ];
 
-        if (!$configured) {
+        if (! $configured) {
             $message = 'Reverb WebSocket server is not configured. Set REVERB_APP_ID, REVERB_APP_KEY, and REVERB_APP_SECRET in your .env file.';
             $status = 'warning';
         } else {
@@ -237,19 +235,19 @@ class IntegrationTestService
         $secretKey = config('filesystems.disks.s3.secret') ?: env('AWS_SECRET_ACCESS_KEY');
         $bucket = config('filesystems.disks.s3.bucket') ?: env('AWS_BUCKET');
         $region = config('filesystems.disks.s3.region') ?: env('AWS_DEFAULT_REGION');
-        $configured = !empty($accessKey) && !empty($secretKey) && !empty($bucket);
+        $configured = ! empty($accessKey) && ! empty($secretKey) && ! empty($bucket);
         $message = '';
         $status = 'ok';
         $connected = false;
         $details = [
-            'has_access_key' => !empty($accessKey),
-            'has_secret_key' => !empty($secretKey),
-            'has_bucket' => !empty($bucket),
+            'has_access_key' => ! empty($accessKey),
+            'has_secret_key' => ! empty($secretKey),
+            'has_bucket' => ! empty($bucket),
             'region' => $region ?: 'us-east-1',
             'disk' => config('filesystems.default'),
         ];
 
-        if (!$configured) {
+        if (! $configured) {
             $message = 'AWS S3 is not configured. File storage uses the local disk. This is fine for development.';
             $status = 'warning';
         } else {
@@ -264,7 +262,7 @@ class IntegrationTestService
     private function backendApi(): array
     {
         $url = config('app.url');
-        $configured = !empty($url);
+        $configured = ! empty($url);
         $status = 'ok';
         $connected = false;
         $message = '';
@@ -274,7 +272,7 @@ class IntegrationTestService
         ];
 
         try {
-            $response = Http::timeout(5)->get(rtrim($url, '/') . '/api/settings');
+            $response = Http::timeout(5)->get(rtrim($url, '/').'/api/settings');
 
             if ($response->successful()) {
                 $connected = true;
@@ -282,11 +280,11 @@ class IntegrationTestService
                 $status = 'ok';
                 $details['response_code'] = $response->status();
             } else {
-                $message = "Backend API returned status " . $response->status();
+                $message = 'Backend API returned status '.$response->status();
                 $status = 'warning';
             }
         } catch (\Exception $e) {
-            $message = "Backend API is not reachable at {$url}. Error: " . $e->getMessage();
+            $message = "Backend API is not reachable at {$url}. Error: ".$e->getMessage();
             $status = 'error';
         }
 
@@ -314,11 +312,11 @@ class IntegrationTestService
                 $details['css_length'] = strlen($response->body());
             } else {
                 $status = 'warning';
-                $message = 'Google Fonts returned status ' . $response->status();
+                $message = 'Google Fonts returned status '.$response->status();
             }
         } catch (\Exception $e) {
             $status = 'error';
-            $message = 'Could not reach Google Fonts: ' . $e->getMessage();
+            $message = 'Could not reach Google Fonts: '.$e->getMessage();
         }
 
         return $this->persist('google_fonts', 'Google Fonts', $status, $configured, $connected, $message, $details);

@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw';
-import { makeSiteContent, makeService, makeFaq, makeTestimonial, makeBlogPost, makeBooking, makeUser } from './factories';
+import { makeSiteContent, makeService, makeFaq, makeBlogPost, makeBooking, makeUser } from './factories';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
