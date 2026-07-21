@@ -9,6 +9,11 @@ class Setting extends Model
 {
     use HasFactory;
 
+    /**
+     * Groups that are safe to expose via the public API.
+     */
+    const PUBLIC_GROUPS = ['general', 'about', 'branding', 'communications', 'hero', 'media'];
+
     protected $fillable = [
         'key',
         'value',

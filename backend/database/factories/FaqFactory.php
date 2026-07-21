@@ -15,8 +15,7 @@ class FaqFactory extends Factory
             'question' => fake()->sentence(),
             'answer' => fake()->paragraph(),
             'category' => fake()->randomElement(['MBA', 'Consulting', 'General']),
-            'sort_order' => fake()->numberBetween(0, 100),
-            'is_active' => true,
+            'order' => fake()->numberBetween(0, 100),
         ];
     }
 }

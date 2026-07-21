@@ -17,6 +17,9 @@ use App\Http\Controllers\API\PaymentVerificationController;
 use App\Http\Controllers\API\IntegrationTestController;
 use App\Http\Controllers\API\SettingController;
 use App\Http\Controllers\API\UserController;
+use App\Http\Controllers\API\ServiceController;
+use App\Http\Controllers\API\FaqController;
+use App\Http\Controllers\API\TestimonialController;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login');
 Route::post('/login/verify-2fa', [AuthController::class, 'verify2FA'])->middleware('throttle:10,1');
@@ -70,17 +73,23 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/cms/notifications/{id}/read', [NotificationController::class, 'read']);
         Route::post('/cms/notifications/read-all', [NotificationController::class, 'readAll']);
 
-        Route::post('/cms/services', [CMSController::class, 'saveService']);
-        Route::put('/cms/services/{id}', [CMSController::class, 'updateService']);
-        Route::delete('/cms/services/{id}', [CMSController::class, 'deleteService']);
+        Route::get('/cms/services', [ServiceController::class, 'index']);
+        Route::post('/cms/services', [ServiceController::class, 'store']);
+        Route::get('/cms/services/{id}', [ServiceController::class, 'show']);
+        Route::put('/cms/services/{id}', [ServiceController::class, 'update']);
+        Route::delete('/cms/services/{id}', [ServiceController::class, 'destroy']);
 
-        Route::post('/cms/faqs', [CMSController::class, 'saveFaq']);
-        Route::put('/cms/faqs/{id}', [CMSController::class, 'updateFaq']);
-        Route::delete('/cms/faqs/{id}', [CMSController::class, 'deleteFaq']);
+        Route::get('/cms/faqs', [FaqController::class, 'index']);
+        Route::post('/cms/faqs', [FaqController::class, 'store']);
+        Route::get('/cms/faqs/{id}', [FaqController::class, 'show']);
+        Route::put('/cms/faqs/{id}', [FaqController::class, 'update']);
+        Route::delete('/cms/faqs/{id}', [FaqController::class, 'destroy']);
 
-        Route::post('/cms/testimonials', [CMSController::class, 'saveTestimonial']);
-        Route::put('/cms/testimonials/{id}', [CMSController::class, 'updateTestimonial']);
-        Route::delete('/cms/testimonials/{id}', [CMSController::class, 'deleteTestimonial']);
+        Route::get('/cms/testimonials', [TestimonialController::class, 'index']);
+        Route::post('/cms/testimonials', [TestimonialController::class, 'store']);
+        Route::get('/cms/testimonials/{id}', [TestimonialController::class, 'show']);
+        Route::put('/cms/testimonials/{id}', [TestimonialController::class, 'update']);
+        Route::delete('/cms/testimonials/{id}', [TestimonialController::class, 'destroy']);
 
         // Dashboard Analytics
         Route::get('/cms/dashboard', [DashboardController::class, 'index']);
@@ -124,7 +133,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/cms/users/{id}/role', [UserController::class, 'updateRole']);
         Route::delete('/cms/users/{id}', [UserController::class, 'destroy']);
 
-        // Legacy System Settings
-        Route::post('/settings', [SettingController::class, 'update']);
+
     });
 });

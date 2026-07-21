@@ -17,5 +17,17 @@ export default defineConfig({
     fileParallelism: false,
     testTimeout: 30000,
     pool: 'vmThreads',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/__tests__/**', 'src/__test-utils__/**', 'src/**/*.d.ts'],
+      thresholds: {
+        statements: 70,
+        branches: 60,
+        functions: 70,
+        lines: 70,
+      },
+    },
   },
 });

@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -16,7 +16,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
-import { getErrorMessage, extractList } from "@/lib/api";
+import { getErrorMessage } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 
 interface UserRecord {
   id: number;
@@ -28,25 +29,11 @@ interface UserRecord {
 
 export default function UserManagementPage() {
   const { user: currentUser } = useAuth();
-  const [users, setUsers] = useState<UserRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: users, loading, refetch } = useAdminFetch<UserRecord[]>("/cms/users", {
+    errorMessage: "Failed to load user list",
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      const res = await axiosInstance.get("/cms/users");
-      setUsers(extractList<UserRecord>(res));
-    } catch {
-      toast.error("Failed to load user list");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const changeUserRole = async (id: number, currentRole: string) => {
     if (id === currentUser?.id) {
@@ -66,7 +53,7 @@ export default function UserManagementPage() {
     try {
       await axiosInstance.put(`/cms/users/${id}/role`, { role: newRole });
       toast.success(`Role updated successfully to ${newRole}`);
-      fetchUsers();
+      refetch();
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -83,7 +70,7 @@ export default function UserManagementPage() {
     try {
       await axiosInstance.delete(`/cms/users/${id}`);
       toast.success("User account successfully deleted");
-      fetchUsers();
+      refetch();
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {

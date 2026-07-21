@@ -15,9 +15,8 @@ class TestimonialFactory extends Factory
             'client_name' => fake()->name(),
             'client_role' => fake()->jobTitle(),
             'content' => fake()->paragraph(),
-            'outcome' => fake()->sentence(),
             'tag' => fake()->randomElement(['MBA Admissions', 'Consulting Prep']),
-            'is_active' => true,
+            'is_featured' => fake()->boolean(),
         ];
     }
 }

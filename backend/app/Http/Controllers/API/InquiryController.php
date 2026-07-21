@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMessageRequest;
 use App\Http\Resources\MessageResource;
 use App\Models\Message;
@@ -10,21 +9,33 @@ use App\Models\Setting;
 use App\Services\MailDeliveryService;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class InquiryController extends Controller
+class InquiryController extends BaseCrudController
 {
+    protected string $modelClass = Message::class;
+    protected string $resourceClass = MessageResource::class;
+    protected ?string $storeRequestClass = StoreMessageRequest::class;
+    protected ?int $perPage = 15;
+
     public function __construct(
         protected NotificationService $notificationService,
         protected MailDeliveryService $mailDeliveryService
     ) {}
 
     /**
-     * Store a new contact message.
+     * Store a new contact message with notifications and auto-reply.
      */
-    public function store(StoreMessageRequest $request): JsonResponse
+    public function store(Request $request): JsonResponse
     {
-        $validated = $request->validated();
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'country' => 'nullable|string|max:255',
+            'subject' => 'nullable|string|max:255',
+            'content' => 'required|string',
+        ]);
 
         try {
             $message = Message::create($validated);
@@ -71,26 +82,6 @@ class InquiryController extends Controller
     }
 
     /**
-     * List all inquiries (Admin).
-     */
-    public function index(): JsonResponse
-    {
-        $messages = Message::query()->latest()->paginate(15);
-
-        return MessageResource::collection($messages)->response();
-    }
-
-    /**
-     * Show a single inquiry (Admin).
-     */
-    public function show($id): JsonResponse
-    {
-        $message = Message::query()->findOrFail($id);
-
-        return (new MessageResource($message))->response();
-    }
-
-    /**
      * Mark an inquiry as read (Admin).
      */
     public function markAsRead($id): JsonResponse
@@ -102,16 +93,5 @@ class InquiryController extends Controller
             'message' => 'Inquiry marked as read',
             'data' => new MessageResource($message),
         ]);
-    }
-
-    /**
-     * Delete an inquiry (Admin).
-     */
-    public function destroy($id): JsonResponse
-    {
-        $message = Message::query()->findOrFail($id);
-        $message->delete();
-
-        return response()->json(['message' => 'Message deleted successfully']);
     }
 }

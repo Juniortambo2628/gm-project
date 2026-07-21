@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2, Edit, Calendar, Image as ImageIcon, X, Save, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,8 @@ import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
-import { BlogPost, extractList } from "@/lib/api";
+import { BlogPost } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 
@@ -25,27 +26,13 @@ const emptyPost: BlogPost = {
 };
 
 export default function BlogManagementPage() {
-  const [data, setData] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading, refetch } = useAdminFetch<BlogPost[]>("/cms/blog", {
+    errorMessage: "Failed to fetch blog posts",
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPost>(emptyPost);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const res = await axiosInstance.get("/cms/blog");
-      setData(extractList<BlogPost>(res));
-    } catch {
-      toast.error("Failed to fetch blog posts");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleCreateNew = () => {
     setEditingPost({ ...emptyPost });
@@ -73,7 +60,7 @@ export default function BlogManagementPage() {
         toast.success("Post created");
       }
       setIsModalOpen(false);
-      fetchData();
+      refetch();
     } catch {
       toast.error("Failed to save post");
     } finally {
@@ -85,7 +72,7 @@ export default function BlogManagementPage() {
     try {
       await axiosInstance.delete(`/cms/blog/${id}`);
       toast.success("Post deleted");
-      fetchData();
+      refetch();
     } catch {
       toast.error("Failed to delete post");
     } finally {
@@ -189,9 +176,9 @@ export default function BlogManagementPage() {
                       <div className="flex-1 space-y-2">
                          <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Status</label>
                          <select 
-                            value={editingPost?.status || 'draft'}
-                             onChange={(e) => setEditingPost({...editingPost, status: e.target.value as 'draft' | 'published'})}
-                            className="w-full h-12 bg-muted/30 rounded-xl px-4 text-sm font-bold border-none outline-none"
+                           value={editingPost?.status || 'draft'}
+                            onChange={(e) => setEditingPost({...editingPost, status: e.target.value as 'draft' | 'published'})}
+                           className="w-full h-12 bg-muted/30 rounded-xl px-4 text-sm font-bold border-none outline-none"
                          >
                             <option value="draft">Draft</option>
                             <option value="published">Published</option>
@@ -200,10 +187,10 @@ export default function BlogManagementPage() {
                       <div className="flex-1 space-y-2">
                          <label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Published Date</label>
                          <Input 
-                            type="date"
-                            value={editingPost?.published_at?.split('T')[0] || ''}
-                            onChange={(e) => setEditingPost({...editingPost, published_at: e.target.value})}
-                            className="h-12 bg-muted/30 rounded-xl border-none font-bold"
+                           type="date"
+                           value={editingPost?.published_at?.split('T')[0] || ''}
+                           onChange={(e) => setEditingPost({...editingPost, published_at: e.target.value})}
+                           className="h-12 bg-muted/30 rounded-xl border-none font-bold"
                          />
                       </div>
                    </div>

@@ -6,8 +6,64 @@ on:
       - main
 
 jobs:
-  deploy:
+  test-gate:
+    name: Test Gate
     runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, ctype, json, bcmath, pdo, sqlite
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Composer Dependencies
+        working-directory: backend
+        run: composer install --no-progress --prefer-dist
+
+      - name: Prepare Backend Environment
+        working-directory: backend
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run Backend Tests
+        working-directory: backend
+        run: php artisan test
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run Frontend Tests
+        working-directory: frontend
+        run: npm run test
+
+      - name: Run Frontend Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Type Check Frontend
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Build Frontend
+        working-directory: frontend
+        run: npm run build
+
+  deploy:
+    name: Deploy to Production
+    needs: test-gate
+    runs-on: ubuntu-latest
+    
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -47,9 +103,18 @@ jobs:
             cd $CORE
             composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
             
-            # 7. Clear Laravel caches
+            # 7. Run Migrations
+            php artisan migrate --force
+            
+            # 8. Clear Laravel caches
             php artisan config:clear
             php artisan route:clear
             php artisan view:clear
+            php artisan cache:clear
+            
+            # 9. Optimize for production
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
             
             echo "Deployment finished successfully!"

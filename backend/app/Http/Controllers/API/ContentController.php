@@ -16,10 +16,7 @@ use Illuminate\Http\JsonResponse;
 
 class ContentController extends Controller
 {
-    /**
-     * Public-safe setting groups.
-     */
-    protected array $publicGroups = ['general', 'about', 'branding', 'communications', 'hero', 'media'];
+    protected array $publicGroups = Setting::PUBLIC_GROUPS;
 
     /**
      * Fetch all site content for the frontend

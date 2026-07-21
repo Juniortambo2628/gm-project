@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Mail, Eye, RotateCcw, Save, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,38 +17,62 @@ import {
   type MailTemplatePreview,
   getErrorMessage,
 } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { toast } from "sonner";
 
 export default function EmailTemplatesPage() {
-  const [templates, setTemplates] = useState<MailTemplate[]>([]);
+  const { data: templates, loading, refetch } = useAdminFetch<MailTemplate[]>(
+    "" as string,
+    {
+      extractAsList: false,
+      errorMessage: "Failed to load email templates",
+      onSuccess: (data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          selectTemplate(data[0]);
+        }
+      },
+    }
+  );
+
+  // Override fetch to use getMailTemplates helper
+  const [fetched, setFetched] = useState(false);
+  const [templateList, setTemplateList] = useState<MailTemplate[]>([]);
+  const [templateLoading, setTemplateLoading] = useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      try {
+        setTemplateLoading(true);
+        const data = await getMailTemplates();
+        if (!cancelled) {
+          setTemplateList(data);
+          setTemplateLoading(false);
+          if (data.length > 0) {
+            setSelectedKey(data[0].key);
+            setSubject(data[0].subject);
+            setBody(data[0].body);
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          toast.error("Failed to load email templates", { description: getErrorMessage(err) });
+          setTemplateLoading(false);
+        }
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, []);
+
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [preview, setPreview] = useState<MailTemplatePreview | null>(null);
 
-  const selected = templates.find((t) => t.key === selectedKey);
-
-  useEffect(() => {
-    const fetchTemplates = async () => {
-      try {
-        setLoading(true);
-        const data = await getMailTemplates();
-        setTemplates(data);
-        if (data.length > 0) {
-          selectTemplate(data[0]);
-        }
-      } catch (err) {
-        toast.error("Failed to load email templates", { description: getErrorMessage(err) });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTemplates();
-  }, []);
+  const selected = templateList.find((t) => t.key === selectedKey);
 
   const selectTemplate = (template: MailTemplate) => {
     setSelectedKey(template.key);
@@ -62,7 +86,7 @@ export default function EmailTemplatesPage() {
     setSaving(true);
     try {
       await updateMailTemplate(selectedKey, { subject, body });
-      setTemplates((prev) =>
+      setTemplateList((prev) =>
         prev.map((t) => (t.key === selectedKey ? { ...t, subject, body } : t))
       );
       toast.success("Template saved", { icon: <CheckCircle2 size={16} /> });
@@ -89,7 +113,7 @@ export default function EmailTemplatesPage() {
     if (!confirm("Reset this template to its default content?")) return;
     try {
       const template = await resetMailTemplate(selectedKey);
-      setTemplates((prev) =>
+      setTemplateList((prev) =>
         prev.map((t) => (t.key === selectedKey ? template : t))
       );
       setSubject(template.subject);
@@ -108,7 +132,7 @@ export default function EmailTemplatesPage() {
     <AdminListPage
       title="Email Templates"
       description="Customize automated emails, preview them with sample data, and manage dynamic placeholders."
-      isLoading={loading}
+      isLoading={templateLoading}
     >
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Sidebar */}
@@ -118,7 +142,7 @@ export default function EmailTemplatesPage() {
               Templates
             </h3>
             <div className="space-y-2">
-              {templates.map((template) => (
+              {templateList.map((template) => (
                 <button
                   key={template.key}
                   onClick={() => selectTemplate(template)}

@@ -215,4 +215,136 @@ class AuthTest extends TestCase
 
         $response->assertStatus(422);
     }
+
+    public function test_2fa_code_verifies_successfully(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->create([
+            'email' => 'admin@example.com',
+            'role' => 'admin',
+            'password' => Hash::make('Admin123!'),
+        ]);
+
+        Setting::set('admin_2fa_enabled', '1', 'security');
+
+        // Login triggers 2FA
+        $response = $this->postJson('/api/login', [
+            'email' => 'admin@example.com',
+            'password' => 'Admin123!',
+        ]);
+
+        $response->assertOk();
+        $tempToken = $response->json('temp_token');
+
+        // Get the stored code and extract the actual code value
+        $storedData = json_decode(Setting::get('temp_2fa_code_' . $admin->id), true);
+
+        // Verify with correct code
+        $response = $this->postJson('/api/login/verify-2fa', [
+            'temp_token' => $tempToken,
+            'code' => $storedData['code'],
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonStructure(['access_token', 'token_type', 'user']);
+    }
+
+    public function test_2fa_code_rejects_wrong_code(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->create([
+            'email' => 'admin@example.com',
+            'role' => 'admin',
+            'password' => Hash::make('Admin123!'),
+        ]);
+
+        Setting::set('admin_2fa_enabled', '1', 'security');
+
+        $response = $this->postJson('/api/login', [
+            'email' => 'admin@example.com',
+            'password' => 'Admin123!',
+        ]);
+
+        $response->assertOk();
+        $tempToken = $response->json('temp_token');
+
+        $response = $this->postJson('/api/login/verify-2fa', [
+            'temp_token' => $tempToken,
+            'code' => '000000',
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_verify_reset_code_with_valid_code(): void
+    {
+        Mail::fake();
+
+        $user = User::factory()->create(['email' => 'reset@example.com']);
+
+        // Request password reset
+        $response = $this->postJson('/api/forgot-password', [
+            'email' => 'reset@example.com',
+        ]);
+
+        $response->assertOk();
+        $tempToken = $response->json('temp_token');
+
+        // Get the stored code and extract the actual code value
+        $storedData = json_decode(Setting::get('temp_reset_code_' . $user->id), true);
+
+        // Verify the code
+        $response = $this->postJson('/api/verify-reset-code', [
+            'temp_token' => $tempToken,
+            'code' => $storedData['code'],
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonStructure(['message', 'reset_token']);
+    }
+
+    public function test_reset_password_with_valid_token(): void
+    {
+        Mail::fake();
+
+        $user = User::factory()->create([
+            'email' => 'reset@example.com',
+            'password' => Hash::make('OldPassword123!'),
+        ]);
+
+        // Request reset
+        $response = $this->postJson('/api/forgot-password', [
+            'email' => 'reset@example.com',
+        ]);
+
+        $tempToken = $response->json('temp_token');
+        $storedData = json_decode(Setting::get('temp_reset_code_' . $user->id), true);
+
+        // Verify code to get reset token
+        $response = $this->postJson('/api/verify-reset-code', [
+            'temp_token' => $tempToken,
+            'code' => $storedData['code'],
+        ]);
+
+        $resetToken = $response->json('reset_token');
+
+        // Reset password
+        $response = $this->postJson('/api/reset-password', [
+            'reset_token' => $resetToken,
+            'password' => 'NewPassword456!',
+            'password_confirmation' => 'NewPassword456!',
+        ]);
+
+        $response->assertOk();
+
+        // Verify new password works
+        $response = $this->postJson('/api/login', [
+            'email' => 'reset@example.com',
+            'password' => 'NewPassword456!',
+        ]);
+
+        $response->assertOk();
+    }
 }

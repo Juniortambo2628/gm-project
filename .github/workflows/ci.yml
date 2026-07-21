@@ -1,0 +1,183 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, ctype, json, bcmath, pdo, sqlite
+          coverage: xdebug
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Composer Dependencies
+        working-directory: backend
+        run: composer install --no-progress --prefer-dist
+
+      - name: Prepare Environment
+        working-directory: backend
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run Migrations
+        working-directory: backend
+        run: php artisan migrate --force
+
+      - name: Run Tests with Coverage
+        working-directory: backend
+        run: php artisan test --coverage-text --coverage-clover=coverage.xml
+
+      - name: Run Code Style Check
+        working-directory: backend
+        run: vendor/bin/pint --test
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          retention-days: 7
+
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Run Tests with Coverage
+        working-directory: frontend
+        run: npm run test -- --coverage
+
+      - name: Type Check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+          retention-days: 7
+
+  integration-gate:
+    name: Integration Gate
+    needs: [backend-tests, frontend-tests]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.backend-tests.result }}" != "success" ] || [ "${{ needs.frontend-tests.result }}" != "success" ]; then
+            echo "One or more test jobs failed"
+            exit 1
+          fi
+          echo "All tests passed"
+
+      - name: Download coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          path: coverage/
+          pattern: '*-coverage'
+          merge-multiple: true
+
+      - name: Coverage Summary
+        run: |
+          echo "=== Backend Coverage ==="
+          if [ -f coverage/backend-coverage/coverage.xml ]; then
+            echo "Backend coverage report available"
+          fi
+          echo ""
+          echo "=== Frontend Coverage ==="
+          if [ -d coverage/frontend-coverage ]; then
+            echo "Frontend coverage report available"
+          fi
+
+  auto-fix:
+    name: Auto-Fix Issues
+    needs: [backend-tests, frontend-tests]
+    runs-on: ubuntu-latest
+    if: failure() && github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Backend Dependencies
+        working-directory: backend
+        run: composer install --no-progress --prefer-dist
+
+      - name: Auto-Fix PHP Code Style
+        working-directory: backend
+        run: vendor/bin/pint
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Auto-Fix ESLint Issues
+        working-directory: frontend
+        run: npx eslint src/ --fix || true
+
+      - name: Commit Fixes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "style: auto-fix code style issues [ci-skip]"
+            git push
+          fi

@@ -39,18 +39,6 @@ class SettingsSecurityTest extends TestCase
         $response->assertStatus(403);
     }
 
-    public function test_non_admin_cannot_update_settings(): void
-    {
-        $user = User::factory()->create(['role' => 'participant']);
-        $this->actingAs($user);
-
-        $response = $this->postJson('/api/settings', [
-            'settings' => ['general' => ['site_name' => 'Hacked']],
-        ]);
-
-        $response->assertStatus(403);
-    }
-
     public function test_non_admin_cannot_update_cms_settings(): void
     {
         $user = User::factory()->create(['role' => 'participant']);

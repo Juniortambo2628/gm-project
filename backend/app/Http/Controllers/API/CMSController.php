@@ -3,19 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreFaqRequest;
-use App\Http\Requests\StoreServiceRequest;
-use App\Http\Requests\StoreTestimonialRequest;
-use App\Http\Requests\UpdateFaqRequest;
-use App\Http\Requests\UpdateServiceRequest;
-use App\Http\Requests\UpdateTestimonialRequest;
-use App\Http\Resources\FaqResource;
-use App\Http\Resources\ServiceResource;
-use App\Http\Resources\TestimonialResource;
-use App\Models\Faq;
-use App\Models\Service;
 use App\Models\Setting;
-use App\Models\Testimonial;
 use App\Services\MediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -149,119 +137,5 @@ class CMSController extends Controller
             'message' => 'Image position updated successfully',
             'position' => $position,
         ]);
-    }
-
-    /**
-     * Store a new service.
-     */
-    public function saveService(StoreServiceRequest $request): JsonResponse
-    {
-        $service = Service::create($request->validated());
-
-        return response()->json([
-            'message' => 'Service created successfully',
-            'service' => new ServiceResource($service),
-        ], 201);
-    }
-
-    /**
-     * Update an existing service.
-     */
-    public function updateService(UpdateServiceRequest $request, $id): JsonResponse
-    {
-        $service = Service::query()->findOrFail($id);
-        $service->update($request->validated());
-
-        return response()->json([
-            'message' => 'Service updated successfully',
-            'service' => new ServiceResource($service),
-        ]);
-    }
-
-    /**
-     * Delete a service.
-     */
-    public function deleteService($id): JsonResponse
-    {
-        $service = Service::query()->findOrFail($id);
-        $service->delete();
-
-        return response()->json(['message' => 'Service deleted successfully']);
-    }
-
-    /**
-     * Store a new FAQ.
-     */
-    public function saveFaq(StoreFaqRequest $request): JsonResponse
-    {
-        $faq = Faq::create($request->validated());
-
-        return response()->json([
-            'message' => 'FAQ created successfully',
-            'faq' => new FaqResource($faq),
-        ], 201);
-    }
-
-    /**
-     * Update an existing FAQ.
-     */
-    public function updateFaq(UpdateFaqRequest $request, $id): JsonResponse
-    {
-        $faq = Faq::query()->findOrFail($id);
-        $faq->update($request->validated());
-
-        return response()->json([
-            'message' => 'FAQ updated successfully',
-            'faq' => new FaqResource($faq),
-        ]);
-    }
-
-    /**
-     * Delete a FAQ.
-     */
-    public function deleteFaq($id): JsonResponse
-    {
-        $faq = Faq::query()->findOrFail($id);
-        $faq->delete();
-
-        return response()->json(['message' => 'FAQ deleted successfully']);
-    }
-
-    /**
-     * Store a new testimonial.
-     */
-    public function saveTestimonial(StoreTestimonialRequest $request): JsonResponse
-    {
-        $testimonial = Testimonial::create($request->validated());
-
-        return response()->json([
-            'message' => 'Testimonial created successfully',
-            'testimonial' => new TestimonialResource($testimonial),
-        ], 201);
-    }
-
-    /**
-     * Update an existing testimonial.
-     */
-    public function updateTestimonial(UpdateTestimonialRequest $request, $id): JsonResponse
-    {
-        $testimonial = Testimonial::query()->findOrFail($id);
-        $testimonial->update($request->validated());
-
-        return response()->json([
-            'message' => 'Testimonial updated successfully',
-            'testimonial' => new TestimonialResource($testimonial),
-        ]);
-    }
-
-    /**
-     * Delete a testimonial.
-     */
-    public function deleteTestimonial($id): JsonResponse
-    {
-        $testimonial = Testimonial::query()->findOrFail($id);
-        $testimonial->delete();
-
-        return response()->json(['message' => 'Testimonial deleted successfully']);
     }
 }

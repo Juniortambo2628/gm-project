@@ -8,6 +8,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Validator;
 
 abstract class BaseCrudController extends Controller
 {
@@ -133,17 +134,31 @@ abstract class BaseCrudController extends Controller
     protected function validated(Request $request, ?string $formRequestClass): array
     {
         if ($formRequestClass) {
-            /** @var FormRequest $formRequest */
-            $formRequest = $formRequestClass::createFrom($request);
+            $formRequest = new $formRequestClass();
             $formRequest->setContainer(app());
 
             if ($request->hasSession()) {
                 $formRequest->setLaravelSession($request->session());
             }
 
-            $formRequest->validateResolved();
+            if ($route = $request->route()) {
+                $formRequest->setRouteResolver(fn () => $route);
 
-            return $formRequest->validated();
+                foreach ($route->parameters() as $key => $value) {
+                    $formRequest->route()->setParameter($key, $value);
+                }
+            }
+
+            $validator = \Illuminate\Support\Facades\Validator::make(
+                $request->all(),
+                $formRequest->rules(),
+                $formRequest->messages(),
+                $formRequest->attributes()
+            );
+
+            $validator->validate();
+
+            return $validator->validated();
         }
 
         return $request->all();

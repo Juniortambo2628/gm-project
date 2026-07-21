@@ -9,14 +9,8 @@ use Illuminate\Http\Request;
 
 class SettingController extends Controller
 {
-    /**
-     * Public-safe setting groups.
-     */
-    protected array $publicGroups = ['general', 'about', 'branding', 'communications', 'hero'];
+    protected array $publicGroups = Setting::PUBLIC_GROUPS;
 
-    /**
-     * Get all public-safe settings grouped by category.
-     */
     public function index(): JsonResponse
     {
         $settings = Setting::query()
@@ -27,9 +21,6 @@ class SettingController extends Controller
         return response()->json($settings);
     }
 
-    /**
-     * Update or create settings (admin).
-     */
     public function update(Request $request): JsonResponse
     {
         $request->validate([
@@ -48,9 +39,6 @@ class SettingController extends Controller
         return response()->json(['message' => 'Settings updated successfully']);
     }
 
-    /**
-     * Get a specific public-safe setting by key.
-     */
     public function getByKey($key): JsonResponse
     {
         $setting = Setting::query()->where('key', $key)->first();

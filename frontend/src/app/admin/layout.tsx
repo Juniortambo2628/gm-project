@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { SiteFooter } from "@/components/SiteFooter";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { SafeImage } from "@/components/SafeImage";
+import { ErrorBoundary } from "@/components/admin/ErrorBoundary";
 
 interface NotificationItem {
   id: number;
@@ -419,8 +420,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <div className="flex-1 overflow-y-auto w-full custom-scrollbar relative">
            <div className="p-10 min-h-[calc(100vh-80px)">
-              {children}
-           </div>
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
+            </div>
            
            {/* Footer */}
            <SiteFooter />

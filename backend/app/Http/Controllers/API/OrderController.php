@@ -76,6 +76,7 @@ class OrderController extends Controller
         $appointment = Appointment::create([
             'transaction_id' => $transaction->id,
             'service_id' => $transaction->service_id,
+            'user_id' => $request->user()->id,
             'client_name' => $transaction->name,
             'client_email' => $transaction->email,
             'scheduled_at' => $scheduledAt,

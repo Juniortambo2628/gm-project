@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Mail, Trash2, Calendar, User, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,33 +7,20 @@ import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
-import { Message, extractList } from "@/lib/api";
+import { Message } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 
 export default function InquiriesPage() {
-  const [inquiries, setInquiries] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: inquiries, loading, refetch } = useAdminFetch<Message[]>("/cms/inquiries", {
+    errorMessage: "Failed to fetch inquiries",
+  });
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetchInquiries();
-  }, []);
-
-  const fetchInquiries = async () => {
-    try {
-      const res = await axiosInstance.get("/cms/inquiries");
-      setInquiries(extractList<Message>(res));
-    } catch {
-      toast.error("Failed to fetch inquiries");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const deleteInquiry = async (id: number) => {
     try {
       await axiosInstance.delete(`/cms/inquiries/${id}`);
       toast.success("Inquiry deleted");
-      fetchInquiries();
+      refetch();
     } catch {
       toast.error("Failed to delete");
     } finally {

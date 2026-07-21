@@ -1,30 +1,15 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Card } from "@/components/ui/card";
 import { CreditCard, ExternalLink, Activity } from "lucide-react";
-import axiosInstance from "@/lib/axios";
-import { toast } from "sonner";
 import { AdminListPage } from "@/components/admin/AdminListPage";
-import { Booking, extractList } from "@/lib/api";
+import { Booking } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 
 export default function BookingsPage() {
-  const [data, setData] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const res = await axiosInstance.get("/cms/orders");
-      setData(extractList<Booking>(res));
-    } catch {
-      toast.error("Failed to fetch bookings");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data, loading } = useAdminFetch<Booking[]>("/cms/orders", {
+    errorMessage: "Failed to fetch bookings",
+  });
 
   return (
     <AdminListPage title="Bookings & Payments" description="Monitor successful registrations and consulting payments." isLoading={loading}>
