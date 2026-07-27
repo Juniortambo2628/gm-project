@@ -46,12 +46,14 @@ describe('AuthContext', () => {
   });
 
   it('provides login function', async () => {
-    let loginFn: ((token: string, user: { id: number; name: string; email: string; role: string }) => void) | undefined;
-
     function LoginChecker() {
       const auth = useAuth();
-      loginFn = auth.login;
-      return <div>{auth.isAuthenticated ? 'auth' : 'no-auth'}</div>;
+      return (
+        <div>
+          <span data-testid="login-type">{typeof auth.login}</span>
+          <span>{auth.isAuthenticated ? 'auth' : 'no-auth'}</span>
+        </div>
+      );
     }
 
     render(
@@ -60,16 +62,18 @@ describe('AuthContext', () => {
       </AuthProvider>
     );
 
-    expect(typeof loginFn).toBe('function');
+    expect(screen.getByTestId('login-type')).toHaveTextContent('function');
   });
 
   it('provides logout function', async () => {
-    let logoutFn: (() => void) | undefined;
-
     function LogoutChecker() {
       const auth = useAuth();
-      logoutFn = auth.logout;
-      return <div>{auth.isAuthenticated ? 'auth' : 'no-auth'}</div>;
+      return (
+        <div>
+          <span data-testid="logout-type">{typeof auth.logout}</span>
+          <span>{auth.isAuthenticated ? 'auth' : 'no-auth'}</span>
+        </div>
+      );
     }
 
     render(
@@ -78,6 +82,6 @@ describe('AuthContext', () => {
       </AuthProvider>
     );
 
-    expect(typeof logoutFn).toBe('function');
+    expect(screen.getByTestId('logout-type')).toHaveTextContent('function');
   });
 });
