@@ -80,15 +80,16 @@ jobs:
             git pull origin main
             
             # 2. Set Paths
-            export CORE=/home/zhpebukm/gmconsulting-core
-            export API=/home/zhpebukm/gm-consulting.okjtech.co.ke/api
+            export CORE=/home/zhpebukm/gm-coaching-core
+            export SITE=/home/zhpebukm/gm-coaching.com
+            export API=$SITE/api
             
-            # 3. Synchronize backend files (using tar for speed)
+            # 3. Synchronize backend core files
             /bin/mkdir -p $CORE $API
             /bin/tar cf - -C backend app bootstrap config database resources routes | /bin/tar xf - -C $CORE
             /bin/cp -f backend/artisan backend/composer.json backend/composer.lock $CORE/
             
-            # 4. Synchronize public API entry points
+            # 4. Synchronize public API entry point
             /bin/tar cf - -C backend public | /bin/tar xf - -C $API
             /bin/cp -f backend/public/.htaccess $API/ 2>/dev/null || true
             
@@ -106,15 +107,21 @@ jobs:
             # 7. Run Migrations
             php artisan migrate --force
             
-            # 8. Clear Laravel caches
+            # 8. Clear all caches
             php artisan config:clear
             php artisan route:clear
             php artisan view:clear
             php artisan cache:clear
+            php artisan event:clear
             
-            # 9. Optimize for production
+            # 9. Rebuild production caches
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
+            php artisan event:cache
+            
+            # 10. Fix permissions
+            /bin/chmod -R 775 $CORE/storage 2>/dev/null || true
+            /bin/chmod -R 775 $CORE/bootstrap/cache 2>/dev/null || true
             
             echo "Deployment finished successfully!"

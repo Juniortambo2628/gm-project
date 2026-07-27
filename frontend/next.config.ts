@@ -19,22 +19,22 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "api-gm-consulting.okjtech.co.ke",
-        pathname: "/storage/**",
-      },
-      {
-        protocol: "https",
-        hostname: "gm-consulting.okjtech.co.ke",
-        pathname: "/storage/**",
-      },
-      {
-        protocol: "https",
         hostname: "api.gm-coaching.com",
         pathname: "/storage/**",
       },
       {
         protocol: "https",
+        hostname: "www.api.gm-coaching.com",
+        pathname: "/storage/**",
+      },
+      {
+        protocol: "https",
         hostname: "gm-coaching.com",
+        pathname: "/storage/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.gm-coaching.com",
         pathname: "/storage/**",
       },
       {

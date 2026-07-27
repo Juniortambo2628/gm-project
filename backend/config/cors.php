@@ -22,8 +22,6 @@ return [
     'allowed_origins' => [
         'http://localhost:3000',
         'http://127.0.0.1:3000',
-        'https://gm-consulting.okjtech.co.ke',
-        'https://www.gm-consulting.okjtech.co.ke',
         'https://gm-coaching.com',
         'https://www.gm-coaching.com',
         'https://api.gm-coaching.com',

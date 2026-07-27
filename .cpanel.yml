@@ -2,30 +2,44 @@
 deployment:
   tasks:
     # ==========================================================
-    # GM-Consulting cPanel Deployment
+    # GM-Coaching cPanel Deployment
     # ==========================================================
 
     # 1. Paths
-    - export CORE=/home/zhpebukm/gmconsulting-core
-    - export API=/home/zhpebukm/gm-consulting.okjtech.co.ke/api
+    - export CORE=/home/zhpebukm/gm-coaching-core
+    - export SITE=/home/zhpebukm/gm-coaching.com
+    - export API=$SITE/api
 
     # 2. Ensure target folders exist
     - /bin/mkdir -p $CORE $API
 
-    # 3. Copy backend to core (tar is faster than many cp commands)
+    # 3. Copy backend core files
     - /bin/tar cf - -C backend app bootstrap config database resources routes | /bin/tar xf - -C $CORE
     - /bin/cp -f backend/artisan backend/composer.json backend/composer.lock $CORE/
-    - /bin/cp -n backend/.env.production $CORE/.env 2>/dev/null; /bin/cp -f backend/.env.production $CORE/.env.production
 
-    # 4. Copy public entry point
+    # 4. Copy public API entry point
     - /bin/tar cf - -C backend public | /bin/tar xf - -C $API
-    - /bin/cp -f backend/public/.htaccess $API/ 2>/dev/null; /bin/true
+    - /bin/cp -f backend/public/.htaccess $API/ 2>/dev/null || true
 
     # 5. Ensure storage & cache dirs exist
     - /bin/mkdir -p $CORE/storage/app/public/cms $CORE/storage/framework/cache/data $CORE/storage/framework/sessions $CORE/storage/framework/views $CORE/storage/logs $CORE/bootstrap/cache
 
     # 6. Permissions
-    - /bin/chmod -R 775 $CORE/storage 2>/dev/null; /bin/chmod -R 775 $CORE/bootstrap/cache 2>/dev/null; /bin/chmod 755 $CORE/artisan 2>/dev/null; /bin/true
+    - /bin/chmod -R 775 $CORE/storage 2>/dev/null || true
+    - /bin/chmod -R 775 $CORE/bootstrap/cache 2>/dev/null || true
+    - /bin/chmod 755 $CORE/artisan 2>/dev/null || true
 
     # 7. Storage symlink
     - /bin/ln -sfn $CORE/storage/app/public $API/storage
+
+    # 8. Install composer dependencies
+    - cd $CORE && composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+    # 9. Run migrations
+    - cd $CORE && php artisan migrate --force
+
+    # 10. Clear all caches
+    - cd $CORE && php artisan config:clear && php artisan route:clear && php artisan view:clear && php artisan cache:clear && php artisan event:clear
+
+    # 11. Rebuild production caches
+    - cd $CORE && php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan event:cache
