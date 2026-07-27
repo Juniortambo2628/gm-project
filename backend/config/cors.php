@@ -26,6 +26,8 @@ return [
         'https://www.gm-consulting.okjtech.co.ke',
         'https://gm-coaching.com',
         'https://www.gm-coaching.com',
+        'https://api.gm-coaching.com',
+        'https://www.api.gm-coaching.com',
     ],
 
     'allowed_origins_patterns' => [],
