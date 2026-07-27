@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
+import Image from "next/image";
 
 interface LogoLoaderProps {
   className?: string;
@@ -28,11 +29,13 @@ export function LogoLoader({ className, fullScreen = true }: LogoLoaderProps) {
         {/* Outer ring pulse */}
         <div className="absolute -inset-3 rounded-full border border-primary/15 animate-ping" />
         {/* Logo image with soft edges, shadow, no border */}
-        <img
+        <Image
           src={logoSrc}
           alt="Loading"
-          className="w-32 h-32 object-contain animate-[logoPulse_2s_ease-in-out_infinite] drop-shadow-[0_8px_24px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_8px_24px_rgba(255,255,255,0.08)] rounded-2xl"
-          style={{ filter: "blur(0px)" }}
+          width={128}
+          height={128}
+          unoptimized
+          className="animate-[logoPulse_2s_ease-in-out_infinite] drop-shadow-[0_8px_24px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_8px_24px_rgba(255,255,255,0.08)] rounded-2xl"
         />
       </div>
     </div>

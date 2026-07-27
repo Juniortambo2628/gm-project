@@ -39,6 +39,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <link rel="icon" href="/favicon.png" type="image/png" sizes="any" />
         <link rel="preconnect" href="http://localhost:8000" />
       </head>
       <body 

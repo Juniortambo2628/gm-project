@@ -189,7 +189,7 @@ export default function CMSPage() {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ModuleProps = { localSettings: Record<string, any>; setLocalSettings: (s: Record<string, any>) => void; saving: boolean; setSaving: (v: boolean) => void; refreshSettings: () => void };
 
-function BrandingModule({ localSettings, setLocalSettings, saving: _saving, setSaving }: ModuleProps) {
+function BrandingModule({ localSettings, setLocalSettings, setSaving }: ModuleProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full">
       <div className="space-y-6">
@@ -223,7 +223,7 @@ function BrandingModule({ localSettings, setLocalSettings, saving: _saving, setS
   );
 }
 
-function HeroModule({ localSettings, setLocalSettings, saving: _saving, setSaving }: ModuleProps) {
+function HeroModule({ localSettings, setLocalSettings, setSaving }: ModuleProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full">
       <div className="space-y-6">

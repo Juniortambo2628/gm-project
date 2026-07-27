@@ -50,7 +50,6 @@ describe('AuthContext', () => {
 
     function LoginChecker() {
       const auth = useAuth();
-      // eslint-disable-next-line react-hooks/rules-of-hooks
       loginFn = auth.login;
       return <div>{auth.isAuthenticated ? 'auth' : 'no-auth'}</div>;
     }
@@ -69,7 +68,6 @@ describe('AuthContext', () => {
 
     function LogoutChecker() {
       const auth = useAuth();
-      // eslint-disable-next-line react-hooks/rules-of-hooks
       logoutFn = auth.logout;
       return <div>{auth.isAuthenticated ? 'auth' : 'no-auth'}</div>;
     }

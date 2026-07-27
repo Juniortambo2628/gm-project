@@ -126,7 +126,7 @@ export default function Home() {
                 <div className="hidden lg:block lg:col-span-5" />
 
                 {/* Right Column: Hero Content */}
-                <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left justify-between sm:justify-center py-4 sm:py-0">
+                <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left gap-4 sm:gap-5 justify-between sm:justify-center py-4 sm:py-0">
                   <div className="w-fit mx-auto lg:mx-0 min-h-[36px] sm:min-h-[40px] py-1.5 sm:py-2 px-4 sm:px-5 flex items-center justify-center lg:justify-start border border-white/10 bg-primary/10 dark:bg-primary/20 backdrop-blur-md rounded-full shadow-xl transition-all animate-fade-in shadow-white/5">
                     <span className="text-[10px] sm:text-[11px] font-bold tracking-wider text-white uppercase text-center lg:text-left leading-normal">
                       {getSetting('hero_tagline', "Africa's MBA & Consulting Coach")}
