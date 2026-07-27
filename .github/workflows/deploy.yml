@@ -89,9 +89,9 @@ jobs:
             /bin/tar cf - -C backend app bootstrap config database resources routes | /bin/tar xf - -C $CORE
             /bin/cp -f backend/artisan backend/composer.json backend/composer.lock $CORE/
             
-            # 4. Synchronize public API entry point
-            /bin/tar cf - -C backend public | /bin/tar xf - -C $API
-            /bin/cp -f backend/public/.htaccess $API/ 2>/dev/null || true
+            # 4. Synchronize public API entry point (contents, not directory)
+            /bin/rm -rf $API/public 2>/dev/null || true
+            /bin/tar cf - -C backend/public . | /bin/tar xf - -C $API
             
             # 5. Build/Restore symlinks and create directories
             /bin/mkdir -p $CORE/storage/app/public/cms $CORE/storage/framework/cache/data $CORE/storage/framework/sessions $CORE/storage/framework/views $CORE/storage/logs $CORE/bootstrap/cache
