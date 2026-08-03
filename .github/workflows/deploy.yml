@@ -172,8 +172,8 @@ jobs:
             cp -f artisan composer.json composer.lock "$CORE/"
 
             echo "▸ Syncing public entry point..."
-            rm -rf "$API/public"
-            if [ -d "public" ]; then cp -rf public "$API/"; fi
+            rm -rf "$API/public" 2>/dev/null
+            cp -rf public/. "$API/"
 
             echo "▸ Ensuring directories..."
             mkdir -p \
