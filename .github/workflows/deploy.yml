@@ -180,11 +180,19 @@ jobs:
               echo "  ⚠ No .env found - copying from .env.example"
               cp .env.example .env
             fi
+            if ! grep -q "APP_KEY=base64:" "$CORE/.env" 2>/dev/null; then
+              echo "::warning::APP_KEY not found in .env"
+            fi
 
             echo "▸ Running composer install..."
             cd "$CORE"
-            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
-            echo "  vendor/: $([ -d "$CORE/vendor" ] && echo 'EXISTS' || echo 'MISSING')"
+            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts 2>&1
+            if [ ! -f "$CORE/vendor/autoload.php" ]; then
+              echo "::error::Composer install failed - vendor/autoload.php missing!"
+              echo "  PHP version: $(php -v 2>&1 | head -1)"
+              exit 1
+            fi
+            echo "  vendor/: EXISTS"
 
             echo "▸ Running artisan commands..."
             cd "$CORE"
@@ -194,10 +202,18 @@ jobs:
             php artisan cache:clear 2>&1 || true
             php artisan event:clear 2>&1 || true
 
-            php artisan config:cache 2>&1 || echo "  ⚠ config:cache failed"
-            php artisan route:cache 2>&1 || echo "  ⚠ route:cache failed"
-            php artisan view:cache 2>&1 || echo "  ⚠ view:cache failed"
-            php artisan event:cache 2>&1 || echo "  ⚠ event:cache failed"
+            php artisan config:cache 2>&1
+            if [ $? -ne 0 ]; then
+              echo "::error::config:cache failed - check .env and APP_KEY"
+              exit 1
+            fi
+            php artisan route:cache 2>&1
+            if [ $? -ne 0 ]; then
+              echo "::error::route:cache failed"
+              exit 1
+            fi
+            php artisan view:cache 2>&1 || echo "  ⚠ view:cache had warnings"
+            php artisan event:cache 2>&1 || echo "  ⚠ event:cache had warnings"
             php artisan optimize 2>&1 || true
             php artisan package:discover --ansi 2>&1 || true
 
