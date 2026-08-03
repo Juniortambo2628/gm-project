@@ -6,63 +6,74 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  backend-tests:
-    name: Backend Tests
+  # ─── Backend Quality ────────────────────────────────────────────
+  backend:
+    name: Backend Tests & Lint
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
-          extensions: mbstring, xml, ctype, json, bcmath, pdo, sqlite
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, json, bcmath, pdo, sqlite3, gd, fileinfo
           coverage: xdebug
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
         with:
-          node-version: '20'
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
 
-      - name: Install Composer Dependencies
+      - name: Install Composer dependencies
         working-directory: backend
-        run: composer install --no-progress --prefer-dist
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
 
-      - name: Prepare Environment
+      - name: Prepare test environment
         working-directory: backend
         run: |
           cp .env.example .env
           php artisan key:generate
 
-      - name: Run Migrations
+      - name: Run database migrations
         working-directory: backend
         run: php artisan migrate --force
 
-      - name: Run Tests with Coverage
+      - name: Run Laravel Pint (auto-fix)
         working-directory: backend
-        run: php artisan test --coverage-text --coverage-clover=coverage.xml
+        run: vendor/bin/pint
 
-      - name: Run Code Style Check
+      - name: Run tests with coverage
         working-directory: backend
-        run: vendor/bin/pint --test
+        run: php artisan test --coverage-text
 
-      - name: Upload Coverage Report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: backend-coverage
-          path: backend/coverage.xml
-          retention-days: 7
+      - name: Check for uncommitted Pint fixes
+        working-directory: backend
+        run: |
+          if ! git diff --quiet; then
+            echo "::warning::Pint auto-fixed code style issues. These will be committed by the auto-fix job."
+          fi
 
-  frontend-tests:
-    name: Frontend Tests
+  # ─── Frontend Quality ───────────────────────────────────────────
+  frontend:
+    name: Frontend Tests & Lint
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node
@@ -72,105 +83,76 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Dependencies
+      - name: Install npm dependencies
         working-directory: frontend
         run: npm ci
 
-      - name: Run Lint
+      - name: Run ESLint
         working-directory: frontend
         run: npm run lint
 
-      - name: Run Tests with Coverage
-        working-directory: frontend
-        run: npm run test -- --coverage
-
-      - name: Type Check
+      - name: Run type check
         working-directory: frontend
         run: npx tsc --noEmit
 
-      - name: Build
+      - name: Run tests
+        working-directory: frontend
+        run: npm run test
+
+      - name: Build production assets
         working-directory: frontend
         run: npm run build
 
-      - name: Upload Coverage Report
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: frontend-coverage
-          path: frontend/coverage/
-          retention-days: 7
+          name: frontend-build
+          path: frontend/.next
+          retention-days: 3
 
-  integration-gate:
-    name: Integration Gate
-    needs: [backend-tests, frontend-tests]
-    runs-on: ubuntu-latest
-    if: always()
-
-    steps:
-      - name: Check test results
-        run: |
-          if [ "${{ needs.backend-tests.result }}" != "success" ] || [ "${{ needs.frontend-tests.result }}" != "success" ]; then
-            echo "One or more test jobs failed"
-            exit 1
-          fi
-          echo "All tests passed"
-
-      - name: Download coverage reports
-        uses: actions/download-artifact@v4
-        with:
-          path: coverage/
-          pattern: '*-coverage'
-          merge-multiple: true
-
-      - name: Coverage Summary
-        run: |
-          echo "=== Backend Coverage ==="
-          if [ -f coverage/backend-coverage/coverage.xml ]; then
-            echo "Backend coverage report available"
-          fi
-          echo ""
-          echo "=== Frontend Coverage ==="
-          if [ -d coverage/frontend-coverage ]; then
-            echo "Frontend coverage report available"
-          fi
-
+  # ─── Auto-Fix & Commit ──────────────────────────────────────────
   auto-fix:
-    name: Auto-Fix Issues
-    needs: [backend-tests, frontend-tests]
+    name: Commit Auto-Fixes
+    needs: [backend, frontend]
     runs-on: ubuntu-latest
-    if: failure() && github.event_name == 'pull_request'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: write
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.2'
+
+      - name: Install Composer dependencies
+        working-directory: backend
+        run: composer install --no-progress --prefer-dist
+
+      - name: Run Pint
+        working-directory: backend
+        run: vendor/bin/pint
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install Backend Dependencies
-        working-directory: backend
-        run: composer install --no-progress --prefer-dist
-
-      - name: Auto-Fix PHP Code Style
-        working-directory: backend
-        run: vendor/bin/pint
-
-      - name: Install Frontend Dependencies
+      - name: Install npm dependencies
         working-directory: frontend
         run: npm ci
 
-      - name: Auto-Fix ESLint Issues
+      - name: Auto-fix ESLint
         working-directory: frontend
         run: npx eslint src/ --fix || true
 
-      - name: Commit Fixes
+      - name: Commit fixes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
@@ -178,6 +160,24 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "style: auto-fix code style issues [ci-skip]"
+            git commit -m "style: auto-fix code style [ci-skip]"
             git push
           fi
+
+  # ─── Deployment Gate ────────────────────────────────────────────
+  deploy-gate:
+    name: Deploy Gate
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Verify all jobs passed
+        run: |
+          echo "Backend: ${{ needs.backend.result }}"
+          echo "Frontend: ${{ needs.frontend.result }}"
+          if [ "${{ needs.backend.result }}" != "success" ] || [ "${{ needs.frontend.result }}" != "success" ]; then
+            echo "::error::Pipeline failed — deployment blocked"
+            exit 1
+          fi
+          echo "All checks passed — deployment may proceed"

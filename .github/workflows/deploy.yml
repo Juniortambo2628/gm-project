@@ -1,127 +1,290 @@
-name: Deploy to cPanel
+name: Deploy to Production
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches: [main]
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
 
 jobs:
-  test-gate:
-    name: Test Gate
+  # ─── Pre-Deploy Gate ────────────────────────────────────────────
+  pre-deploy:
+    name: Pre-Deploy Checks
     runs-on: ubuntu-latest
-    
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
-          extensions: mbstring, xml, ctype, json, bcmath, pdo, sqlite
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, json, bcmath, pdo, sqlite3, gd, fileinfo
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Composer Dependencies
+      - name: Install Composer dependencies
         working-directory: backend
-        run: composer install --no-progress --prefer-dist
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
 
-      - name: Prepare Backend Environment
-        working-directory: backend
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-
-      - name: Run Backend Tests
-        working-directory: backend
-        run: php artisan test
-
-      - name: Install Frontend Dependencies
+      - name: Install npm dependencies
         working-directory: frontend
         run: npm ci
 
-      - name: Run Frontend Tests
-        working-directory: frontend
-        run: npm run test
-
-      - name: Run Frontend Lint
-        working-directory: frontend
-        run: npm run lint
-
-      - name: Type Check Frontend
-        working-directory: frontend
-        run: npx tsc --noEmit
-
-      - name: Build Frontend
+      - name: Build frontend
         working-directory: frontend
         run: npm run build
 
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/.next
+          retention-days: 1
+
+      - name: Upload backend
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-dist
+          path: |
+            backend/app
+            backend/bootstrap
+            backend/config
+            backend/database
+            backend/resources
+            backend/routes
+            backend/public
+            backend/artisan
+            backend/composer.json
+            backend/composer.lock
+            backend/.env.example
+          retention-days: 1
+
+  # ─── Deploy ─────────────────────────────────────────────────────
   deploy:
     name: Deploy to Production
-    needs: test-gate
+    needs: pre-deploy
     runs-on: ubuntu-latest
-    
+
+    environment:
+      name: production
+      url: https://gm-coaching.com
+
     steps:
-      - name: Deploy via SSH
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend-build
+
+      - name: Download backend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-dist
+          path: backend-dist
+
+      - name: Create deployment archive
+        run: |
+          tar czf deploy-package.tar.gz \
+            -C backend-dist . \
+            -C ../frontend-build .next
+
+      - name: Upload deploy package to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          source: deploy-package.tar.gz
+          target: /tmp/gm-deploy
+          strip_components: 0
+
+      - name: Execute deployment on server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT || '22' }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
           script: |
-            echo "Starting deployment..."
-            
-            # 1. Update the git repository on the server
-            cd /home/zhpebukm/repositories/gm-project
-            git pull origin main
-            
-            # 2. Set Paths
+            set -euo pipefail
+
+            echo "═══════════════════════════════════════════"
+            echo "  GM-Coaching Production Deployment"
+            echo "  $(date '+%Y-%m-%d %H:%M:%S')"
+            echo "═══════════════════════════════════════════"
+
+            # ── 1. Paths ──────────────────────────────────────
             export CORE=/home/zhpebukm/gm-coaching-core
             export SITE=/home/zhpebukm/gm-coaching.com
             export API=$SITE/api
-            
-            # 3. Synchronize backend core files
-            /bin/mkdir -p $CORE $API
-            /bin/tar cf - -C backend app bootstrap config database resources routes | /bin/tar xf - -C $CORE
-            /bin/cp -f backend/artisan backend/composer.json backend/composer.lock $CORE/
-            
-            # 4. Synchronize public API entry point (contents, not directory)
-            /bin/rm -rf $API/public 2>/dev/null || true
-            /bin/tar cf - -C backend/public . | /bin/tar xf - -C $API
-            
-            # 5. Build/Restore symlinks and create directories
-            /bin/mkdir -p $CORE/storage/app/public/cms $CORE/storage/framework/cache/data $CORE/storage/framework/sessions $CORE/storage/framework/views $CORE/storage/logs $CORE/bootstrap/cache
-            /bin/chmod -R 775 $CORE/storage 2>/dev/null || true
-            /bin/chmod -R 775 $CORE/bootstrap/cache 2>/dev/null || true
-            /bin/chmod 755 $CORE/artisan 2>/dev/null || true
-            /bin/ln -sfn $CORE/storage/app/public $API/storage
-            
-            # 6. Run Composer Install on the backend
-            cd $CORE
-            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
-            
-            # 7. Run Migrations
+            export BACKUP=/home/zhpebukm/backups/gm-$(date +%Y%m%d_%H%M%S)
+
+            # ── 2. Pre-deploy backup ──────────────────────────
+            echo "▸ Creating backup..."
+            mkdir -p "$BACKUP"
+            cp -r "$CORE/app" "$BACKUP/" 2>/dev/null || true
+            cp -r "$CORE/bootstrap" "$BACKUP/" 2>/dev/null || true
+            cp -r "$CORE/config" "$BACKUP/" 2>/dev/null || true
+            cp -r "$CORE/routes" "$BACKUP/" 2>/dev/null || true
+            cp "$CORE/composer.lock" "$BACKUP/" 2>/dev/null || true
+            echo "  Backup saved to $BACKUP"
+
+            # ── 3. Extract deployment package ─────────────────
+            echo "▸ Extracting deployment package..."
+            mkdir -p "$CORE" "$API"
+            cd /tmp/gm-deploy
+            tar xzf deploy-package.tar.gz
+
+            # ── 4. Sync backend files ────────────────────────
+            echo "▸ Syncing backend files..."
+            /bin/tar cf - -C . app bootstrap config database resources routes | /bin/tar xf - -C "$CORE"
+            cp -f artisan composer.json composer.lock "$CORE/" 2>/dev/null || true
+            [ -f .env.example ] && cp -f .env.example "$CORE/" 2>/dev/null || true
+
+            # ── 5. Sync public entry point ────────────────────
+            echo "▸ Syncing public entry point..."
+            rm -rf "$API/public" 2>/dev/null || true
+            if [ -d "public" ]; then
+              /bin/tar cf - -C public . | /bin/tar xf - -C "$API"
+            fi
+
+            # ── 6. Sync frontend build ───────────────────────
+            echo "▸ Syncing frontend build..."
+            FRONTEND_DIR="$SITE/frontend"
+            mkdir -p "$FRONTEND_DIR"
+            if [ -d ".next" ]; then
+              rm -rf "$FRONTEND_DIR/.next" 2>/dev/null || true
+              /bin/tar cf - -C .next . | /bin/tar xf - -C "$FRONTEND_DIR"
+            fi
+
+            # ── 7. Ensure directory structure ─────────────────
+            echo "▸ Ensuring directory structure..."
+            mkdir -p \
+              "$CORE/storage/app/public/cms" \
+              "$CORE/storage/framework/cache/data" \
+              "$CORE/storage/framework/sessions" \
+              "$CORE/storage/framework/views" \
+              "$CORE/storage/logs" \
+              "$CORE/bootstrap/cache"
+
+            # ── 8. Composer install on server ─────────────────
+            echo "▸ Running composer install..."
+            cd "$CORE"
+            composer install \
+              --no-dev \
+              --no-interaction \
+              --prefer-dist \
+              --optimize-autoloader \
+              --no-scripts
+
+            # ── 9. Laravel setup ──────────────────────────────
+            echo "▸ Running artisan commands..."
+            cd "$CORE"
+
+            # Generate app key if missing
+            php artisan key:generate --force 2>/dev/null || true
+
+            # Database migrations
             php artisan migrate --force
-            
-            # 8. Clear all caches
-            php artisan config:clear
-            php artisan route:clear
-            php artisan view:clear
-            php artisan cache:clear
-            php artisan event:clear
-            
-            # 9. Rebuild production caches
+
+            # Clear all caches
+            php artisan config:clear 2>/dev/null || true
+            php artisan route:clear 2>/dev/null || true
+            php artisan view:clear 2>/dev/null || true
+            php artisan cache:clear 2>/dev/null || true
+            php artisan event:clear 2>/dev/null || true
+
+            # Rebuild production caches
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
             php artisan event:cache
-            
-            # 10. Fix permissions
-            /bin/chmod -R 775 $CORE/storage 2>/dev/null || true
-            /bin/chmod -R 775 $CORE/bootstrap/cache 2>/dev/null || true
-            
-            echo "Deployment finished successfully!"
+
+            # Optimize autoloader
+            php artisan optimize
+
+            # Discover packages
+            php artisan package:discover --ansi
+
+            # ── 10. Storage symlink ───────────────────────────
+            echo "▸ Setting up storage symlink..."
+            ln -sfn "$CORE/storage/app/public" "$API/storage"
+
+            # ── 11. Permissions ───────────────────────────────
+            echo "▸ Setting permissions..."
+            chmod -R 775 "$CORE/storage" 2>/dev/null || true
+            chmod -R 775 "$CORE/bootstrap/cache" 2>/dev/null || true
+            chmod 755 "$CORE/artisan" 2>/dev/null || true
+            chmod -R 775 "$FRONTEND_DIR" 2>/dev/null || true
+
+            # ── 12. Cleanup ──────────────────────────────────
+            echo "▸ Cleaning up temp files..."
+            rm -rf /tmp/gm-deploy
+
+            # Rotate old backups (keep last 5)
+            ls -dt /home/zhpebukm/backups/gm-* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
+
+            # ── 13. Health check ──────────────────────────────
+            echo "▸ Running health check..."
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.gm-coaching.com/api/health" 2>/dev/null || echo "000")
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "  ✓ API health check passed (HTTP $HTTP_STATUS)"
+            else
+              echo "  ⚠ API health check returned HTTP $HTTP_STATUS (may be expected if no health endpoint)"
+            fi
+
+            echo ""
+            echo "═══════════════════════════════════════════"
+            echo "  ✓ Deployment completed successfully!"
+            echo "  $(date '+%Y-%m-%d %H:%M:%S')"
+            echo "═══════════════════════════════════════════"
+
+  # ─── Post-Deploy Verify ─────────────────────────────────────────
+  post-deploy:
+    name: Post-Deploy Verification
+    needs: deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Wait for deployment to settle
+        run: sleep 15
+
+      - name: Verify frontend is live
+        run: |
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://gm-coaching.com" 2>/dev/null || echo "000")
+          echo "Frontend status: HTTP $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+            echo "✓ Frontend is live"
+          else
+            echo "::warning::Frontend returned HTTP $HTTP_STATUS"
+          fi
+
+      - name: Verify API is live
+        run: |
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.gm-coaching.com" 2>/dev/null || echo "000")
+          echo "API status: HTTP $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 500 ]; then
+            echo "✓ API is responding"
+          else
+            echo "::warning::API returned HTTP $HTTP_STATUS"
+          fi

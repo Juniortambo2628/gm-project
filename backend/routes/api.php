@@ -22,6 +22,16 @@ use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+// Health check (no auth required)
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'timestamp' => now()->toIso8601String(),
+        'php' => PHP_VERSION,
+        'laravel' => app()->version(),
+    ]);
+});
+
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login');
 Route::post('/login/verify-2fa', [AuthController::class, 'verify2FA'])->middleware('throttle:10,1');
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
