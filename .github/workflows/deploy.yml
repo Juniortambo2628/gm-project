@@ -118,7 +118,7 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: true
           script: |
-            set -euo pipefail
+            set -uo pipefail
 
             echo "═══════════════════════════════════════════"
             echo "  GM-Coaching Backend Deployment"
@@ -148,7 +148,12 @@ jobs:
 
             # ── 4. Sync backend files ────────────────────────
             echo "▸ Syncing backend files..."
-            tar cf - -C . app bootstrap config database resources routes 2>/dev/null | tar xf - -C "$CORE"
+            cp -rf app "$CORE/"
+            cp -rf bootstrap "$CORE/"
+            cp -rf config "$CORE/"
+            cp -rf database "$CORE/"
+            cp -rf resources "$CORE/"
+            cp -rf routes "$CORE/"
             cp -f artisan composer.json composer.lock "$CORE/"
             [ -f .env.example ] && cp -f .env.example "$CORE/"
 
@@ -156,7 +161,7 @@ jobs:
             echo "▸ Syncing public entry point..."
             rm -rf "$API/public" 2>/dev/null || true
             if [ -d "public" ]; then
-              tar cf - -C public . 2>/dev/null | tar xf - -C "$API"
+              cp -rf public "$API/"
             fi
 
             # ── 6. Ensure directory structure ─────────────────
@@ -172,19 +177,21 @@ jobs:
             # ── 7. Composer install ──────────────────────────
             echo "▸ Running composer install..."
             cd "$CORE"
-            composer install \
-              --no-dev \
-              --no-interaction \
-              --prefer-dist \
-              --optimize-autoloader \
-              --no-scripts
+            if ! composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts; then
+              echo "::error::Composer install failed"
+              exit 1
+            fi
 
             # ── 8. Laravel tasks ─────────────────────────────
             echo "▸ Running artisan commands..."
             cd "$CORE"
 
             php artisan key:generate --force 2>/dev/null || true
-            php artisan migrate --force
+
+            if ! php artisan migrate --force; then
+              echo "::error::Database migration failed"
+              exit 1
+            fi
 
             # Clear caches
             php artisan config:clear 2>/dev/null || true
