@@ -1,4 +1,4 @@
-name: Deploy to Production
+name: Deploy Backend to Production
 
 on:
   workflow_run:
@@ -6,7 +6,6 @@ on:
     types: [completed]
     branches: [main]
 
-  # Allow manual trigger
   workflow_dispatch:
 
 concurrency:
@@ -33,33 +32,36 @@ jobs:
           php-version: '8.2'
           extensions: mbstring, xml, ctype, json, bcmath, pdo, sqlite3, gd, fileinfo
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
 
       - name: Install Composer dependencies
         working-directory: backend
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
-      - name: Install npm dependencies
-        working-directory: frontend
-        run: npm ci
+      - name: Prepare test environment
+        working-directory: backend
+        run: |
+          cp .env.example .env
+          php artisan key:generate
 
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
+      - name: Run database migrations
+        working-directory: backend
+        run: php artisan migrate --force
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/.next
-          retention-days: 1
+      - name: Run tests
+        working-directory: backend
+        run: php artisan test
 
-      - name: Upload backend
+      - name: Upload backend dist
         uses: actions/upload-artifact@v4
         with:
           name: backend-dist
@@ -77,9 +79,9 @@ jobs:
             backend/.env.example
           retention-days: 1
 
-  # ─── Deploy ─────────────────────────────────────────────────────
+  # ─── Deploy to cPanel ───────────────────────────────────────────
   deploy:
-    name: Deploy to Production
+    name: Deploy to cPanel
     needs: pre-deploy
     runs-on: ubuntu-latest
 
@@ -88,12 +90,6 @@ jobs:
       url: https://gm-coaching.com
 
     steps:
-      - name: Download frontend build
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend-build
-
       - name: Download backend dist
         uses: actions/download-artifact@v4
         with:
@@ -101,12 +97,9 @@ jobs:
           path: backend-dist
 
       - name: Create deployment archive
-        run: |
-          tar czf deploy-package.tar.gz \
-            -C backend-dist . \
-            -C ../frontend-build .next
+        run: tar czf deploy-package.tar.gz -C backend-dist .
 
-      - name: Upload deploy package to server
+      - name: Upload to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -115,9 +108,8 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           source: deploy-package.tar.gz
           target: /tmp/gm-deploy
-          strip_components: 0
 
-      - name: Execute deployment on server
+      - name: Execute deployment
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -129,27 +121,26 @@ jobs:
             set -euo pipefail
 
             echo "═══════════════════════════════════════════"
-            echo "  GM-Coaching Production Deployment"
+            echo "  GM-Coaching Backend Deployment"
             echo "  $(date '+%Y-%m-%d %H:%M:%S')"
             echo "═══════════════════════════════════════════"
 
             # ── 1. Paths ──────────────────────────────────────
-            export CORE=/home/zhpebukm/gm-coaching-core
-            export SITE=/home/zhpebukm/gm-coaching.com
-            export API=$SITE/api
-            export BACKUP=/home/zhpebukm/backups/gm-$(date +%Y%m%d_%H%M%S)
+            CORE=/home/zhpebukm/gm-coaching-core
+            SITE=/home/zhpebukm/gm-coaching.com
+            API=$SITE/api
+            BACKUP=/home/zhpebukm/backups/gm-$(date +%Y%m%d_%H%M%S)
 
             # ── 2. Pre-deploy backup ──────────────────────────
             echo "▸ Creating backup..."
             mkdir -p "$BACKUP"
-            cp -r "$CORE/app" "$BACKUP/" 2>/dev/null || true
-            cp -r "$CORE/bootstrap" "$BACKUP/" 2>/dev/null || true
-            cp -r "$CORE/config" "$BACKUP/" 2>/dev/null || true
-            cp -r "$CORE/routes" "$BACKUP/" 2>/dev/null || true
-            cp "$CORE/composer.lock" "$BACKUP/" 2>/dev/null || true
-            echo "  Backup saved to $BACKUP"
+            for dir in app bootstrap config routes; do
+              [ -d "$CORE/$dir" ] && cp -r "$CORE/$dir" "$BACKUP/"
+            done
+            [ -f "$CORE/composer.lock" ] && cp "$CORE/composer.lock" "$BACKUP/"
+            echo "  Backup → $BACKUP"
 
-            # ── 3. Extract deployment package ─────────────────
+            # ── 3. Extract package ────────────────────────────
             echo "▸ Extracting deployment package..."
             mkdir -p "$CORE" "$API"
             cd /tmp/gm-deploy
@@ -158,27 +149,16 @@ jobs:
             # ── 4. Sync backend files ────────────────────────
             echo "▸ Syncing backend files..."
             /bin/tar cf - -C . app bootstrap config database resources routes | /bin/tar xf - -C "$CORE"
-            cp -f artisan composer.json composer.lock "$CORE/" 2>/dev/null || true
-            [ -f .env.example ] && cp -f .env.example "$CORE/" 2>/dev/null || true
+            cp -f artisan composer.json composer.lock "$CORE/"
+            [ -f .env.example ] && cp -f .env.example "$CORE/"
 
             # ── 5. Sync public entry point ────────────────────
             echo "▸ Syncing public entry point..."
             rm -rf "$API/public" 2>/dev/null || true
-            if [ -d "public" ]; then
-              /bin/tar cf - -C public . | /bin/tar xf - -C "$API"
-            fi
+            [ -d "public" ] && /bin/tar cf - -C public . | /bin/tar xf - -C "$API"
 
-            # ── 6. Sync frontend build ───────────────────────
-            echo "▸ Syncing frontend build..."
-            FRONTEND_DIR="$SITE/frontend"
-            mkdir -p "$FRONTEND_DIR"
-            if [ -d ".next" ]; then
-              rm -rf "$FRONTEND_DIR/.next" 2>/dev/null || true
-              /bin/tar cf - -C .next . | /bin/tar xf - -C "$FRONTEND_DIR"
-            fi
-
-            # ── 7. Ensure directory structure ─────────────────
-            echo "▸ Ensuring directory structure..."
+            # ── 6. Ensure directory structure ─────────────────
+            echo "▸ Ensuring directories..."
             mkdir -p \
               "$CORE/storage/app/public/cms" \
               "$CORE/storage/framework/cache/data" \
@@ -187,7 +167,7 @@ jobs:
               "$CORE/storage/logs" \
               "$CORE/bootstrap/cache"
 
-            # ── 8. Composer install on server ─────────────────
+            # ── 7. Composer install ──────────────────────────
             echo "▸ Running composer install..."
             cd "$CORE"
             composer install \
@@ -197,17 +177,14 @@ jobs:
               --optimize-autoloader \
               --no-scripts
 
-            # ── 9. Laravel setup ──────────────────────────────
+            # ── 8. Laravel tasks ─────────────────────────────
             echo "▸ Running artisan commands..."
             cd "$CORE"
 
-            # Generate app key if missing
             php artisan key:generate --force 2>/dev/null || true
-
-            # Database migrations
             php artisan migrate --force
 
-            # Clear all caches
+            # Clear caches
             php artisan config:clear 2>/dev/null || true
             php artisan route:clear 2>/dev/null || true
             php artisan view:clear 2>/dev/null || true
@@ -219,44 +196,36 @@ jobs:
             php artisan route:cache
             php artisan view:cache
             php artisan event:cache
-
-            # Optimize autoloader
             php artisan optimize
-
-            # Discover packages
             php artisan package:discover --ansi
 
-            # ── 10. Storage symlink ───────────────────────────
+            # ── 9. Storage symlink ───────────────────────────
             echo "▸ Setting up storage symlink..."
             ln -sfn "$CORE/storage/app/public" "$API/storage"
 
-            # ── 11. Permissions ───────────────────────────────
+            # ── 10. Permissions ──────────────────────────────
             echo "▸ Setting permissions..."
             chmod -R 775 "$CORE/storage" 2>/dev/null || true
             chmod -R 775 "$CORE/bootstrap/cache" 2>/dev/null || true
             chmod 755 "$CORE/artisan" 2>/dev/null || true
-            chmod -R 775 "$FRONTEND_DIR" 2>/dev/null || true
 
-            # ── 12. Cleanup ──────────────────────────────────
-            echo "▸ Cleaning up temp files..."
+            # ── 11. Cleanup ──────────────────────────────────
+            echo "▸ Cleaning up..."
             rm -rf /tmp/gm-deploy
-
-            # Rotate old backups (keep last 5)
             ls -dt /home/zhpebukm/backups/gm-* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
 
-            # ── 13. Health check ──────────────────────────────
-            echo "▸ Running health check..."
+            # ── 12. Health check ─────────────────────────────
+            echo "▸ Verifying API..."
             HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.gm-coaching.com/api/health" 2>/dev/null || echo "000")
             if [ "$HTTP_STATUS" = "200" ]; then
-              echo "  ✓ API health check passed (HTTP $HTTP_STATUS)"
+              echo "  ✓ API healthy (HTTP $HTTP_STATUS)"
             else
-              echo "  ⚠ API health check returned HTTP $HTTP_STATUS (may be expected if no health endpoint)"
+              echo "  ⚠ API returned HTTP $HTTP_STATUS"
             fi
 
             echo ""
             echo "═══════════════════════════════════════════"
-            echo "  ✓ Deployment completed successfully!"
-            echo "  $(date '+%Y-%m-%d %H:%M:%S')"
+            echo "  ✓ Backend deployed successfully!"
             echo "═══════════════════════════════════════════"
 
   # ─── Post-Deploy Verify ─────────────────────────────────────────
@@ -266,25 +235,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Wait for deployment to settle
+      - name: Wait for settle
         run: sleep 15
 
-      - name: Verify frontend is live
+      - name: Verify API health
         run: |
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://gm-coaching.com" 2>/dev/null || echo "000")
-          echo "Frontend status: HTTP $HTTP_STATUS"
-          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
-            echo "✓ Frontend is live"
-          else
-            echo "::warning::Frontend returned HTTP $HTTP_STATUS"
-          fi
-
-      - name: Verify API is live
-        run: |
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.gm-coaching.com" 2>/dev/null || echo "000")
-          echo "API status: HTTP $HTTP_STATUS"
-          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 500 ]; then
-            echo "✓ API is responding"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.gm-coaching.com/api/health" 2>/dev/null || echo "000")
+          echo "API: HTTP $HTTP_STATUS"
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✓ API is healthy"
           else
             echo "::warning::API returned HTTP $HTTP_STATUS"
+          fi
+
+      - name: Verify frontend (Vercel)
+        run: |
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://gm-coaching.com" 2>/dev/null || echo "000")
+          echo "Frontend (Vercel): HTTP $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+            echo "✓ Frontend is live on Vercel"
+          else
+            echo "::warning::Frontend returned HTTP $HTTP_STATUS"
           fi
