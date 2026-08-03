@@ -100,7 +100,10 @@ jobs:
         run: tar czf deploy-package.tar.gz -C backend-dist .
 
       - name: Prepare .env file
-        run: echo "${{ secrets.PROD_ENV_CONTENT }}" > deploy-env-file
+        shell: bash
+        run: echo "$PROD_ENV_CONTENT" > deploy-env-file
+        env:
+          PROD_ENV_CONTENT: ${{ secrets.PROD_ENV_CONTENT }}
 
       - name: Upload files to server
         uses: appleboy/scp-action@v0.1.7
