@@ -128,18 +128,33 @@ jobs:
             API=$SITE/api
             BACKUP=/home/zhpebukm/backups/gm-$(date +%Y%m%d_%H%M%S)
 
+            echo "▸ Server info..."
+            echo "  PHP: $(php -v 2>&1 | head -1)"
+            php -m 2>/dev/null | tr '\n' ' ' | head -c 500
+            echo ""
+
+            echo "▸ Current state before deploy..."
+            echo "  vendor/: $([ -d "$CORE/vendor" ] && echo 'EXISTS' || echo 'MISSING')"
+            echo "  .env: $([ -f "$CORE/.env" ] && echo 'EXISTS' || echo 'MISSING')"
+            if [ -f "$CORE/.env" ]; then
+              echo "  APP_KEY set: $(grep -c 'APP_KEY=base64:' "$CORE/.env" 2>/dev/null || echo '0')"
+              echo "  DB_CONNECTION: $(grep '^DB_CONNECTION=' "$CORE/.env" 2>/dev/null || echo 'NOT SET')"
+            fi
+            echo "  database.sqlite: $([ -f "$CORE/database/database.sqlite" ] && echo "EXISTS ($(wc -c < "$CORE/database/database.sqlite") bytes)" || echo 'MISSING')"
+
             echo "▸ Creating backup..."
             mkdir -p "$BACKUP"
             for dir in app bootstrap config routes; do
               if [ -d "$CORE/$dir" ]; then cp -r "$CORE/$dir" "$BACKUP/"; fi
             done
             if [ -f "$CORE/composer.lock" ]; then cp "$CORE/composer.lock" "$BACKUP/"; fi
+            if [ -f "$CORE/.env" ]; then cp "$CORE/.env" "$BACKUP/"; fi
             echo "  Backup → $BACKUP"
 
             echo "▸ Extracting deployment package..."
             mkdir -p "$CORE" "$API"
             cd /tmp/gm-deploy
-            tar xzf deploy-package.tar.gz 2>/dev/null || echo "  ⚠ tar had warnings (timestamps)"
+            tar xzf deploy-package.tar.gz 2>&1 | tail -5 || echo "  ⚠ tar had warnings"
 
             echo "▸ Syncing backend files..."
             cp -rf app "$CORE/"
@@ -162,20 +177,8 @@ jobs:
               "$CORE/storage/framework/views" \
               "$CORE/storage/logs" \
               "$CORE/bootstrap/cache"
-            touch "$CORE/database/database.sqlite" 2>/dev/null || true
 
-            echo "▸ Running composer install..."
-            cd "$CORE"
-            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
-            COMPOSER_EXIT=$?
-            if [ $COMPOSER_EXIT -ne 0 ]; then
-              echo "::error::Composer install failed with exit code $COMPOSER_EXIT"
-              echo "▸ Attempting to restore from backup..."
-              cp -f "$BACKUP/composer.lock" "$CORE/"
-              composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
-            fi
-
-            echo "▸ Running artisan commands..."
+            echo "▸ Setting up .env..."
             cd "$CORE"
             if [ ! -f .env ]; then
               echo "  ⚠ No .env found - copying from .env.example"
@@ -183,53 +186,82 @@ jobs:
             fi
             if ! grep -q "APP_KEY=base64:" .env 2>/dev/null; then
               echo "  ⚠ APP_KEY missing - generating..."
-              php artisan key:generate --force
+              php artisan key:generate --force 2>&1
             fi
-            php artisan migrate --force || echo "  ⚠ migrate had issues"
 
-            php artisan config:clear 2>/dev/null || true
-            php artisan route:clear 2>/dev/null || true
-            php artisan view:clear 2>/dev/null || true
-            php artisan cache:clear 2>/dev/null || true
-            php artisan event:clear 2>/dev/null || true
+            echo "▸ Ensuring SQLite database..."
+            mkdir -p "$CORE/database"
+            touch "$CORE/database/database.sqlite"
 
-            php artisan config:cache || echo "  ⚠ config:cache failed"
-            php artisan route:cache || echo "  ⚠ route:cache failed"
-            php artisan view:cache || echo "  ⚠ view:cache failed"
-            php artisan event:cache || echo "  ⚠ event:cache failed"
-            php artisan optimize || true
-            php artisan package:discover --ansi || true
+            echo "▸ Running composer install (full output)..."
+            cd "$CORE"
+            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts 2>&1
+            echo "  vendor/: $([ -d "$CORE/vendor" ] && echo 'EXISTS' || echo 'MISSING')"
+            echo "  autoload: $([ -f "$CORE/vendor/autoload.php" ] && echo 'EXISTS' || echo 'MISSING')"
+
+            echo "▸ Running artisan commands..."
+            cd "$CORE"
+
+            echo "  key:generate..."
+            php artisan key:generate --force 2>&1 || true
+
+            echo "  migrate..."
+            php artisan migrate --force 2>&1 || echo "  ⚠ migrate had issues"
+
+            echo "  config:clear..."
+            php artisan config:clear 2>&1 || true
+            echo "  route:clear..."
+            php artisan route:clear 2>&1 || true
+            echo "  view:clear..."
+            php artisan view:clear 2>&1 || true
+            echo "  cache:clear..."
+            php artisan cache:clear 2>&1 || true
+            echo "  event:clear..."
+            php artisan event:clear 2>&1 || true
+
+            echo "  config:cache..."
+            php artisan config:cache 2>&1 || echo "  ⚠ config:cache failed"
+            echo "  route:cache..."
+            php artisan route:cache 2>&1 || echo "  ⚠ route:cache failed"
+            echo "  view:cache..."
+            php artisan view:cache 2>&1 || echo "  ⚠ view:cache failed"
+            echo "  event:cache..."
+            php artisan event:cache 2>&1 || echo "  ⚠ event:cache failed"
+            echo "  optimize..."
+            php artisan optimize 2>&1 || true
+            echo "  package:discover..."
+            php artisan package:discover --ansi 2>&1 || true
 
             echo "▸ Setting up storage symlink..."
             ln -sfn "$CORE/storage/app/public" "$API/storage"
 
             echo "▸ Setting permissions..."
-            chmod -R 775 "$CORE/storage" || true
-            chmod -R 775 "$CORE/bootstrap/cache" || true
-            chmod 755 "$CORE/artisan" || true
+            chmod -R 775 "$CORE/storage" 2>&1 || true
+            chmod -R 775 "$CORE/bootstrap/cache" 2>&1 || true
+            chmod 755 "$CORE/artisan" 2>&1 || true
+
+            echo "▸ Post-deploy state..."
+            echo "  vendor/: $([ -d "$CORE/vendor" ] && echo 'EXISTS' || echo 'MISSING')"
+            echo "  .env: $([ -f "$CORE/.env" ] && echo 'EXISTS' || echo 'MISSING')"
+            if [ -f "$CORE/.env" ]; then
+              echo "  APP_KEY set: $(grep -c 'APP_KEY=base64:' "$CORE/.env" 2>/dev/null || echo '0')"
+            fi
 
             echo "▸ Cleaning up..."
             rm -rf /tmp/gm-deploy
             ls -dt /home/zhpebukm/backups/gm-* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
 
-            echo "▸ Server state check..."
-            echo "  PHP: $(php -v 2>/dev/null | head -1)"
-            echo "  vendor exists: $([ -d "$CORE/vendor" ] && echo 'yes' || echo 'NO')"
-            echo "  .env exists: $([ -f "$CORE/.env" ] && echo 'yes' || echo 'NO')"
-            echo "  DB file: $(ls -la $CORE/database/database.sqlite 2>/dev/null || echo 'NOT FOUND')"
-
             echo "▸ Verifying API..."
             HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.gm-coaching.com/api/health" 2>/dev/null || echo "000")
-            if [ "$HTTP_STATUS" = "200" ]; then
-              echo "  ✓ API healthy (HTTP $HTTP_STATUS)"
-            else
-              echo "  ⚠ API returned HTTP $HTTP_STATUS"
-              curl -s "https://api.gm-coaching.com/api/health" 2>/dev/null | head -5 || true
+            echo "  HTTP $HTTP_STATUS"
+            if [ "$HTTP_STATUS" != "200" ]; then
+              echo "  Response body:"
+              curl -s "https://api.gm-coaching.com/api/health" 2>/dev/null | head -20 || true
             fi
 
             echo ""
             echo "═══════════════════════════════════════════"
-            echo "  ✓ Backend deployed successfully!"
+            echo "  ✓ Deployment complete!"
             echo "═══════════════════════════════════════════"
             exit 0
 
