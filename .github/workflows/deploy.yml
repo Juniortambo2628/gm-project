@@ -186,7 +186,8 @@ jobs:
 
             echo "▸ Running composer install..."
             cd "$CORE"
-            composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts 2>&1
+            rm -rf vendor
+            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts 2>&1
             if [ ! -f "$CORE/vendor/autoload.php" ]; then
               echo "::error::Composer install failed - vendor/autoload.php missing!"
               echo "  PHP version: $(php -v 2>&1 | head -1)"
