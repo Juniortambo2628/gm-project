@@ -1,4 +1,5 @@
 "use client";
+import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { ChevronRight, Home } from "lucide-react";
 import Link from "next/link";
@@ -7,9 +8,10 @@ import { cn } from "@/lib/utils";
 interface DashboardHeroProps {
   title: string;
   description: string;
+  action?: ReactNode;
 }
 
-export default function DashboardHero({ title, description }: DashboardHeroProps) {
+export default function DashboardHero({ title, description, action }: DashboardHeroProps) {
   const pathname = usePathname();
   
   // Generate breadcrumbs from pathname
@@ -22,7 +24,7 @@ export default function DashboardHero({ title, description }: DashboardHeroProps
 
   return (
     <header className="mb-10 w-full animate-fade-in">
-      <div className="bg-muted/40 shadow-sm border border-muted/20 p-8 rounded-2xl">
+      <div className="bg-muted/40 shadow-sm border border-muted/20 p-8 rounded-2xl w-full">
         {/* Breadcrumbs */}
         <nav className="flex items-center gap-2 text-[13px] font-medium text-muted-foreground mb-8 bg-background/50 border w-fit px-3 py-1.5 rounded-lg shadow-sm">
           <Link href="/" className="hover:text-primary transition-colors">
@@ -53,6 +55,7 @@ export default function DashboardHero({ title, description }: DashboardHeroProps
               {description}
             </p>
           </div>
+          {action && <div>{action}</div>}
         </div>
       </div>
     </header>

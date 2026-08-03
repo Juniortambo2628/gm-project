@@ -21,10 +21,7 @@ export function AdminListPage({
 }: AdminListPageProps) {
   return (
     <div className="animate-fade-in space-y-10 pb-20">
-      <div className="flex justify-between items-end">
-        <DashboardHero title={title} description={description} />
-        {action && <div className="mb-10">{action}</div>}
-      </div>
+      <DashboardHero title={title} description={description} action={action} />
 
       {isLoading ? (
         <div className="space-y-4">

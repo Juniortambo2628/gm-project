@@ -32,7 +32,7 @@ export function FaqAccordion({ faqs, className = "" }: FaqAccordionProps) {
                 {faq.question}
               </AccordionTrigger>
               <AccordionContent>
-                <div className="p-6 bg-background/50 rounded-2xl text-lg text-muted-foreground font-medium leading-relaxed border-l-4 border-primary italic mb-4">
+                <div className="p-6 bg-background/50 rounded-2xl text-lg text-muted-foreground font-medium leading-relaxed mb-4">
                   {faq.answer}
                 </div>
               </AccordionContent>

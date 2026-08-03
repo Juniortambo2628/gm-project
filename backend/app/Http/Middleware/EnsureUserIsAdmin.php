@@ -15,7 +15,11 @@ class EnsureUserIsAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user() && $request->user()->role !== 'admin') {
+        if (! $request->user()) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        if ($request->user()->role !== 'admin') {
             return response()->json(['message' => 'Forbidden - Admins only'], 403);
         }
 

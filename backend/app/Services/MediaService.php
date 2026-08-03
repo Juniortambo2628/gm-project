@@ -116,8 +116,15 @@ class MediaService
             throw new \InvalidArgumentException('File not found: '.$path);
         }
 
-        $mime = Storage::disk('public')->mimeType($path);
-        $size = Storage::disk('public')->size($path);
+        try {
+            $mime = Storage::disk('public')->mimeType($path);
+            $size = Storage::disk('public')->size($path);
+        } catch (\Exception $e) {
+            Log::warning('Failed to read file metadata: '.$e->getMessage());
+
+            throw new \InvalidArgumentException('Unable to read file metadata: '.$path);
+        }
+
         $width = null;
         $height = null;
 
