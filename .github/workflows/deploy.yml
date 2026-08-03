@@ -116,37 +116,34 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
-          script_stop: false
+          script_stop: true
           script: |
-            set -u
+            set +e
 
             echo "═══════════════════════════════════════════"
             echo "  GM-Coaching Backend Deployment"
             echo "  $(date '+%Y-%m-%d %H:%M:%S')"
             echo "═══════════════════════════════════════════"
 
-            # ── 1. Paths ──────────────────────────────────────
             CORE=/home/zhpebukm/gm-coaching-core
             SITE=/home/zhpebukm/gm-coaching.com
             API=$SITE/api
             BACKUP=/home/zhpebukm/backups/gm-$(date +%Y%m%d_%H%M%S)
 
-            # ── 2. Pre-deploy backup ──────────────────────────
             echo "▸ Creating backup..."
             mkdir -p "$BACKUP"
             for dir in app bootstrap config routes; do
-              [ -d "$CORE/$dir" ] && cp -r "$CORE/$dir" "$BACKUP/"
+              if [ -d "$CORE/$dir" ]; then cp -r "$CORE/$dir" "$BACKUP/"; fi
             done
-            [ -f "$CORE/composer.lock" ] && cp "$CORE/composer.lock" "$BACKUP/"
+            if [ -f "$CORE/composer.lock" ]; then cp "$CORE/composer.lock" "$BACKUP/"; fi
             echo "  Backup → $BACKUP"
 
-            # ── 3. Extract package ────────────────────────────
             echo "▸ Extracting deployment package..."
             mkdir -p "$CORE" "$API"
             cd /tmp/gm-deploy
-            tar xzf deploy-package.tar.gz 2>/dev/null || true
+            tar xzf deploy-package.tar.gz 2>/dev/null
+            if [ $? -ne 0 ]; then echo "::warning::tar extraction had warnings (likely timestamps)"; fi
 
-            # ── 4. Sync backend files ────────────────────────
             echo "▸ Syncing backend files..."
             cp -rf app "$CORE/"
             cp -rf bootstrap "$CORE/"
@@ -155,16 +152,12 @@ jobs:
             cp -rf resources "$CORE/"
             cp -rf routes "$CORE/"
             cp -f artisan composer.json composer.lock "$CORE/"
-            [ -f .env.example ] && cp -f .env.example "$CORE/"
+            if [ -f .env.example ]; then cp -f .env.example "$CORE/"; fi
 
-            # ── 5. Sync public entry point ────────────────────
             echo "▸ Syncing public entry point..."
-            rm -rf "$API/public" 2>/dev/null || true
-            if [ -d "public" ]; then
-              cp -rf public "$API/"
-            fi
+            rm -rf "$API/public"
+            if [ -d "public" ]; then cp -rf public "$API/"; fi
 
-            # ── 6. Ensure directory structure ─────────────────
             echo "▸ Ensuring directories..."
             mkdir -p \
               "$CORE/storage/app/public/cms" \
@@ -174,33 +167,24 @@ jobs:
               "$CORE/storage/logs" \
               "$CORE/bootstrap/cache"
 
-            # ── 7. Composer install ──────────────────────────
             echo "▸ Running composer install..."
             cd "$CORE"
-            if ! composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts; then
-              echo "::error::Composer install failed"
-              exit 1
-            fi
+            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+            if [ $? -ne 0 ]; then echo "::error::Composer install failed"; exit 1; fi
 
-            # ── 8. Laravel tasks ─────────────────────────────
             echo "▸ Running artisan commands..."
             cd "$CORE"
 
-            php artisan key:generate --force 2>/dev/null || true
+            php artisan key:generate --force 2>/dev/null
+            php artisan migrate --force
+            if [ $? -ne 0 ]; then echo "::error::Database migration failed"; exit 1; fi
 
-            if ! php artisan migrate --force; then
-              echo "::error::Database migration failed"
-              exit 1
-            fi
+            php artisan config:clear 2>/dev/null; true
+            php artisan route:clear 2>/dev/null; true
+            php artisan view:clear 2>/dev/null; true
+            php artisan cache:clear 2>/dev/null; true
+            php artisan event:clear 2>/dev/null; true
 
-            # Clear caches
-            php artisan config:clear 2>/dev/null || true
-            php artisan route:clear 2>/dev/null || true
-            php artisan view:clear 2>/dev/null || true
-            php artisan cache:clear 2>/dev/null || true
-            php artisan event:clear 2>/dev/null || true
-
-            # Rebuild production caches
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
@@ -208,22 +192,19 @@ jobs:
             php artisan optimize
             php artisan package:discover --ansi
 
-            # ── 9. Storage symlink ───────────────────────────
             echo "▸ Setting up storage symlink..."
             ln -sfn "$CORE/storage/app/public" "$API/storage"
 
-            # ── 10. Permissions ──────────────────────────────
             echo "▸ Setting permissions..."
-            chmod -R 775 "$CORE/storage" 2>/dev/null || true
-            chmod -R 775 "$CORE/bootstrap/cache" 2>/dev/null || true
-            chmod 755 "$CORE/artisan" 2>/dev/null || true
+            chmod -R 775 "$CORE/storage"
+            chmod -R 775 "$CORE/bootstrap/cache"
+            chmod 755 "$CORE/artisan"
 
-            # ── 11. Cleanup ──────────────────────────────────
             echo "▸ Cleaning up..."
             rm -rf /tmp/gm-deploy
-            ls -dt /home/zhpebukm/backups/gm-* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
+            ls -dt /home/zhpebukm/backups/gm-* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null
+            true
 
-            # ── 12. Health check ─────────────────────────────
             echo "▸ Verifying API..."
             HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.gm-coaching.com/api/health" 2>/dev/null || echo "000")
             if [ "$HTTP_STATUS" = "200" ]; then
