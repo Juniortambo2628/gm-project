@@ -118,10 +118,101 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: false
           script: |
-            echo "Hello from SSH - $(date)"
-            whoami
-            pwd
-            ls /tmp/gm-deploy/ 2>&1 || echo "No deploy dir"
+            echo "═══════════════════════════════════════════"
+            echo "  GM-Coaching Backend Deployment"
+            echo "  $(date '+%Y-%m-%d %H:%M:%S')"
+            echo "═══════════════════════════════════════════"
+
+            CORE=/home/zhpebukm/gm-coaching-core
+            SITE=/home/zhpebukm/gm-coaching.com
+            API=$SITE/api
+            BACKUP=/home/zhpebukm/backups/gm-$(date +%Y%m%d_%H%M%S)
+
+            echo "▸ Creating backup..."
+            mkdir -p "$BACKUP"
+            for dir in app bootstrap config routes; do
+              if [ -d "$CORE/$dir" ]; then cp -r "$CORE/$dir" "$BACKUP/"; fi
+            done
+            if [ -f "$CORE/composer.lock" ]; then cp "$CORE/composer.lock" "$BACKUP/"; fi
+            echo "  Backup → $BACKUP"
+
+            echo "▸ Extracting deployment package..."
+            mkdir -p "$CORE" "$API"
+            cd /tmp/gm-deploy
+            tar xzf deploy-package.tar.gz 2>/dev/null || echo "  ⚠ tar had warnings (timestamps)"
+
+            echo "▸ Syncing backend files..."
+            cp -rf app "$CORE/"
+            cp -rf bootstrap "$CORE/"
+            cp -rf config "$CORE/"
+            cp -rf database "$CORE/"
+            cp -rf resources "$CORE/"
+            cp -rf routes "$CORE/"
+            cp -f artisan composer.json composer.lock "$CORE/"
+            if [ -f .env.example ]; then cp -f .env.example "$CORE/"; fi
+
+            echo "▸ Syncing public entry point..."
+            rm -rf "$API/public"
+            if [ -d "public" ]; then cp -rf public "$API/"; fi
+
+            echo "▸ Ensuring directories..."
+            mkdir -p \
+              "$CORE/storage/app/public/cms" \
+              "$CORE/storage/framework/cache/data" \
+              "$CORE/storage/framework/sessions" \
+              "$CORE/storage/framework/views" \
+              "$CORE/storage/logs" \
+              "$CORE/bootstrap/cache"
+
+            echo "▸ Running composer install..."
+            cd "$CORE"
+            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+            if [ $? -ne 0 ]; then echo "::error::Composer install failed"; exit 1; fi
+
+            echo "▸ Running artisan commands..."
+            cd "$CORE"
+
+            php artisan key:generate --force 2>/dev/null || true
+            php artisan migrate --force
+            if [ $? -ne 0 ]; then echo "::error::Database migration failed"; exit 1; fi
+
+            php artisan config:clear 2>/dev/null || true
+            php artisan route:clear 2>/dev/null || true
+            php artisan view:clear 2>/dev/null || true
+            php artisan cache:clear 2>/dev/null || true
+            php artisan event:clear 2>/dev/null || true
+
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan event:cache
+            php artisan optimize
+            php artisan package:discover --ansi
+
+            echo "▸ Setting up storage symlink..."
+            ln -sfn "$CORE/storage/app/public" "$API/storage"
+
+            echo "▸ Setting permissions..."
+            chmod -R 775 "$CORE/storage" || true
+            chmod -R 775 "$CORE/bootstrap/cache" || true
+            chmod 755 "$CORE/artisan" || true
+
+            echo "▸ Cleaning up..."
+            rm -rf /tmp/gm-deploy
+            ls -dt /home/zhpebukm/backups/gm-* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
+
+            echo "▸ Verifying API..."
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.gm-coaching.com/api/health" 2>/dev/null || echo "000")
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "  ✓ API healthy (HTTP $HTTP_STATUS)"
+            else
+              echo "  ⚠ API returned HTTP $HTTP_STATUS"
+            fi
+
+            echo ""
+            echo "═══════════════════════════════════════════"
+            echo "  ✓ Backend deployed successfully!"
+            echo "═══════════════════════════════════════════"
             exit 0
 
   # ─── Post-Deploy Verify ─────────────────────────────────────────
