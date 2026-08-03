@@ -149,7 +149,6 @@ jobs:
             cp -rf resources "$CORE/"
             cp -rf routes "$CORE/"
             cp -f artisan composer.json composer.lock "$CORE/"
-            if [ -f .env.example ]; then cp -f .env.example "$CORE/"; fi
 
             echo "▸ Syncing public entry point..."
             rm -rf "$API/public"
@@ -163,6 +162,7 @@ jobs:
               "$CORE/storage/framework/views" \
               "$CORE/storage/logs" \
               "$CORE/bootstrap/cache"
+            touch "$CORE/database/database.sqlite" 2>/dev/null || true
 
             echo "▸ Running composer install..."
             cd "$CORE"
@@ -177,6 +177,11 @@ jobs:
 
             echo "▸ Running artisan commands..."
             cd "$CORE"
+            if [ ! -f .env ]; then
+              echo "  ⚠ No .env found - copying from .env.example"
+              cp .env.example .env
+              php artisan key:generate --force
+            fi
             php artisan key:generate --force 2>/dev/null || true
             php artisan migrate --force || echo "  ⚠ migrate had issues"
 
