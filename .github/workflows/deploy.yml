@@ -123,7 +123,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: false
-          timeout: 600
+          timeout: 600s
           script: |
             echo "═══════════════════════════════════════════"
             echo "  GM-Coaching Backend Deployment"
