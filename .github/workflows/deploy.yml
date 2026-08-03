@@ -144,11 +144,11 @@ jobs:
             echo "▸ Extracting deployment package..."
             mkdir -p "$CORE" "$API"
             cd /tmp/gm-deploy
-            tar xzf deploy-package.tar.gz --warning=no-timestamp
+            tar xzf deploy-package.tar.gz 2>/dev/null || true
 
             # ── 4. Sync backend files ────────────────────────
             echo "▸ Syncing backend files..."
-            tar cf - --warning=no-timestamp -C . app bootstrap config database resources routes | tar xf - -C "$CORE"
+            tar cf - -C . app bootstrap config database resources routes 2>/dev/null | tar xf - -C "$CORE"
             cp -f artisan composer.json composer.lock "$CORE/"
             [ -f .env.example ] && cp -f .env.example "$CORE/"
 
@@ -156,7 +156,7 @@ jobs:
             echo "▸ Syncing public entry point..."
             rm -rf "$API/public" 2>/dev/null || true
             if [ -d "public" ]; then
-              tar cf - -C public . | tar xf - -C "$API"
+              tar cf - -C public . 2>/dev/null | tar xf - -C "$API"
             fi
 
             # ── 6. Ensure directory structure ─────────────────
