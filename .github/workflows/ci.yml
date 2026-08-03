@@ -58,7 +58,7 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: backend
-        run: php artisan test --coverage-text
+        run: vendor/bin/phpunit --coverage-text
 
       - name: Check for uncommitted Pint fixes
         working-directory: backend
