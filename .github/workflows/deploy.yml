@@ -123,6 +123,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: false
+          timeout: 600
           script: |
             echo "═══════════════════════════════════════════"
             echo "  GM-Coaching Backend Deployment"
@@ -133,20 +134,6 @@ jobs:
             SITE=/home/zhpebukm/gm-coaching.com
             API=$SITE/api
             BACKUP=/home/zhpebukm/backups/gm-$(date +%Y%m%d_%H%M%S)
-
-            echo "▸ Server info..."
-            echo "  PHP: $(php -v 2>&1 | head -1)"
-            php -m 2>/dev/null | tr '\n' ' ' | head -c 500
-            echo ""
-
-            echo "▸ Current state before deploy..."
-            echo "  vendor/: $([ -d "$CORE/vendor" ] && echo 'EXISTS' || echo 'MISSING')"
-            echo "  .env: $([ -f "$CORE/.env" ] && echo 'EXISTS' || echo 'MISSING')"
-            if [ -f "$CORE/.env" ]; then
-              echo "  APP_KEY set: $(grep -c 'APP_KEY=base64:' "$CORE/.env" 2>/dev/null || echo '0')"
-              echo "  DB_CONNECTION: $(grep '^DB_CONNECTION=' "$CORE/.env" 2>/dev/null || echo 'NOT SET')"
-            fi
-            echo "  database.sqlite: $([ -f "$CORE/database/database.sqlite" ] && echo "EXISTS ($(wc -c < "$CORE/database/database.sqlite") bytes)" || echo 'MISSING')"
 
             echo "▸ Creating backup..."
             mkdir -p "$BACKUP"
@@ -160,7 +147,7 @@ jobs:
             echo "▸ Extracting deployment package..."
             mkdir -p "$CORE" "$API"
             cd /tmp/gm-deploy
-            tar xzf deploy-package.tar.gz 2>&1 | tail -5 || echo "  ⚠ tar had warnings"
+            tar xzf deploy-package.tar.gz 2>&1 | tail -3
 
             echo "▸ Syncing backend files..."
             cp -rf app "$CORE/"
@@ -194,72 +181,33 @@ jobs:
               cp .env.example .env
             fi
 
-            echo "▸ Ensuring SQLite database..."
-            mkdir -p "$CORE/database"
-            touch "$CORE/database/database.sqlite"
-
-            echo "▸ Running composer install (full output)..."
+            echo "▸ Running composer install..."
             cd "$CORE"
-            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts 2>&1
+            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
             echo "  vendor/: $([ -d "$CORE/vendor" ] && echo 'EXISTS' || echo 'MISSING')"
-            echo "  autoload: $([ -f "$CORE/vendor/autoload.php" ] && echo 'EXISTS' || echo 'MISSING')"
 
             echo "▸ Running artisan commands..."
             cd "$CORE"
-
-            echo "  key:generate..."
-            php artisan key:generate --force 2>&1 || true
-
-            echo "  migrate..."
-            php artisan migrate --force 2>&1 || echo "  ⚠ migrate had issues"
-
-            echo "  config:clear..."
             php artisan config:clear 2>&1 || true
-            echo "  route:clear..."
             php artisan route:clear 2>&1 || true
-            echo "  view:clear..."
             php artisan view:clear 2>&1 || true
-            echo "  cache:clear..."
             php artisan cache:clear 2>&1 || true
-            echo "  event:clear..."
             php artisan event:clear 2>&1 || true
 
-            echo "  config:cache..."
             php artisan config:cache 2>&1 || echo "  ⚠ config:cache failed"
-            echo "  route:cache..."
             php artisan route:cache 2>&1 || echo "  ⚠ route:cache failed"
-            echo "  view:cache..."
             php artisan view:cache 2>&1 || echo "  ⚠ view:cache failed"
-            echo "  event:cache..."
             php artisan event:cache 2>&1 || echo "  ⚠ event:cache failed"
-            echo "  optimize..."
             php artisan optimize 2>&1 || true
-            echo "  package:discover..."
             php artisan package:discover --ansi 2>&1 || true
 
             echo "▸ Setting up storage symlink..."
             ln -sfn "$CORE/storage/app/public" "$API/storage"
 
             echo "▸ Setting permissions..."
-            chmod -R 775 "$CORE/storage" 2>&1 || true
-            chmod -R 775 "$CORE/bootstrap/cache" 2>&1 || true
-            chmod 755 "$CORE/artisan" 2>&1 || true
-
-            echo "▸ Post-deploy state..."
-            echo "  vendor/: $([ -d "$CORE/vendor" ] && echo 'EXISTS' || echo 'MISSING')"
-            echo "  .env: $([ -f "$CORE/.env" ] && echo 'EXISTS' || echo 'MISSING')"
-            if [ -f "$CORE/.env" ]; then
-              echo "  APP_KEY set: $(grep -c 'APP_KEY=base64:' "$CORE/.env" 2>/dev/null || echo '0')"
-              echo "  DB_CONNECTION: $(grep '^DB_CONNECTION=' "$CORE/.env" 2>/dev/null)"
-              echo "  APP_DEBUG: $(grep '^APP_DEBUG=' "$CORE/.env" 2>/dev/null)"
-            fi
-
-            echo "▸ Writing diagnostic file..."
-            echo "$(date)" > "$API/public/diag.txt"
-            echo "PHP: $(php -v 2>&1 | head -1)" >> "$API/public/diag.txt"
-            echo "vendor: $([ -d "$CORE/vendor" ] && echo EXISTS || echo MISSING)" >> "$API/public/diag.txt"
-            echo "env: $([ -f "$CORE/.env" ] && echo EXISTS || echo MISSING)" >> "$API/public/diag.txt"
-            chmod 644 "$API/public/diag.txt" 2>/dev/null || true
+            chmod -R 775 "$CORE/storage" 2>/dev/null || true
+            chmod -R 775 "$CORE/bootstrap/cache" 2>/dev/null || true
+            chmod 755 "$CORE/artisan" 2>/dev/null || true
 
             echo "▸ Cleaning up..."
             rm -rf /tmp/gm-deploy
@@ -268,14 +216,10 @@ jobs:
             echo "▸ Verifying API..."
             HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.gm-coaching.com/api/health" 2>/dev/null || echo "000")
             echo "  HTTP $HTTP_STATUS"
-            if [ "$HTTP_STATUS" != "200" ]; then
-              echo "  Response body:"
-              curl -s "https://api.gm-coaching.com/api/health" 2>/dev/null | head -20 || true
-            fi
 
             echo ""
             echo "═══════════════════════════════════════════"
-            echo "  ✓ Deployment complete!"
+            echo "  ✓ Backend deployed successfully!"
             echo "═══════════════════════════════════════════"
             exit 0
 
