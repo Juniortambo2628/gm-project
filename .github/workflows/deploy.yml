@@ -250,7 +250,18 @@ jobs:
             echo "  .env: $([ -f "$CORE/.env" ] && echo 'EXISTS' || echo 'MISSING')"
             if [ -f "$CORE/.env" ]; then
               echo "  APP_KEY set: $(grep -c 'APP_KEY=base64:' "$CORE/.env" 2>/dev/null || echo '0')"
+              echo "  DB_CONNECTION: $(grep '^DB_CONNECTION=' "$CORE/.env" 2>/dev/null)"
+              echo "  APP_DEBUG: $(grep '^APP_DEBUG=' "$CORE/.env" 2>/dev/null)"
             fi
+
+            echo "▸ Writing diagnostic file..."
+            cat > "$API/public/diag.txt" <<DIAGEOF
+$(date '+%Y-%m-%d %H:%M:%S')
+PHP: $(php -v 2>&1 | head -1)
+vendor: $([ -d "$CORE/vendor" ] && echo 'EXISTS' || echo 'MISSING')
+.env: $([ -f "$CORE/.env" ] && echo 'EXISTS' || echo 'MISSING')
+DIAGEOF
+            chmod 644 "$API/public/diag.txt" 2>/dev/null || true
 
             echo "▸ Cleaning up..."
             rm -rf /tmp/gm-deploy
