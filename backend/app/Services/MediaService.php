@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
-use Intervention\Image\Interfaces\EncodedImageInterface;
 
 class MediaService
 {
@@ -130,7 +129,7 @@ class MediaService
 
         if (str_starts_with($mime, 'image/') && $mime !== 'image/svg+xml') {
             try {
-                $image = $this->imageManager->decode($fullPath);
+                $image = $this->imageManager->make($fullPath);
                 $width = $image->width();
                 $height = $image->height();
             } catch (\Exception $e) {
@@ -165,9 +164,9 @@ class MediaService
         return null;
     }
 
-    private function encodeImage($image, string $mimeType, int $quality): EncodedImageInterface
+    private function encodeImage($image, string $mimeType, int $quality)
     {
-        return $image->encodeUsingMediaType($mimeType, $quality);
+        return $image->encode($mimeType, $quality);
     }
 
     private function compressImage(string $sourcePath, string $mimeType): array
@@ -175,7 +174,7 @@ class MediaService
         ini_set('memory_limit', '256M');
 
         try {
-            $image = $this->imageManager->decode($sourcePath);
+            $image = $this->imageManager->make($sourcePath);
             $originalWidth = $image->width();
             $originalHeight = $image->height();
 
@@ -258,7 +257,7 @@ class MediaService
     private function generateThumbnail(string $sourcePath, string $mimeType): ?string
     {
         try {
-            $image = $this->imageManager->decode($sourcePath);
+            $image = $this->imageManager->make($sourcePath);
             $image->coverDown($this->thumbnailDimension, $this->thumbnailDimension);
 
             $ext = pathinfo($sourcePath, PATHINFO_EXTENSION);
