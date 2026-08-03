@@ -118,8 +118,6 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: false
           script: |
-            exec > >(tee /tmp/gm-deploy.log) 2>&1
-
             echo "═══════════════════════════════════════════"
             echo "  GM-Coaching Backend Deployment"
             echo "  $(date '+%Y-%m-%d %H:%M:%S')"
@@ -168,7 +166,14 @@ jobs:
 
             echo "▸ Running composer install..."
             cd "$CORE"
-            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts || echo "  ⚠ composer install had issues"
+            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+            COMPOSER_EXIT=$?
+            if [ $COMPOSER_EXIT -ne 0 ]; then
+              echo "::error::Composer install failed with exit code $COMPOSER_EXIT"
+              echo "▸ Attempting to restore from backup..."
+              cp -f "$BACKUP/composer.lock" "$CORE/"
+              composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+            fi
 
             echo "▸ Running artisan commands..."
             cd "$CORE"
@@ -181,12 +186,12 @@ jobs:
             php artisan cache:clear 2>/dev/null || true
             php artisan event:clear 2>/dev/null || true
 
-            php artisan config:cache 2>/dev/null || echo "  ⚠ config:cache failed"
-            php artisan route:cache 2>/dev/null || echo "  ⚠ route:cache failed"
-            php artisan view:cache 2>/dev/null || echo "  ⚠ view:cache failed"
-            php artisan event:cache 2>/dev/null || echo "  ⚠ event:cache failed"
-            php artisan optimize 2>/dev/null || true
-            php artisan package:discover --ansi 2>/dev/null || true
+            php artisan config:cache || echo "  ⚠ config:cache failed"
+            php artisan route:cache || echo "  ⚠ route:cache failed"
+            php artisan view:cache || echo "  ⚠ view:cache failed"
+            php artisan event:cache || echo "  ⚠ event:cache failed"
+            php artisan optimize || true
+            php artisan package:discover --ansi || true
 
             echo "▸ Setting up storage symlink..."
             ln -sfn "$CORE/storage/app/public" "$API/storage"
@@ -200,22 +205,25 @@ jobs:
             rm -rf /tmp/gm-deploy
             ls -dt /home/zhpebukm/backups/gm-* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
 
+            echo "▸ Server state check..."
+            echo "  PHP: $(php -v 2>/dev/null | head -1)"
+            echo "  vendor exists: $([ -d "$CORE/vendor" ] && echo 'yes' || echo 'NO')"
+            echo "  .env exists: $([ -f "$CORE/.env" ] && echo 'yes' || echo 'NO')"
+            echo "  DB file: $(ls -la $CORE/database/database.sqlite 2>/dev/null || echo 'NOT FOUND')"
+
             echo "▸ Verifying API..."
             HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.gm-coaching.com/api/health" 2>/dev/null || echo "000")
             if [ "$HTTP_STATUS" = "200" ]; then
               echo "  ✓ API healthy (HTTP $HTTP_STATUS)"
             else
               echo "  ⚠ API returned HTTP $HTTP_STATUS"
+              curl -s "https://api.gm-coaching.com/api/health" 2>/dev/null | head -5 || true
             fi
 
             echo ""
             echo "═══════════════════════════════════════════"
             echo "  ✓ Backend deployed successfully!"
             echo "═══════════════════════════════════════════"
-
-            echo ""
-            echo "── Deploy Log ──"
-            cat /tmp/gm-deploy.log
             exit 0
 
   # ─── Post-Deploy Verify ─────────────────────────────────────────
