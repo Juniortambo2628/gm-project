@@ -255,12 +255,10 @@ jobs:
             fi
 
             echo "▸ Writing diagnostic file..."
-            cat > "$API/public/diag.txt" <<DIAGEOF
-$(date '+%Y-%m-%d %H:%M:%S')
-PHP: $(php -v 2>&1 | head -1)
-vendor: $([ -d "$CORE/vendor" ] && echo 'EXISTS' || echo 'MISSING')
-.env: $([ -f "$CORE/.env" ] && echo 'EXISTS' || echo 'MISSING')
-DIAGEOF
+            echo "$(date)" > "$API/public/diag.txt"
+            echo "PHP: $(php -v 2>&1 | head -1)" >> "$API/public/diag.txt"
+            echo "vendor: $([ -d "$CORE/vendor" ] && echo EXISTS || echo MISSING)" >> "$API/public/diag.txt"
+            echo "env: $([ -f "$CORE/.env" ] && echo EXISTS || echo MISSING)" >> "$API/public/diag.txt"
             chmod 644 "$API/public/diag.txt" 2>/dev/null || true
 
             echo "▸ Cleaning up..."
