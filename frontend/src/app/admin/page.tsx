@@ -115,8 +115,6 @@ export default function AdminDashboard() {
           icon={<Eye className="h-4 w-4 text-muted-foreground" />}
         />
       </div>
-        </Card>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-8">
         {/* Revenue Chart */}
