@@ -11,6 +11,7 @@ import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { toast } from "sonner";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Service } from "@/lib/api";
 
 export default function ServicesManagementPage() {
@@ -228,9 +229,7 @@ export default function ServicesManagementPage() {
           </div>
         </Card>
       )) : (
-        <Card className="rounded-3xl border-dashed border-2 p-20 text-center">
-           <p className="text-muted-foreground font-medium italic">No service packages found.</p>
-        </Card>
+        <EmptyState title="No service packages found." />
       )}
 
       <ConfirmDeleteDialog

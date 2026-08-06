@@ -10,6 +10,7 @@ import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { BlogPost } from "@/lib/api";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 import dynamic from "next/dynamic";
@@ -133,11 +134,9 @@ export default function BlogManagementPage() {
                </div>
             </CardContent>
           </Card>
-        )) : (
+        )        ) : (
           <div className="col-span-1 md:col-span-2 lg:col-span-3">
-             <Card className="rounded-3xl border-dashed border-2 p-20 text-center">
-                <p className="text-muted-foreground font-medium italic">No articles published yet.</p>
-             </Card>
+             <EmptyState title="No articles published yet." />
           </div>
         )}
       </div>

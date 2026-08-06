@@ -7,6 +7,7 @@ import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Message } from "@/lib/api";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 
@@ -67,9 +68,7 @@ export default function InquiriesPage() {
             </div>
           </Card>
         )) : (
-          <Card className="rounded-3xl border-dashed border-2 p-20 text-center">
-             <p className="text-muted-foreground font-medium italic">No messages found yet.</p>
-          </Card>
+          <EmptyState title="No messages found yet." />
         )}
       </div>
 

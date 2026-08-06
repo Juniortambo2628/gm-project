@@ -3,6 +3,7 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { CreditCard, ExternalLink, Activity } from "lucide-react";
 import { AdminListPage } from "@/components/admin/AdminListPage";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Booking } from "@/lib/api";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 
@@ -50,12 +51,10 @@ export default function BookingsPage() {
             </div>
           </Card>
         )) : (
-          <Card className="rounded-3xl border-dashed border-2 p-20 text-center">
-             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 opacity-20">
-                <Activity size={32} />
-             </div>
-             <p className="text-muted-foreground font-medium italic">No transactions found yet.</p>
-          </Card>
+          <EmptyState
+            icon={<Activity size={32} className="opacity-20" />}
+            title="No transactions found yet."
+          />
         )}
       </div>
     </AdminListPage>

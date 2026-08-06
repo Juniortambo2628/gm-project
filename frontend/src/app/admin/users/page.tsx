@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { getErrorMessage } from "@/lib/api";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 
@@ -213,9 +214,7 @@ export default function UserManagementPage() {
             </Card>
           ))
         ) : (
-          <Card className="rounded-3xl border-dashed border-2 p-16 text-center">
-            <p className="text-muted-foreground font-medium italic">No accounts matching search criteria.</p>
-          </Card>
+          <EmptyState title="No accounts matching search criteria." />
         )}
       </div>
 
