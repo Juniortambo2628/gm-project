@@ -1,26 +1,18 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { getUserBookings, Booking, getErrorMessage } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2, ShoppingBag, User, ArrowRight, Package } from "lucide-react";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 
 export default function UserDashboardPage() {
-  const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuthGuard();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, authLoading, router]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -38,7 +30,7 @@ export default function UserDashboardPage() {
     fetchBookings();
   }, [isAuthenticated]);
 
-  if (authLoading || !isAuthenticated) {
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
         <Loader2 className="w-12 h-12 text-primary animate-spin" />

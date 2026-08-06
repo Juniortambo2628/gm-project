@@ -2,10 +2,11 @@
 import { LogOut, Settings, BarChart3, MessageSquare, Globe, FileText, DollarSign, HelpCircle, Bell, CheckCheck, User, ShieldAlert, Clock, ExternalLink, Mail, Zap, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import axiosInstance from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { SiteFooter } from "@/components/SiteFooter";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { SafeImage } from "@/components/SafeImage";
@@ -30,8 +31,8 @@ interface MenuItem {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  useAuthGuard({ role: "admin" });
   const { getSetting } = useSiteSettings();
   const [isDataLoading] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -106,19 +107,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, []);
 
-  useEffect(() => {
-    if (!isAuthLoading && !isAuthenticated) {
-      router.push("/login");
-      return;
-    }
-
-    if (!isAuthLoading && user?.role !== 'admin') {
-       router.push("/login");
-       return;
-    }
-  }, [isAuthenticated, isAuthLoading, user, router]);
-
-  if (isAuthLoading || (isAuthenticated && isDataLoading)) {
+  if (isLoading || (isAuthenticated && isDataLoading)) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">

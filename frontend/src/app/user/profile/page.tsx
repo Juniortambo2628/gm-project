@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { updateProfile, changePassword, getErrorMessage } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2, Lock, User, Mail, Save } from "lucide-react";
@@ -14,7 +15,8 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 
 export default function UserProfilePage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading, refreshUser } = useAuth();
+  const { user, isAuthenticated, isLoading, refreshUser } = useAuth();
+  useAuthGuard();
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "" });
@@ -23,12 +25,6 @@ export default function UserProfilePage() {
     new_password: "",
     new_password_confirmation: ""
   });
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, authLoading, router]);
 
   useEffect(() => {
     if (user) {
@@ -72,7 +68,7 @@ export default function UserProfilePage() {
     }
   };
 
-  if (authLoading || !isAuthenticated) {
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
         <Loader2 className="w-12 h-12 text-primary animate-spin" />

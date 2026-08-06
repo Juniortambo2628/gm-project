@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { getUserBooking, Booking, getErrorMessage } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, Package, CreditCard, Calendar, CheckCircle } from "lucide-react";
@@ -11,19 +11,12 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import Link from "next/link";
 
 export default function OrderDetailPage() {
-  const router = useRouter();
   const params = useParams();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuthGuard();
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
 
   const id = Number(params.id);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, authLoading, router]);
 
   useEffect(() => {
     if (!isAuthenticated || Number.isNaN(id)) return;
@@ -43,7 +36,7 @@ export default function OrderDetailPage() {
     fetchBooking();
   }, [isAuthenticated, id]);
 
-  if (authLoading || !isAuthenticated) {
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
         <Loader2 className="w-12 h-12 text-primary animate-spin" />
