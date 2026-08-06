@@ -1,11 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { MessageSquare, DollarSign, Activity, Eye, ArrowUpRight } from "lucide-react";
 import DashboardHero from "@/components/DashboardHero";
 import axiosInstance from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import dynamic from "next/dynamic";
+import { KPICard } from "@/components/KPICard";
 
 const RevenueChart = dynamic(() => import("@/components/admin/RevenueChart"), { ssr: false, loading: () => <div className="h-[350px] bg-muted/20 rounded-2xl animate-pulse" /> });
 
@@ -83,50 +83,38 @@ export default function AdminDashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-card shadow-sm border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase tracking-tight text-muted-foreground">Total revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">${data?.stats?.total_revenue || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-emerald-500 inline-flex items-center"><ArrowUpRight size={12}/> +${data?.stats?.current_month_revenue || 0}</span> this month
-            </p>
-          </CardContent>
-        </Card>
+        <KPICard
+          title="Total revenue"
+          value={`$${data?.stats?.total_revenue || 0}`}
+          description={
+            <span className="text-emerald-500 inline-flex items-center">
+              <ArrowUpRight size={12}/> +${data?.stats?.current_month_revenue || 0}
+            </span>
+          }
+          icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+        />
 
-        <Card className="bg-card shadow-sm border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase tracking-tight text-muted-foreground">Successful bookings</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">{data?.stats?.total_transactions || 0}</div>
-            <p className="text-xs text-muted-foreground">Paid coaching sessions</p>
-          </CardContent>
-        </Card>
+        <KPICard
+          title="Successful bookings"
+          value={data?.stats?.total_transactions || 0}
+          description="Paid coaching sessions"
+          icon={<Activity className="h-4 w-4 text-muted-foreground" />}
+        />
 
-        <Card className="bg-card shadow-sm border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase tracking-tight text-muted-foreground">Inquiries</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">{data?.stats?.total_messages || 0}</div>
-            <p className="text-xs text-muted-foreground">Messages from contact form</p>
-          </CardContent>
-        </Card>
+        <KPICard
+          title="Inquiries"
+          value={data?.stats?.total_messages || 0}
+          description="Messages from contact form"
+          icon={<MessageSquare className="h-4 w-4 text-muted-foreground" />}
+        />
 
-        <Card className="bg-card shadow-sm border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase tracking-tight text-muted-foreground">Profile views</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">--</div>
-            <p className="text-xs text-muted-foreground">Integration pending</p>
-          </CardContent>
+        <KPICard
+          title="Profile views"
+          value="--"
+          description="Integration pending"
+          icon={<Eye className="h-4 w-4 text-muted-foreground" />}
+        />
+      </div>
         </Card>
       </div>
 

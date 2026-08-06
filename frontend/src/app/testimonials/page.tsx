@@ -1,12 +1,13 @@
 "use client";
 
-import { Quote, Star, GraduationCap, Briefcase, CheckCircle2 } from "lucide-react";
+import { Star, GraduationCap, Briefcase } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { useCMSContent } from "@/context/CMSContentContext";
 import { IconBlock } from "@/components/ui/IconBlock";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { CTABanner } from "@/components/CTABanner";
+import { TestimonialCard } from "@/components/TestimonialCard";
 
 interface Testimonial {
   name?: string;
@@ -112,28 +113,17 @@ export default function TestimonialsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {mbaStories.map((story, i) => (
-              <div key={i} className="group p-8 md:p-10 bg-card border-2 border-border rounded-3xl hover:border-primary/40 transition-all duration-500 shadow-xl relative overflow-hidden">
-                <Quote className="absolute top-8 right-8 opacity-5 text-primary group-hover:scale-110 transition-transform" size={60} />
-                
-                <div className="space-y-6 relative z-10">
-                    <p className="text-lg font-medium text-foreground leading-relaxed italic">
-                       &ldquo;{story.quote || story.content}&rdquo;
-                    </p>
-
-                    <div className="pt-6 border-t border-border">
-                       <p className="font-bold text-primary text-xl">{story.name || story.client_name}</p>
-                       <p className="text-sm font-bold text-foreground/80">{story.outcome || story.client_role}</p>
-                       <div className="mt-2 inline-flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-1 rounded-full">
-                          {(story.scholarship || story.award) && (
-                            <>
-                              <CheckCircle2 size={10} />
-                              {story.scholarship || story.award}
-                            </>
-                          )}
-                       </div>
-                    </div>
-                </div>
-              </div>
+              <TestimonialCard
+                key={i}
+                quote={story.quote || story.content || ""}
+                name={story.name || story.client_name || ""}
+                role={story.outcome || story.client_role || ""}
+                badge={
+                  story.scholarship || story.award
+                    ? { text: story.scholarship || story.award || "" }
+                    : null
+                }
+              />
             ))}
           </div>
         </div>
@@ -152,21 +142,18 @@ export default function TestimonialsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {consultingStories.map((story, i) => (
-              <div key={i} className="group p-8 md:p-10 bg-background border-2 border-border rounded-3xl hover:border-primary/40 transition-all duration-500 shadow-xl relative overflow-hidden">
-                <Quote className="absolute top-8 right-8 opacity-5 text-primary group-hover:scale-110 transition-transform" size={60} />
-                
-                <div className="space-y-6 relative z-10">
-                    <p className="text-lg font-medium text-foreground leading-relaxed italic">
-                       &ldquo;{story.quote || story.content}&rdquo;
-                    </p>
-
-                    <div className="pt-6 border-t border-border">
-                       <p className="font-bold text-primary text-xl">{story.name || story.client_name}</p>
-                       <p className="text-sm font-bold text-foreground/80">{story.outcome || story.client_role}</p>
-                       <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{story.firm || 'Consulting'}</p>
-                    </div>
-                </div>
-              </div>
+              <TestimonialCard
+                key={i}
+                quote={story.quote || story.content || ""}
+                name={story.name || story.client_name || ""}
+                role={story.outcome || story.client_role || ""}
+                badge={
+                  story.firm
+                    ? { text: story.firm }
+                    : null
+                }
+                variant="background"
+              />
             ))}
           </div>
         </div>
