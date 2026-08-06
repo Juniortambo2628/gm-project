@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\API\AppointmentController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\BlogController;
 use App\Http\Controllers\API\CalendlyWebhookController;
@@ -143,6 +144,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/cms/users/{id}', [UserController::class, 'update']);
         Route::put('/cms/users/{id}/role', [UserController::class, 'updateRole']);
         Route::delete('/cms/users/{id}', [UserController::class, 'destroy']);
+
+        // Appointment Management
+        Route::get('/cms/appointments', [AppointmentController::class, 'index']);
+        Route::get('/cms/appointments/{id}', [AppointmentController::class, 'show']);
+        Route::put('/cms/appointments/{id}', [AppointmentController::class, 'update']);
+        Route::delete('/cms/appointments/{id}', [AppointmentController::class, 'destroy']);
 
     });
 });
