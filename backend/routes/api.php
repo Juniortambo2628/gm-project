@@ -56,10 +56,12 @@ Route::post('/payments/verify', [PaymentVerificationController::class, 'verify']
 
 // Paystack webhook (called by Paystack servers, not by users)
 Route::post('/webhooks/paystack', [PaystackWebhookController::class, 'handle'])
+    ->middleware('throttle:60,1')
     ->name('webhooks.paystack');
 
 // Calendly webhook (called by Calendly servers when events are booked/cancelled)
 Route::post('/webhooks/calendly', [CalendlyWebhookController::class, 'handle'])
+    ->middleware('throttle:30,1')
     ->name('webhooks.calendly');
 
 Route::middleware('auth:sanctum')->group(function () {
