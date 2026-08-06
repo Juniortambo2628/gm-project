@@ -12,6 +12,7 @@ import { updateProfile, changePassword, getErrorMessage } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2, Lock, User, Mail, Save } from "lucide-react";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function UserProfilePage() {
   const router = useRouter();
@@ -69,11 +70,7 @@ export default function UserProfilePage() {
   };
 
   if (isLoading || !isAuthenticated) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-background">
-        <Loader2 className="w-12 h-12 text-primary animate-spin" />
-      </div>
-    );
+    return <LoadingSpinner fullScreen />;
   }
 
   return (

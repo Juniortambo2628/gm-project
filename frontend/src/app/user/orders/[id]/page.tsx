@@ -8,6 +8,7 @@ import { getUserBooking, Booking, getErrorMessage } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, Package, CreditCard, Calendar, CheckCircle } from "lucide-react";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import Link from "next/link";
 
 export default function OrderDetailPage() {
@@ -37,11 +38,7 @@ export default function OrderDetailPage() {
   }, [isAuthenticated, id]);
 
   if (isLoading || !isAuthenticated) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-background">
-        <Loader2 className="w-12 h-12 text-primary animate-spin" />
-      </div>
-    );
+    return <LoadingSpinner fullScreen />;
   }
 
   return (

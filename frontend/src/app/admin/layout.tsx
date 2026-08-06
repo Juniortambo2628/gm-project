@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { useLogoSrc } from "@/hooks/useLogoSrc";
 import { SiteFooter } from "@/components/SiteFooter";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { SafeImage } from "@/components/SafeImage";
 import { ErrorBoundary } from "@/components/admin/ErrorBoundary";
@@ -97,14 +98,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   if (isLoading || (isAuthenticated && isDataLoading)) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-           <p className="text-[13px] font-medium text-muted-foreground">Verifying session...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="Verifying session..." />;
   }
 
   const handleLogout = () => {

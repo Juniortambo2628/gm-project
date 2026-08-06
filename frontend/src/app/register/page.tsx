@@ -11,6 +11,7 @@ import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { register as registerApi } from "@/lib/api";
 import { getApiErrorMessage } from "@/lib/utils";
 import { SafeImage } from "@/components/SafeImage";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -51,14 +52,7 @@ export default function RegisterPage() {
   };
 
   if (isLoading || isAuthenticated) {
-    return (
-       <div className="h-screen w-full flex items-center justify-center bg-background">
-          <div className="flex flex-col items-center gap-4">
-             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-             <p className="text-[13px] font-medium text-muted-foreground whitespace-nowrap">Verifying session...</p>
-          </div>
-       </div>
-    );
+    return <LoadingSpinner fullScreen text="Verifying session..." />;
   }
 
   return (

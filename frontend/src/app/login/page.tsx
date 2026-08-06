@@ -12,6 +12,7 @@ import axiosInstance from "@/lib/axios";
 import { login as loginApi, verifyResetCode as verifyResetCodeApi, forgotPassword as forgotPasswordApi, resetPassword as resetPasswordApi } from "@/lib/api";
 import { getApiErrorMessage } from "@/lib/utils";
 import { SafeImage } from "@/components/SafeImage";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -161,14 +162,7 @@ export default function LoginPage() {
   };
 
   if (isLoading || isAuthenticated) {
-    return (
-       <div className="h-screen w-full flex items-center justify-center bg-background">
-           <div className="flex flex-col items-center gap-4">
-              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-               <p className="text-[13px] font-medium text-slate-500 whitespace-nowrap">Logged in? Let&apos;s get you set up.</p>
-           </div>
-       </div>
-    );
+    return <LoadingSpinner fullScreen text="Logged in? Let&apos;s get you set up." />;
   }
 
   return (
