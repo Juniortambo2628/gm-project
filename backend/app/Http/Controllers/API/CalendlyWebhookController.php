@@ -29,6 +29,18 @@ class CalendlyWebhookController extends Controller
             return response()->json(['status' => 'ignored']);
         }
 
+        // Verify webhook signature if signing key is configured
+        $signingKey = config('services.calendly.signing_key');
+        if ($signingKey) {
+            $signature = $request->header('calendly-webhook-signature');
+            if (! $this->verifySignature($request->getContent(), $signature, $signingKey)) {
+                Log::warning('Calendly webhook signature verification failed');
+                return response()->json(['status' => 'invalid_signature'], 401);
+            }
+        } else {
+            Log::info('Calendly webhook signature verification skipped (no signing key configured)');
+        }
+
         Log::info('Calendly webhook received', ['event' => $event]);
 
         match ($event) {
@@ -122,5 +134,41 @@ class CalendlyWebhookController extends Controller
             $appointment->update(['status' => 'cancelled']);
             Log::info('Calendly: appointment cancelled', ['email' => $email]);
         }
+    }
+
+    /**
+     * Verify the Calendly webhook signature.
+     *
+     * @see https://developer.calendly.com/api-docs/d515db4c053f8-webhook-signature-verification
+     */
+    private function verifySignature(string $body, ?string $signatureHeader, string $signingKey): bool
+    {
+        if (! $signatureHeader) {
+            return false;
+        }
+
+        // Parse the signature header: t=<timestamp>,v1=<signature>
+        $parts = [];
+        foreach (explode(',', $signatureHeader) as $pair) {
+            [$key, $value] = explode('=', $pair, 2);
+            $parts[trim($key)] = trim($value);
+        }
+
+        $timestamp = $parts['t'] ?? null;
+        $v1Signature = $parts['v1'] ?? null;
+
+        if (! $timestamp || ! $v1Signature) {
+            return false;
+        }
+
+        // Reject requests older than 3 minutes to prevent replay attacks
+        if (abs(time() - (int) $timestamp) > 180) {
+            return false;
+        }
+
+        $signedContent = "{$timestamp}.{$body}";
+        $expectedSignature = hash_hmac('sha256', $signedContent, $signingKey);
+
+        return hash_equals($expectedSignature, $v1Signature);
     }
 }

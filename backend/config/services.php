@@ -41,4 +41,8 @@ return [
         'webhook_secret' => env('PAYSTACK_WEBHOOK_SECRET'),
     ],
 
+    'calendly' => [
+        'signing_key' => env('CALENDLY_WEBHOOK_SIGNING_KEY'),
+    ],
+
 ];
