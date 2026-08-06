@@ -11,15 +11,12 @@ import { SafeImage } from "@/components/SafeImage";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useTheme } from "next-themes";
-import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { useLogoSrc } from "@/hooks/useLogoSrc";
 
 export function SiteHeader() {
   const pathname = usePathname();
   const { user, isAuthenticated } = useAuth();
-  const { theme, resolvedTheme } = useTheme();
-  const { getSetting } = useSiteSettings();
-  const [mounted, setMounted] = useState(false);
+  const { logoSrc, mounted } = useLogoSrc();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -47,11 +44,6 @@ export function SiteHeader() {
     { name: "Blog", path: "/blog" },
     { name: "Contact", path: "/contact" },
   ];
-
-  const currentTheme = mounted ? (resolvedTheme || theme) : 'light';
-  const logoSrc = currentTheme === 'dark'
-    ? String(getSetting('logo_dark', "/branding/GM-logo-dark-final.png"))
-    : String(getSetting('logo_light', "/branding/GM-logo-light-final.png"));
 
   return (
     <>

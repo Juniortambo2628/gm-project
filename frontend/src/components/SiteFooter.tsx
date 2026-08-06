@@ -3,25 +3,14 @@
 import Link from "next/link";
 import { ShieldCheck, Zap, Share2, MessageSquare, Users, Smartphone } from "lucide-react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
-import { useTheme } from "next-themes";
-import { useState, useEffect } from "react";
+import { useLogoSrc } from "@/hooks/useLogoSrc";
 import { IconBlock } from "@/components/ui/IconBlock";
 import { SafeImage } from "@/components/SafeImage";
 
 export function SiteFooter() {
   const currentYear = new Date().getFullYear();
   const { getSetting } = useSiteSettings();
-  const { theme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
-  const currentTheme = mounted ? (resolvedTheme || theme) : 'light';
-  const logoSrc = currentTheme === 'dark'
-    ? String(getSetting('logo_dark', "/branding/GM-logo-dark-final.png"))
-    : String(getSetting('logo_light', "/branding/GM-logo-light-final.png"));
+  const { logoSrc, mounted } = useLogoSrc();
 
   return (
     <footer className="relative bg-background border-t border-border transition-colors duration-300 pt-20 pb-10 overflow-hidden">

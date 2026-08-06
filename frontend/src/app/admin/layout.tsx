@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import axiosInstance from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { useLogoSrc } from "@/hooks/useLogoSrc";
 import { SiteFooter } from "@/components/SiteFooter";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { SafeImage } from "@/components/SafeImage";
@@ -34,8 +35,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   useAuthGuard({ role: "admin" });
   const { getSetting } = useSiteSettings();
+  const { logoSrc, mounted } = useLogoSrc();
   const [isDataLoading] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -95,18 +96,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const checkTheme = () => {
-        setIsDark(document.documentElement.classList.contains('dark'));
-      };
-      checkTheme();
-      const observer = new MutationObserver(checkTheme);
-      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-      return () => observer.disconnect();
-    }
-  }, []);
-
   if (isLoading || (isAuthenticated && isDataLoading)) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
@@ -165,16 +154,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-80 bg-card flex flex-col border-r z-20">
         <div className="p-8">
           <Link href="/" className="flex items-center gap-3 group">
-              {(() => {
-                const logoLight = getSetting('logo_light', "/branding/GM-logo-light-final.png");
-                const logoDark = getSetting('logo_dark', "/branding/GM-logo-dark-final.png");
-                const logoSrc = isDark ? logoDark : logoLight;
-                
-                return (
-                  <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3">
                     <SafeImage
                       src={logoSrc}
-                      fallback={isDark ? "/branding/GM-logo-dark-final.png" : "/branding/GM-logo-light-final.png"}
+                      fallback={mounted ? logoSrc : "/branding/GM-logo-light-final.png"}
                       alt="Site Logo"
                       width={120}
                       height={40}
@@ -185,7 +168,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                        <h1 className="text-[13px] font-black text-foreground tracking-wider leading-none uppercase">{getSetting('site_name', "Consultancy")}</h1>
                        <p className="text-[10px] font-bold text-primary tracking-wide uppercase mt-1">Admin system</p>
                     </div>
-                  </div>
+              </div>
                 );
               })()}
           </Link>
