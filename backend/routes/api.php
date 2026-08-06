@@ -10,6 +10,7 @@ use App\Http\Controllers\API\DashboardController;
 use App\Http\Controllers\API\FaqController;
 use App\Http\Controllers\API\InquiryController;
 use App\Http\Controllers\API\IntegrationTestController;
+use App\Http\Controllers\API\MailLogController;
 use App\Http\Controllers\API\MailTemplateController;
 use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\OrderController;
@@ -150,6 +151,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/cms/appointments/{id}', [AppointmentController::class, 'show']);
         Route::put('/cms/appointments/{id}', [AppointmentController::class, 'update']);
         Route::delete('/cms/appointments/{id}', [AppointmentController::class, 'destroy']);
+
+        // Mail Log (read-only audit trail)
+        Route::get('/cms/mail-logs', [MailLogController::class, 'index']);
+        Route::get('/cms/mail-logs/{id}', [MailLogController::class, 'show']);
 
     });
 });
