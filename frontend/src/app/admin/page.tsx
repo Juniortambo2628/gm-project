@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { MessageSquare, DollarSign, Activity, Eye, ArrowUpRight } from "lucide-react";
 import DashboardHero from "@/components/DashboardHero";
 import axiosInstance from "@/lib/axios";
