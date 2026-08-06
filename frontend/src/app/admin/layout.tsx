@@ -163,8 +163,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                        <p className="text-[10px] font-bold text-primary tracking-wide uppercase mt-1">Admin system</p>
                     </div>
               </div>
-                );
-              })()}
           </Link>
         </div>
         
