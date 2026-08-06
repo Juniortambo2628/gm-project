@@ -21,8 +21,6 @@ export function SiteHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
@@ -63,7 +61,7 @@ export function SiteHeader() {
                   <div className="relative h-12 md:h-16 w-32 md:w-40 shrink-0 overflow-hidden">
                     <SafeImage
                       src={logoSrc}
-                      fallback={currentTheme === 'dark' ? "/branding/GM-logo-dark-final.png" : "/branding/GM-logo-light-final.png"}
+                      fallback={logoSrc}
                       alt="Gathoni Mwai Logo"
                       fill
                       priority

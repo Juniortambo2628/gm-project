@@ -28,7 +28,7 @@ export function SiteFooter() {
                     <div className="relative h-16 md:h-20 w-40 shrink-0 overflow-hidden">
                       <SafeImage
                         src={logoSrc}
-                        fallback={currentTheme === 'dark' ? "/branding/GM-logo-dark-final.png" : "/branding/GM-logo-light-final.png"}
+                        fallback={logoSrc}
                         alt="Gathoni Mwai Logo"
                         fill
                         sizes="(max-width: 768px) 160px, 192px"
