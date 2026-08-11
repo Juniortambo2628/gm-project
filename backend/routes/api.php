@@ -80,7 +80,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/cms/settings', [CMSController::class, 'updateSettings']);
         Route::post('/cms/upload', [CMSController::class, 'uploadFile']);
         Route::post('/cms/upload/metadata', [CMSController::class, 'fileMetadata']);
-        Route::post('/cms/upload/download', [CMSController::class, 'downloadFile']);
         Route::post('/cms/upload/position', [CMSController::class, 'updatePosition']);
 
         // Live Notification Management
@@ -160,3 +159,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     });
 });
+
+// Public file download (files are in public storage, no auth needed for serving)
+Route::get('/cms/upload/download', [CMSController::class, 'downloadFile']);

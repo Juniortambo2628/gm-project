@@ -55,6 +55,9 @@ class CMSController extends Controller
             ]);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Upload failed: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json(['error' => 'Upload failed: '.$e->getMessage()], 500);
         }
     }
 
