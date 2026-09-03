@@ -18,7 +18,8 @@ class TransactionFactory extends Factory
             'amount' => fake()->randomFloat(2, 10, 500),
             'currency' => 'USD',
             'service_id' => Service::factory(),
-            'paystack_ref' => 'psk_'.fake()->unique()->numerify('##########'),
+            'stripe_payment_intent_id' => 'pi_'.fake()->unique()->numerify('##########'),
+            'stripe_checkout_session_id' => 'cs_'.fake()->unique()->numerify('##########'),
             'status' => 'success',
         ];
     }

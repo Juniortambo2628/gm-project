@@ -82,7 +82,7 @@ export interface TransactionData {
   amount: number;
   currency: string;
   service_id: number;
-  paystack_ref: string;
+  stripe_checkout_session_id: string;
   status?: string;
 }
 
@@ -116,7 +116,8 @@ export interface Booking {
   email: string;
   amount: string | number;
   currency: string;
-  paystack_ref: string;
+  stripe_payment_intent_id: string;
+  stripe_checkout_session_id: string;
   status: string;
   created_at: string;
 }
@@ -240,26 +241,23 @@ export async function createTransaction(data: TransactionData) {
   return res.data;
 }
 
-export interface PaymentVerificationData {
-  reference: string;
+export interface CheckoutSessionData {
+  service_id: number;
+  name: string;
+  email: string;
 }
 
-export interface PaymentVerificationResult {
-  verified: boolean;
+export interface CheckoutSessionResult {
+  status: string;
   data?: {
-    reference: string;
-    amount: number;
-    currency: string;
-    customer_email: string;
-    customer_name: string;
-    metadata: Record<string, unknown>;
-    paid_at: string;
+    checkout_url: string;
+    session_id: string;
   };
   message?: string;
 }
 
-export async function verifyPayment(reference: string): Promise<PaymentVerificationResult> {
-  const res = await axiosInstance.post("/payments/verify", { reference });
+export async function createCheckoutSession(data: CheckoutSessionData): Promise<CheckoutSessionResult> {
+  const res = await axiosInstance.post("/payments/create-checkout", data);
   return res.data;
 }
 

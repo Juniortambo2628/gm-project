@@ -11,7 +11,7 @@ class IntegrationTestService
     public function all(): array
     {
         return [
-            $this->paystack(),
+            $this->stripe(),
             $this->smtp(),
             $this->calendly(),
             $this->reverb(),
@@ -24,7 +24,7 @@ class IntegrationTestService
     public function test(string $key): array
     {
         return match ($key) {
-            'paystack' => $this->paystack(),
+            'stripe' => $this->stripe(),
             'smtp' => $this->smtp(),
             'calendly' => $this->calendly(),
             'reverb' => $this->reverb(),
@@ -41,48 +41,47 @@ class IntegrationTestService
         };
     }
 
-    private function paystack(): array
+    private function stripe(): array
     {
-        $secret = config('services.paystack.secret');
-        $public = config('services.paystack.public');
-        $configured = ! empty($secret) && ! empty($public);
-        $message = 'Paystack is configured.';
+        $secret = config('services.stripe.secret');
+        $publishable = config('services.stripe.publishable');
+        $configured = ! empty($secret) && ! empty($publishable);
+        $message = 'Stripe is configured.';
         $status = 'ok';
         $connected = false;
         $details = [
-            'has_public_key' => ! empty($public),
+            'has_publishable_key' => ! empty($publishable),
             'has_secret_key' => ! empty($secret),
-            'key_prefix' => $public ? substr($public, 0, 8).'...' : null,
+            'key_prefix' => $publishable ? substr($publishable, 0, 8).'...' : null,
         ];
 
         if (! $configured) {
-            $message = 'Paystack keys are not set. Add PAYSTACK_PUBLIC_KEY and PAYSTACK_SECRET_KEY to your .env file.';
+            $message = 'Stripe keys are not set. Add STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY to your .env file.';
             $status = 'warning';
         } else {
             try {
                 $response = Http::withHeaders([
                     'Authorization' => 'Bearer '.$secret,
-                    'Content-Type' => 'application/json',
-                ])->timeout(10)->get('https://api.paystack.co/transaction?perPage=1');
+                ])->timeout(10)->get('https://api.stripe.com/v1/balance');
 
                 if ($response->successful()) {
                     $connected = true;
-                    $message = 'Paystack API connection successful. Keys are valid.';
+                    $message = 'Stripe API connection successful. Keys are valid.';
                     $status = 'ok';
-                    $details['api_response'] = $response->json('message', 'OK');
+                    $details['api_response'] = 'OK';
                 } else {
                     $status = 'error';
-                    $message = 'Paystack API returned an error. Status: '.$response->status();
+                    $message = 'Stripe API returned an error. Status: '.$response->status();
                     $details['status_code'] = $response->status();
                 }
             } catch (\Exception $e) {
                 $status = 'error';
-                $message = 'Could not connect to Paystack API: '.$e->getMessage();
+                $message = 'Could not connect to Stripe API: '.$e->getMessage();
                 $details['error'] = $e->getMessage();
             }
         }
 
-        return $this->persist('paystack', 'Paystack', $status, $configured, $connected, $message, $details);
+        return $this->persist('stripe', 'Stripe', $status, $configured, $connected, $message, $details);
     }
 
     private function smtp(): array

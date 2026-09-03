@@ -11,10 +11,12 @@ import { IconBlock } from "@/components/ui/IconBlock";
 import dynamic from "next/dynamic";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { africanCountries } from "@/lib/data/countries";
-import { createTransaction, verifyPayment } from "@/lib/api";
+import { createTransaction, createCheckoutSession } from "@/lib/api";
 import { toast } from "sonner";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-const PaystackButton = dynamic(() => import("@/components/PaystackButton"), { 
+const StripeCheckoutButton = dynamic(() => import("@/components/StripeCheckoutButton"), { 
   ssr: false,
   loading: () => (
     <Button disabled className="w-full h-16 rounded-2xl bg-primary/50 text-white font-bold text-sm">
@@ -43,12 +45,15 @@ const serviceIconMap: Record<string, LucideIcon> = {
   discovery: PhoneCall,
 };
 
-export default function BookingPage() {
+function BookingPageContent() {
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get("session_id");
   const { services } = useCMSContent();
   const { getSetting, getHeroProps } = useSiteSettings();
   const [mounted, setMounted] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -64,6 +69,37 @@ export default function BookingPage() {
     }
   }, [services, selectedServiceId]);
 
+  // Poll for payment status after redirect
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const pollStatus = async () => {
+      try {
+        const res = await fetch(`/api/payments/status/${sessionId}`);
+        const data = await res.json();
+        if (data.data?.transaction_status === "success") {
+          setPaymentConfirmed(true);
+          toast.success("Payment successful!", {
+            description: "Your session is now confirmed. Check your email for details."
+          });
+          // Clear the session_id from URL
+          window.history.replaceState({}, "", "/book");
+        }
+      } catch {
+        // Ignore polling errors
+      }
+    };
+
+    pollStatus();
+    const interval = setInterval(pollStatus, 3000);
+    const timeout = setTimeout(() => clearInterval(interval), 60000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [sessionId]);
+
   const selectedService = services.find(s => s.id === selectedServiceId) || services[0];
   const price = selectedService?.price || 0;
 
@@ -78,7 +114,6 @@ export default function BookingPage() {
       if (e.data.event === 'calendly.event_scheduled' && price === 0) {
         const inviteeUri = e.data.payload.invitee.uri;
         
-        setIsRecording(true);
         try {
           await createTransaction({
             name: formData.name,
@@ -86,7 +121,7 @@ export default function BookingPage() {
             amount: 0,
             currency: selectedService?.currency || 'USD',
             service_id: selectedService?.id,
-            paystack_ref: `calendly_${inviteeUri.split('/').pop()}`,
+            stripe_checkout_session_id: `calendly_${inviteeUri.split('/').pop()}`,
             status: 'success'
           });
           
@@ -100,7 +135,7 @@ export default function BookingPage() {
             description: "Session scheduled on Calendly, but we couldn't log it on our website. Please notify support."
           });
         } finally {
-          setIsRecording(false);
+          // recording done
         }
       }
     };
@@ -118,53 +153,38 @@ export default function BookingPage() {
     { label: "Strategy session" }
   ];
 
-  const handlePaymentSuccess = async (reference: { reference: string }) => {
-    setIsRecording(true);
+  const handlePaymentClick = async () => {
+    if (!selectedService || price <= 0) return;
+
+    setIsRedirecting(true);
     try {
-      // Step 1: Verify payment server-side with Paystack API
-      const verification = await verifyPayment(reference.reference);
-      if (!verification.verified) {
-        toast.error("Verification failed", {
-          description: verification.message || "Could not verify payment. Please contact support.",
+      const result = await createCheckoutSession({
+        service_id: selectedService.id,
+        name: formData.name,
+        email: formData.email,
+      });
+
+      if (result.data?.checkout_url) {
+        window.location.href = result.data.checkout_url;
+      } else {
+        toast.error("Payment error", {
+          description: result.message || "Could not initialize payment. Please try again.",
         });
-        return;
       }
-
-      // Step 2: Record the verified transaction
-      await createTransaction({
-        name: verification.data?.customer_name || formData.name,
-        email: verification.data?.customer_email || formData.email,
-        amount: verification.data?.amount || price,
-        currency: verification.data?.currency || selectedService?.currency || 'USD',
-        service_id: selectedService?.id,
-        paystack_ref: reference.reference,
-        status: 'success'
-      });
-
-      toast.success("Payment successful!", {
-        description: "Your session is now confirmed. Check your email for details."
-      });
-      setFormData({ name: "", email: "", phone: "", location: "", expectations: "" });
     } catch {
-      toast.error("Recording issue", {
-        description: "Payment succeeded but we couldn't record the transaction. Please contact support."
+      toast.error("Payment error", {
+        description: "Could not initialize payment. Please try again.",
       });
     } finally {
-      setIsRecording(false);
+      setIsRedirecting(false);
     }
-  };
-
-  const handlePaymentClose = () => {
-    toast.error("Payment cancelled", {
-      description: "The payment process was not completed."
-    });
   };
 
   return (
     <PublicLayout
       hero={{
         title: getSetting('book_hero_title', "Secure your session"),
-        subtitle: getSetting('book_hero_subtitle', "Choose your pathway and book a time that works for you. Payments are processed securely via Paystack."),
+        subtitle: getSetting('book_hero_subtitle', "Choose your pathway and book a time that works for you. Payments are processed securely via Stripe."),
         badge: "Booking system",
         breadcrumbs,
         ...getHeroProps('book_hero_bg')
@@ -176,6 +196,23 @@ export default function BookingPage() {
             
             {/* Left Column: Form & Selection */}
             <div className="flex-1 space-y-10">
+              {/* Payment Confirmed Banner */}
+              {paymentConfirmed && (
+                <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-3xl">
+                  <div className="flex gap-4">
+                    <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg h-fit">
+                      <CheckCircle2 size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-emerald-900 dark:text-emerald-400 text-sm italic">Payment confirmed!</h4>
+                      <p className="text-xs text-emerald-800/60 dark:text-emerald-400/60 font-medium leading-relaxed mt-1">
+                        Your payment has been processed successfully. Check your email for booking details and your Zoom link.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Service Selection */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {services.map((s) => {
@@ -284,14 +321,11 @@ export default function BookingPage() {
                 </div>
 
                   {price > 0 ? (
-                     <PaystackButton 
-                        email={formData.email}
-                        amountInCents={price * 100}
+                     <StripeCheckoutButton 
                         serviceName={selectedService?.name || 'Session'}
-                        isRecording={isRecording}
+                        isLoading={isRedirecting}
                         disabled={!canPay}
-                        onSuccess={handlePaymentSuccess}
-                        onClose={handlePaymentClose}
+                        onClick={handlePaymentClick}
                      />
                   ) : (
                      <Button 
@@ -304,7 +338,7 @@ export default function BookingPage() {
                 
                 <div className="flex items-center justify-center gap-2 opacity-40 grayscale group-hover:grayscale-0 transition-all">
                    <p className="text-[10px] font-bold">Secured by</p>
-                   <span className="font-bold text-xs">Paystack</span>
+                   <span className="font-bold text-xs">Stripe</span>
                 </div>
               </div>
 
@@ -358,7 +392,7 @@ export default function BookingPage() {
                             <p className="text-sm font-bold text-muted-foreground max-w-[200px]">Enter your details to reveal availability</p>
                          </div>
                        )}
-                    </div>
+                     </div>
                  </div>
                  
                  <div className="px-6 space-y-2">
@@ -376,5 +410,17 @@ export default function BookingPage() {
         </div>
       </main>
     </PublicLayout>
+  );
+}
+
+export default function BookingPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <BookingPageContent />
+    </Suspense>
   );
 }

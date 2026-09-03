@@ -17,7 +17,7 @@ class StoreTransactionRequest extends FormRequest
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'service_id' => 'required|exists:services,id',
-            'paystack_ref' => 'required|string|max:255',
+            'stripe_checkout_session_id' => 'required|string|max:255',
         ];
     }
 }

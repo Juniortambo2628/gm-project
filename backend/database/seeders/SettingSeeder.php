@@ -17,7 +17,7 @@ class SettingSeeder extends Seeder
             ['key' => 'site_name', 'value' => 'Gathoni Mwai Coaching', 'group' => 'general', 'type' => 'string'],
             ['key' => 'site_description', 'value' => 'MBA Admissions & Consulting Interview Coaching', 'group' => 'general', 'type' => 'string'],
             ['key' => 'support_email', 'value' => 'Gathoni.mwai0@gmail.com', 'group' => 'general', 'type' => 'string'],
-            ['key' => 'paystack_public_key', 'value' => 'pk_test_59a0c67a06a28c643010d37bfd366057846410c2', 'group' => 'general', 'type' => 'string'],
+            ['key' => 'stripe_publishable_key', 'value' => '', 'group' => 'general', 'type' => 'string'],
 
             // Communications
             ['key' => 'enable_notifications', 'value' => 'true', 'group' => 'communications', 'type' => 'boolean'],

@@ -16,7 +16,8 @@ class Transaction extends Model
         'amount',
         'currency',
         'service_id',
-        'paystack_ref',
+        'stripe_payment_intent_id',
+        'stripe_checkout_session_id',
         'status',
         'email_sent_at',
     ];

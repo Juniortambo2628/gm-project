@@ -103,7 +103,7 @@ export default function OrderDetailPage() {
                   <CheckCircle className="text-primary mt-1" size={20} />
                   <div>
                     <p className="text-xs font-bold uppercase text-muted-foreground">Reference</p>
-                    <p className="font-semibold">{booking.paystack_ref}</p>
+                    <p className="font-semibold">{booking.stripe_payment_intent_id || booking.stripe_checkout_session_id}</p>
                   </div>
                 </div>
               </div>

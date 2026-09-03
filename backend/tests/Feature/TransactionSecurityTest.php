@@ -26,17 +26,16 @@ class TransactionSecurityTest extends TestCase
             'name' => 'Test User',
             'email' => 'test@example.com',
             'service_id' => $this->service->id,
-            'paystack_ref' => 'psk_fake_ref_001',
+            'stripe_checkout_session_id' => 'cs_fake_session_001',
             'status' => 'success',
         ];
 
         $response = $this->postJson('/api/transactions', $payload);
 
-        // The request should be accepted (status field is now ignored by validation)
-        // but the transaction should be created with status from Paystack verification, not client input
-        // Since we can't verify with Paystack in tests, we expect a 422 (verification failed)
+        // The request should be accepted but the transaction should be created with status from Stripe verification
+        // Since we can't verify with Stripe in tests, we expect a 422 (verification failed)
         $response->assertStatus(422);
-        $response->assertJson(['message' => 'Payment verification failed. The transaction could not be confirmed with Paystack.']);
+        $response->assertJson(['message' => 'Payment verification failed. The transaction could not be confirmed with Stripe.']);
     }
 
     public function test_client_cannot_set_amount_on_transaction(): void
@@ -47,7 +46,7 @@ class TransactionSecurityTest extends TestCase
             'amount' => 0.01,
             'currency' => 'USD',
             'service_id' => $this->service->id,
-            'paystack_ref' => 'psk_fake_ref_002',
+            'stripe_checkout_session_id' => 'cs_fake_session_002',
         ];
 
         $response = $this->postJson('/api/transactions', $payload);
@@ -56,7 +55,7 @@ class TransactionSecurityTest extends TestCase
         $response->assertStatus(422);
     }
 
-    public function test_transaction_requires_paystack_ref(): void
+    public function test_transaction_requires_stripe_checkout_session_id(): void
     {
         $payload = [
             'name' => 'Test User',
@@ -66,7 +65,7 @@ class TransactionSecurityTest extends TestCase
 
         $response = $this->postJson('/api/transactions', $payload);
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['paystack_ref']);
+        $response->assertJsonValidationErrors(['stripe_checkout_session_id']);
     }
 
     public function test_transaction_requires_valid_service_id(): void
@@ -75,7 +74,7 @@ class TransactionSecurityTest extends TestCase
             'name' => 'Test User',
             'email' => 'test@example.com',
             'service_id' => 99999,
-            'paystack_ref' => 'psk_fake_ref_003',
+            'stripe_checkout_session_id' => 'cs_fake_session_003',
         ];
 
         $response = $this->postJson('/api/transactions', $payload);
@@ -89,7 +88,7 @@ class TransactionSecurityTest extends TestCase
             'name' => 'Test User',
             'email' => 'not-an-email',
             'service_id' => $this->service->id,
-            'paystack_ref' => 'psk_fake_ref_004',
+            'stripe_checkout_session_id' => 'cs_fake_session_004',
         ];
 
         $response = $this->postJson('/api/transactions', $payload);
@@ -97,10 +96,10 @@ class TransactionSecurityTest extends TestCase
         $response->assertJsonValidationErrors(['email']);
     }
 
-    public function test_duplicate_paystack_ref_returns_existing_transaction(): void
+    public function test_duplicate_session_id_returns_existing_transaction(): void
     {
         $existing = Transaction::factory()->create([
-            'paystack_ref' => 'psk_duplicate_ref',
+            'stripe_checkout_session_id' => 'cs_duplicate_ref',
             'status' => 'success',
         ]);
 
@@ -108,7 +107,7 @@ class TransactionSecurityTest extends TestCase
             'name' => 'Test User',
             'email' => 'test@example.com',
             'service_id' => $this->service->id,
-            'paystack_ref' => 'psk_duplicate_ref',
+            'stripe_checkout_session_id' => 'cs_duplicate_ref',
         ];
 
         $response = $this->postJson('/api/transactions', $payload);

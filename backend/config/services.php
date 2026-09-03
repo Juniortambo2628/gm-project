@@ -35,10 +35,11 @@ return [
         ],
     ],
 
-    'paystack' => [
-        'public' => env('PAYSTACK_PUBLIC_KEY'),
-        'secret' => env('PAYSTACK_SECRET_KEY'),
-        'webhook_secret' => env('PAYSTACK_WEBHOOK_SECRET'),
+    'stripe' => [
+        'publishable' => env('STRIPE_PUBLISHABLE_KEY'),
+        'secret' => env('STRIPE_SECRET_KEY'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
     ],
 
     'calendly' => [

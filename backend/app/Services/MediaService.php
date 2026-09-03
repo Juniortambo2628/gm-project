@@ -129,7 +129,7 @@ class MediaService
 
         if (str_starts_with($mime, 'image/') && $mime !== 'image/svg+xml') {
             try {
-                $image = $this->imageManager->make($fullPath);
+                $image = $this->imageManager->read($fullPath);
                 $width = $image->width();
                 $height = $image->height();
             } catch (\Exception $e) {
@@ -174,7 +174,7 @@ class MediaService
         ini_set('memory_limit', '256M');
 
         try {
-            $image = $this->imageManager->make($sourcePath);
+            $image = $this->imageManager->read($sourcePath);
             $originalWidth = $image->width();
             $originalHeight = $image->height();
 
@@ -257,7 +257,7 @@ class MediaService
     private function generateThumbnail(string $sourcePath, string $mimeType): ?string
     {
         try {
-            $image = $this->imageManager->make($sourcePath);
+            $image = $this->imageManager->read($sourcePath);
             $image->coverDown($this->thumbnailDimension, $this->thumbnailDimension);
 
             $ext = pathinfo($sourcePath, PATHINFO_EXTENSION);

@@ -22,24 +22,25 @@ class FullBookingFlowTest extends TestCase
             'duration' => '60 minutes',
         ]);
 
-        // 2. Simulate a user making a payment (Paystack webhook simulation)
+        // 2. Simulate a user making a payment (Stripe webhook simulation)
         $transaction = Transaction::factory()->create([
             'service_id' => $service->id,
             'name' => 'John Doe',
             'email' => 'john@example.com',
             'amount' => 50000,
-            'currency' => 'USD',
-            'paystack_ref' => 'psk_unique_ref_001',
+            'currency' => 'GBP',
+            'stripe_payment_intent_id' => 'pi_unique_ref_001',
+            'stripe_checkout_session_id' => 'cs_unique_ref_001',
             'status' => 'success',
         ]);
 
         // 3. Verify the transaction was recorded
         $this->assertDatabaseHas('transactions', [
-            'paystack_ref' => 'psk_unique_ref_001',
+            'stripe_checkout_session_id' => 'cs_unique_ref_001',
             'status' => 'success',
         ]);
 
-        // 4. Simulate the appointment creation (normally done by PaystackWebhookController)
+        // 4. Simulate the appointment creation (normally done by StripeWebhookController)
         $appointment = Appointment::create([
             'transaction_id' => $transaction->id,
             'service_id' => $service->id,

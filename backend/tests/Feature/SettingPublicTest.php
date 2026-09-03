@@ -32,9 +32,9 @@ class SettingPublicTest extends TestCase
 
     public function test_public_settings_key_blocks_security_group(): void
     {
-        Setting::set('paystack_secret', 'sk_test_123', 'security');
+        Setting::set('stripe_secret', 'sk_test_123', 'security');
 
-        $response = $this->getJson('/api/settings/paystack_secret');
+        $response = $this->getJson('/api/settings/stripe_secret');
 
         $response->assertForbidden();
     }

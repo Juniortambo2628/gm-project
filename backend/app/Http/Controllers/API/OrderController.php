@@ -10,7 +10,7 @@ use App\Models\Appointment;
 use App\Models\Transaction;
 use App\Services\MailDeliveryService;
 use App\Services\NotificationService;
-use App\Services\PaystackService;
+use App\Services\StripeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,20 +19,20 @@ class OrderController extends Controller
     public function __construct(
         protected NotificationService $notificationService,
         protected MailDeliveryService $mailDeliveryService,
-        protected PaystackService $paystackService
+        protected StripeService $stripeService
     ) {}
 
     /**
      * Store a successful transaction record.
-     * Verifies payment with Paystack API before recording.
+     * Called after Stripe Checkout webhook confirms payment.
      */
     public function store(StoreTransactionRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $reference = $validated['paystack_ref'];
+        $checkoutSessionId = $validated['stripe_checkout_session_id'];
 
-        // Idempotency: if this paystack_ref already exists, return it
-        $existing = Transaction::where('paystack_ref', $reference)->first();
+        // Idempotency: if this session already exists, return it
+        $existing = Transaction::where('stripe_checkout_session_id', $checkoutSessionId)->first();
         if ($existing) {
             $existing->load('service');
 
@@ -43,20 +43,22 @@ class OrderController extends Controller
             ], 200);
         }
 
-        // Verify payment with Paystack API
-        $verified = $this->verifyPaystackTransaction($reference);
-        if (! $verified) {
+        // Verify payment with Stripe API
+        $session = $this->stripeService->getCheckoutSession($checkoutSessionId);
+        if (! $session || $session->payment_status !== 'paid') {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Payment verification failed. The transaction could not be confirmed with Paystack.',
+                'message' => 'Payment verification failed. The transaction could not be confirmed with Stripe.',
             ], 422);
         }
 
-        // Use verified data from Paystack, not client input
-        $amount = $verified['amount'] / 100; // Convert from kobo/cents
-        $currency = $verified['currency'];
-        $customerEmail = $verified['customer']['email'] ?? $validated['email'];
-        $customerName = trim(($verified['customer']['first_name'] ?? '').' '.($verified['customer']['last_name'] ?? '')) ?: $validated['name'];
+        // Use verified data from Stripe, not client input
+        $amount = ($session->amount_total ?? 0) / 100;
+        $currency = strtoupper($session->currency ?? 'gbp');
+        $metadata = $session->metadata ? (array) $session->metadata : [];
+        $customerEmail = $session->customer_email ?? $metadata['customer_email'] ?? $validated['email'];
+        $customerName = $metadata['customer_name'] ?? $validated['name'];
+        $paymentIntentId = $session->payment_intent;
 
         $transaction = Transaction::create([
             'name' => $customerName,
@@ -64,7 +66,8 @@ class OrderController extends Controller
             'amount' => $amount,
             'currency' => $currency,
             'service_id' => $validated['service_id'],
-            'paystack_ref' => $reference,
+            'stripe_payment_intent_id' => $paymentIntentId,
+            'stripe_checkout_session_id' => $checkoutSessionId,
             'status' => 'success',
         ]);
 
@@ -72,7 +75,7 @@ class OrderController extends Controller
 
         $serviceName = $transaction->service?->name ?? 'Coaching Service';
         $scheduledAt = now()->addDays(2)->setTime(10, 0);
-        $durationMinutes = $this->parseDurationMinutes($transaction->service?->duration);
+        $durationMinutes = $this->stripeService->parseDurationMinutes($transaction->service?->duration);
 
         $appointment = Appointment::create([
             'transaction_id' => $transaction->id,
@@ -90,7 +93,7 @@ class OrderController extends Controller
             'name' => $transaction->name,
             'service_name' => $serviceName,
             'amount' => $transaction->currency.' '.number_format($transaction->amount, 2),
-            'transaction_id' => $transaction->paystack_ref,
+            'transaction_id' => $transaction->stripe_payment_intent_id ?? $checkoutSessionId,
             'date' => $scheduledAt->format('F d, Y'),
             'time' => $scheduledAt->format('g:i A (T)'),
         ]);
@@ -113,7 +116,7 @@ class OrderController extends Controller
             [
                 'transaction_id' => $transaction->id,
                 'email' => $transaction->email,
-                'paystack_ref' => $transaction->paystack_ref,
+                'stripe_session_id' => $checkoutSessionId,
                 'appointment_id' => $appointment->id,
             ]
         );
@@ -123,22 +126,6 @@ class OrderController extends Controller
             'message' => 'Transaction recorded successfully!',
             'data' => new TransactionResource($transaction),
         ], 201);
-    }
-
-    /**
-     * Verify a transaction reference against the Paystack API.
-     */
-    private function verifyPaystackTransaction(string $reference): ?array
-    {
-        return $this->paystackService->verifyTransaction($reference);
-    }
-
-    /**
-     * Parse a duration string such as "60 minutes" into minutes.
-     */
-    private function parseDurationMinutes(?string $duration): int
-    {
-        return $this->paystackService->parseDurationMinutes($duration);
     }
 
     /**

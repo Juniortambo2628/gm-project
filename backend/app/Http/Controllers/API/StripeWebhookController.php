@@ -7,117 +7,98 @@ use App\Models\Appointment;
 use App\Models\Transaction;
 use App\Services\MailDeliveryService;
 use App\Services\NotificationService;
-use App\Services\PaystackService;
+use App\Services\StripeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class PaystackWebhookController extends Controller
+class StripeWebhookController extends Controller
 {
     public function __construct(
         protected NotificationService $notificationService,
         protected MailDeliveryService $mailDeliveryService,
-        protected PaystackService $paystackService
+        protected StripeService $stripeService
     ) {}
 
     /**
-     * Handle incoming Paystack webhook events.
-     * Verifies signature, validates with Paystack API, then processes.
+     * Handle incoming Stripe webhook events.
+     * Verifies signature, then processes checkout.session.completed events.
      */
     public function handle(Request $request): JsonResponse
     {
         $payload = $request->getContent();
-        $signature = $request->header('x-paystack-signature');
+        $sigHeader = $request->header('stripe-signature');
 
-        if (! $signature) {
-            Log::warning('Paystack webhook received without signature');
+        if (! $sigHeader) {
+            Log::warning('Stripe webhook received without signature');
 
             return response()->json(['error' => 'Missing signature'], 400);
         }
 
-        $webhookSecret = config('services.paystack.webhook_secret');
-        if (! $webhookSecret) {
-            Log::error('Paystack webhook secret not configured');
-
-            return response()->json(['error' => 'Webhook not configured'], 500);
-        }
-
-        // Verify signature
-        $calculatedHash = hash_hmac('sha512', $payload, $webhookSecret);
-        if (! hash_equals($calculatedHash, $signature)) {
-            Log::warning('Paystack webhook signature mismatch');
-
+        $event = $this->stripeService->verifyWebhookSignature($payload, $sigHeader);
+        if (! $event) {
             return response()->json(['error' => 'Invalid signature'], 400);
         }
 
-        $data = json_decode($payload, true);
-        if (! $data || ! isset($data['event'])) {
-            return response()->json(['status' => 'ignored']);
-        }
+        $eventType = $event['type'] ?? '';
+        $eventData = $event['data']['object'] ?? null;
 
-        $event = $data['event'];
-        $reference = $data['data']['reference'] ?? null;
-
-        Log::info('Paystack webhook received', [
-            'event' => $event,
-            'reference' => $reference,
+        Log::info('Stripe webhook received', [
+            'event' => $eventType,
+            'session_id' => $eventData['id'] ?? null,
         ]);
 
-        // Only process successful charges
-        if ($event !== 'charge.success' || ! $reference) {
+        // Only process completed checkouts
+        if ($eventType !== 'checkout.session.completed' || ! $eventData) {
             return response()->json(['status' => 'ignored']);
         }
 
-        // Check if transaction already recorded (idempotency)
-        $existing = Transaction::where('paystack_ref', $reference)->first();
+        $sessionId = $eventData['id'];
+        $paymentIntentId = $eventData['payment_intent'] ?? null;
+        $metadata = is_array($eventData['metadata'] ?? null) ? $eventData['metadata'] : (array) ($eventData['metadata'] ?? []);
+        $customerEmail = $eventData['customer_email'] ?? $metadata['customer_email'] ?? '';
+        $customerName = $metadata['customer_name'] ?? '';
+        $amountTotal = ($eventData['amount_total'] ?? 0) / 100; // Convert from pence/cents
+        $currency = strtoupper($eventData['currency'] ?? 'gbp');
+        $serviceId = $metadata['service_id'] ?? null;
+
+        // Idempotency: if this session was already processed, skip
+        $existing = Transaction::where('stripe_checkout_session_id', $sessionId)->first();
         if ($existing && $existing->status === 'success') {
-            Log::info('Paystack webhook: transaction already recorded', ['reference' => $reference]);
+            Log::info('Stripe webhook: transaction already recorded', ['session_id' => $sessionId]);
 
             return response()->json(['status' => 'already_processed']);
         }
 
-        // Verify with Paystack API
-        $verified = $this->verifyTransaction($reference);
-        if (! $verified) {
-            Log::error('Paystack webhook: API verification failed', ['reference' => $reference]);
-
-            return response()->json(['error' => 'Verification failed'], 400);
-        }
-
-        $amount = $verified['amount'] / 100; // Convert from kobo/cents
-        $currency = $verified['currency'];
-        $customerEmail = $verified['customer']['email'] ?? $data['data']['customer']['email'] ?? '';
-        $customerName = $verified['customer']['first_name'] ?? $data['data']['customer']['first_name'] ?? '';
-        $serviceName = $verified['metadata']['service_name'] ?? 'Coaching Service';
-        $serviceId = $verified['metadata']['service_id'] ?? null;
-
-        // If transaction was pre-created by frontend, update it; otherwise create
+        // If transaction was pre-created by the frontend polling, update it; otherwise create
         if ($existing) {
             $existing->update([
                 'status' => 'success',
-                'amount' => $amount,
+                'amount' => $amountTotal,
                 'currency' => $currency,
+                'stripe_payment_intent_id' => $paymentIntentId,
             ]);
             $transaction = $existing;
         } else {
             $transaction = Transaction::create([
                 'name' => $customerName,
                 'email' => $customerEmail,
-                'amount' => $amount,
+                'amount' => $amountTotal,
                 'currency' => $currency,
                 'service_id' => $serviceId,
-                'paystack_ref' => $reference,
+                'stripe_payment_intent_id' => $paymentIntentId,
+                'stripe_checkout_session_id' => $sessionId,
                 'status' => 'success',
             ]);
         }
 
         $transaction->load('service');
-        $serviceName = $transaction->service?->name ?? $serviceName;
+        $serviceName = $transaction->service?->name ?? 'Coaching Service';
 
         // Create appointment if not already created
         if (! $transaction->appointment) {
             $scheduledAt = now()->addDays(2)->setTime(10, 0);
-            $durationMinutes = $this->parseDurationMinutes($transaction->service?->duration);
+            $durationMinutes = $this->stripeService->parseDurationMinutes($transaction->service?->duration);
 
             Appointment::create([
                 'transaction_id' => $transaction->id,
@@ -139,23 +120,15 @@ class PaystackWebhookController extends Controller
         $this->notificationService->notifyAdmins(
             'payment',
             'Payment Verified via Webhook',
-            "{$transaction->name} payment of {$transaction->currency} ".number_format($transaction->amount, 2)." for '{$serviceName}' confirmed via Paystack webhook.",
+            "{$transaction->name} payment of {$transaction->currency} ".number_format($transaction->amount, 2)." for '{$serviceName}' confirmed via Stripe webhook.",
             [
                 'transaction_id' => $transaction->id,
                 'email' => $transaction->email,
-                'paystack_ref' => $transaction->paystack_ref,
+                'stripe_session_id' => $sessionId,
             ]
         );
 
         return response()->json(['status' => 'success']);
-    }
-
-    /**
-     * Verify a transaction reference against the Paystack API.
-     */
-    private function verifyTransaction(string $reference): ?array
-    {
-        return $this->paystackService->verifyTransaction($reference);
     }
 
     /**
@@ -171,7 +144,7 @@ class PaystackWebhookController extends Controller
             'name' => $transaction->name,
             'service_name' => $serviceName,
             'amount' => $transaction->currency.' '.number_format($transaction->amount, 2),
-            'transaction_id' => $transaction->paystack_ref,
+            'transaction_id' => $transaction->stripe_payment_intent_id ?? $transaction->stripe_checkout_session_id ?? '',
             'date' => $scheduledAt->format('F d, Y'),
             'time' => $scheduledAt->format('g:i A (T)'),
         ]);
@@ -184,10 +157,5 @@ class PaystackWebhookController extends Controller
             'duration' => $durationMinutes.' minutes',
             'amount' => $transaction->currency.' '.number_format($transaction->amount, 2),
         ]);
-    }
-
-    private function parseDurationMinutes(?string $duration): int
-    {
-        return $this->paystackService->parseDurationMinutes($duration);
     }
 }

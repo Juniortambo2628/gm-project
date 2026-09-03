@@ -14,8 +14,8 @@ use App\Http\Controllers\API\MailLogController;
 use App\Http\Controllers\API\MailTemplateController;
 use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\OrderController;
-use App\Http\Controllers\API\PaymentVerificationController;
-use App\Http\Controllers\API\PaystackWebhookController;
+use App\Http\Controllers\API\StripePaymentController;
+use App\Http\Controllers\API\StripeWebhookController;
 use App\Http\Controllers\API\ServiceController;
 use App\Http\Controllers\API\SettingController;
 use App\Http\Controllers\API\TestimonialController;
@@ -52,12 +52,13 @@ Route::get('/settings', [SettingController::class, 'index']);
 Route::get('/settings/{key}', [SettingController::class, 'getByKey']);
 Route::post('/messages', [InquiryController::class, 'store'])->middleware('throttle:10,1');
 Route::post('/transactions', [OrderController::class, 'store'])->middleware('throttle:10,1');
-Route::post('/payments/verify', [PaymentVerificationController::class, 'verify']);
+Route::post('/payments/create-checkout', [StripePaymentController::class, 'createCheckoutSession'])->middleware('throttle:10,1');
+Route::get('/payments/status/{sessionId}', [StripePaymentController::class, 'status']);
 
-// Paystack webhook (called by Paystack servers, not by users)
-Route::post('/webhooks/paystack', [PaystackWebhookController::class, 'handle'])
+// Stripe webhook (called by Stripe servers, not by users)
+Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle'])
     ->middleware('throttle:60,1')
-    ->name('webhooks.paystack');
+    ->name('webhooks.stripe');
 
 // Calendly webhook (called by Calendly servers when events are booked/cancelled)
 Route::post('/webhooks/calendly', [CalendlyWebhookController::class, 'handle'])

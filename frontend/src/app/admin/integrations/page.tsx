@@ -34,7 +34,7 @@ import {
 import { toast } from "sonner";
 
 const iconMap: Record<string, React.ElementType> = {
-  paystack: CreditCard,
+  stripe: CreditCard,
   smtp: Mail,
   calendly: Calendar,
   reverb: Wifi,

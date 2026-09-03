@@ -46,7 +46,7 @@ export default function BookingsPage() {
                </div>
 
                <div className="flex items-center gap-2 text-primary font-bold text-[11px] underline underline-offset-4 cursor-pointer hover:opacity-70">
-                  <ExternalLink size={14} /> Paystack Ref: {item.paystack_ref.substring(0, 8)}...
+                  <ExternalLink size={14} /> Stripe: {(item.stripe_payment_intent_id || item.stripe_checkout_session_id || '').substring(0, 16)}...
                </div>
             </div>
           </Card>

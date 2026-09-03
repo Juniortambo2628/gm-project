@@ -76,7 +76,8 @@ export function makeBooking(overrides: Partial<Booking> = {}): Booking {
     email: 'john@example.com',
     amount: 50000,
     currency: 'USD',
-    paystack_ref: 'psk_ref_123',
+    stripe_payment_intent_id: 'pi_ref_123',
+    stripe_checkout_session_id: 'cs_ref_123',
     status: 'confirmed',
     created_at: '2026-01-15T10:00:00Z',
     ...overrides,
@@ -110,8 +111,8 @@ export function makeMailTemplate(overrides: Partial<MailTemplate> = {}): MailTem
 
 export function makeIntegrationTestResult(overrides: Partial<IntegrationTestResult> = {}): IntegrationTestResult {
   return {
-    key: 'paystack',
-    name: 'Paystack Payments',
+    key: 'stripe',
+    name: 'Stripe Payments',
     status: 'ok',
     configured: true,
     connected: true,
