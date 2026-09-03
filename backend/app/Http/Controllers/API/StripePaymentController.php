@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Service;
 use App\Models\Transaction;
 use App\Services\StripeService;
 use Illuminate\Http\JsonResponse;
@@ -26,7 +27,7 @@ class StripePaymentController extends Controller
             'email' => 'required|email|max:255',
         ]);
 
-        $service = \App\Models\Service::findOrFail($validated['service_id']);
+        $service = Service::findOrFail($validated['service_id']);
 
         $amountInPence = (int) ($service->price * 100); // Convert to pence/cents
         $currency = strtolower($service->currency ?? 'gbp');

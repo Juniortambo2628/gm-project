@@ -8,6 +8,7 @@ use App\Services\MediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class CMSController extends Controller
@@ -56,7 +57,8 @@ class CMSController extends Controller
         } catch (\InvalidArgumentException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Upload failed: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            Log::error('Upload failed: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+
             return response()->json(['error' => 'Upload failed: '.$e->getMessage()], 500);
         }
     }

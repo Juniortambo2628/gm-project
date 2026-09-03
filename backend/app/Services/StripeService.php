@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Stripe\Checkout\Session as CheckoutSession;
 use Stripe\Exception\ApiErrorException;

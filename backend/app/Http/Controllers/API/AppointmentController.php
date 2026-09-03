@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 class AppointmentController extends BaseCrudController
 {
     protected string $modelClass = Appointment::class;
+
     protected string $resourceClass = AppointmentResource::class;
 
     public function index(): JsonResponse

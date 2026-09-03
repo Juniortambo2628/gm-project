@@ -5,11 +5,11 @@ namespace App\Http\Controllers\API;
 use App\Http\Resources\MailLogResource;
 use App\Models\MailLog;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class MailLogController extends BaseCrudController
 {
     protected string $modelClass = MailLog::class;
+
     protected string $resourceClass = MailLogResource::class;
 
     public function index(): JsonResponse

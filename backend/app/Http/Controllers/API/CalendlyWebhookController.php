@@ -35,6 +35,7 @@ class CalendlyWebhookController extends Controller
             $signature = $request->header('calendly-webhook-signature');
             if (! $this->verifySignature($request->getContent(), $signature, $signingKey)) {
                 Log::warning('Calendly webhook signature verification failed');
+
                 return response()->json(['status' => 'invalid_signature'], 401);
             }
         } else {
