@@ -375,7 +375,7 @@ function ApiKeysModule({ localSettings, setLocalSettings }: ModuleProps) {
       <div className="space-y-3"><label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Consulting Prep Calendly URL</label><Input value={localSettings["consulting_calendly_url"] || ""} onChange={(e) => setLocalSettings({ ...localSettings, consulting_calendly_url: e.target.value })} className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" placeholder="https://calendly.com/your-id/mock-interview" /></div>
       <div className="p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10">
         <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-1">Payment & Email credentials</p>
-        <p className="text-xs text-muted-foreground font-medium">Paystack keys and SMTP credentials are now managed via backend environment variables and Laravel config. They are no longer stored or exposed through this CMS.</p>
+        <p className="text-xs text-muted-foreground font-medium">Stripe keys and SMTP credentials are now managed via backend environment variables and Laravel config. They are no longer stored or exposed through this CMS.</p>
       </div>
     </div>
   );

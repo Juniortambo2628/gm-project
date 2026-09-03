@@ -122,7 +122,7 @@ export default function AdminDashboard() {
         <Card className="col-span-1 lg:col-span-4 bg-card shadow-sm border-border block border overflow-hidden">
           <CardHeader>
             <CardTitle>Revenue overview</CardTitle>
-            <CardDescription className="font-bold italic">Monthly earnings from Paystack transactions</CardDescription>
+            <CardDescription className="font-bold italic">Monthly earnings from Stripe transactions</CardDescription>
           </CardHeader>
           <CardContent className="pl-2 relative min-h-[350px]">
             <div className="w-full h-[350px]">

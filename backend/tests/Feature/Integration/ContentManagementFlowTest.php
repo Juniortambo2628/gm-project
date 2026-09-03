@@ -38,7 +38,7 @@ class ContentManagementFlowTest extends TestCase
         $response = $this->withHeaders($this->jsonHeaders($admin))
             ->postJson('/api/cms/faqs', [
                 'question' => 'What are the payment options?',
-                'answer' => 'We accept Paystack payments.',
+                'answer' => 'We accept Stripe payments.',
                 'category' => 'billing',
             ]);
 

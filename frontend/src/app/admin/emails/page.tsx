@@ -17,27 +17,17 @@ import {
   type MailTemplatePreview,
   getErrorMessage,
 } from "@/lib/api";
-import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { toast } from "sonner";
 
 export default function EmailTemplatesPage() {
-  useAdminFetch<MailTemplate[]>(
-    "" as string,
-    {
-      extractAsList: false,
-      errorMessage: "Failed to load email templates",
-      onSuccess: (data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          selectTemplate(data[0]);
-        }
-      },
-    }
-  );
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [fetched, setFetched] = useState(false);
   const [templateList, setTemplateList] = useState<MailTemplate[]>([]);
   const [templateLoading, setTemplateLoading] = useState(true);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [preview, setPreview] = useState<MailTemplatePreview | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -64,13 +54,6 @@ export default function EmailTemplatesPage() {
     run();
     return () => { cancelled = true; };
   }, []);
-
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [preview, setPreview] = useState<MailTemplatePreview | null>(null);
 
   const selected = templateList.find((t) => t.key === selectedKey);
 

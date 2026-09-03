@@ -22,9 +22,7 @@ export function useLogoSrc({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Use requestAnimationFrame to defer state update outside the synchronous effect phase
-    const id = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(id);
+    setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect
   }, []);
 
   const currentTheme = mounted ? (resolvedTheme || theme) : "light";
