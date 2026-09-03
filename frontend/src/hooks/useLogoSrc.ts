@@ -22,7 +22,9 @@ export function useLogoSrc({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    // Use requestAnimationFrame to defer state update outside the synchronous effect phase
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
   }, []);
 
   const currentTheme = mounted ? (resolvedTheme || theme) : "light";

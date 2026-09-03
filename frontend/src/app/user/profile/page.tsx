@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +14,6 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function UserProfilePage() {
-  const router = useRouter();
   const { user, isAuthenticated, isLoading, refreshUser } = useAuth();
   useAuthGuard();
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);

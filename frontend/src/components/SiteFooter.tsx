@@ -2,14 +2,12 @@
 
 import Link from "next/link";
 import { ShieldCheck, Zap, Share2, MessageSquare, Users, Smartphone } from "lucide-react";
-import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { useLogoSrc } from "@/hooks/useLogoSrc";
 import { IconBlock } from "@/components/ui/IconBlock";
 import { SafeImage } from "@/components/SafeImage";
 
 export function SiteFooter() {
   const currentYear = new Date().getFullYear();
-  const { getSetting } = useSiteSettings();
   const { logoSrc, mounted } = useLogoSrc();
 
   return (
