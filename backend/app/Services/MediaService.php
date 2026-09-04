@@ -166,7 +166,7 @@ class MediaService
 
     private function encodeImage($image, string $mimeType, int $quality)
     {
-        return $image->encode($mimeType, $quality);
+        return $image->encodeByMediaType($mimeType, $quality);
     }
 
     private function compressImage(string $sourcePath, string $mimeType): array
