@@ -75,7 +75,7 @@ class MailDeliveryService
             'recipient' => $to,
             'template_key' => $templateKey,
             'subject' => $mailable->mailSubject,
-            'error' => $success ? null : "Mail::send() did not throw, but delivery may have failed. Check storage/logs/laravel.log and the mail_logs table.",
+            'error' => $success ? null : 'Mail::send() did not throw, but delivery may have failed. Check storage/logs/laravel.log and the mail_logs table.',
         ];
     }
 }
