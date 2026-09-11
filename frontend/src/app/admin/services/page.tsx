@@ -36,7 +36,11 @@ export default function ServicesManagementPage() {
   const handleSaveService = async (service: Service) => {
     setSaving(true);
     try {
-      await axiosInstance.post("/cms/services", service);
+      if (service.id && service.id > 0) {
+        await axiosInstance.put(`/cms/services/${service.id}`, service);
+      } else {
+        await axiosInstance.post("/cms/services", service);
+      }
       toast.success("Service updated");
       refreshCMSContent();
     } catch {
