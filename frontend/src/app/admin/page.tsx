@@ -15,6 +15,7 @@ interface DashboardTransaction {
   id: number;
   customer_email: string;
   amount: string | number;
+  currency: string;
   created_at: string;
 }
 

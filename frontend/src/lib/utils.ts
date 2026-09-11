@@ -9,7 +9,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   EUR: "\u20ac",
 };
 
-export function formatCurrency(amount: number, currency?: string): string {
+export function formatCurrency(amount: number | string, currency?: string): string {
   const code = (currency || "GBP").toUpperCase();
   const symbol = CURRENCY_SYMBOLS[code] || code;
   return `${symbol}${Number(amount).toLocaleString()}`;
