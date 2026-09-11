@@ -80,7 +80,7 @@ class IntegrationTestController extends Controller
                 'success' => $result['success'],
                 'message' => $result['success']
                     ? "Test email ({$templateKey}) sent successfully to {$email}."
-                    : "Failed to send test email to {$email}.",
+                    : ($result['error'] ?? "Failed to send test email to {$email}."),
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
