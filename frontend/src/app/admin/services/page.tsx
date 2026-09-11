@@ -195,14 +195,15 @@ export default function ServicesManagementPage() {
                            value={service.type}
                            onChange={(e) => {
                              const updated = [...localServices];
-                              updated[i].type = e.target.value as 'mba' | 'consulting';
+                               updated[i].type = e.target.value as 'mba' | 'consulting' | 'discovery';
                              setLocalServices(updated);
                            }}
                            className="h-14 w-full bg-muted/30 rounded-2xl px-4 text-xs font-bold border-none outline-none appearance-none"
                          >
                             <option value="mba">MBA Coaching</option>
                             <option value="consulting">Consulting Prep</option>
-                         </select>
+                            <option value="discovery">Discovery Call</option>
+                          </select>
                       </div>
                    </div>
                 </div>

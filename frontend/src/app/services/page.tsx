@@ -61,7 +61,7 @@ export default function ServicesPage() {
               <div key={service.id} className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-card border border-border rounded-2xl hover:border-primary/20 transition-all">
                 <div>
                   <h3 className="text-lg font-bold">{service.name}</h3>
-                  <p className="text-sm text-muted-foreground font-medium">{service.type === 'mba' ? 'MBA Admissions' : 'Consulting Prep'}</p>
+                   <p className="text-sm text-muted-foreground font-medium">{service.type === 'mba' ? 'MBA Admissions' : service.type === 'discovery' ? 'Discovery Call' : 'Consulting Prep'}</p>
                 </div>
                 <div className="flex items-center gap-6 mt-4 md:mt-0">
                   <p className="text-xl font-bold text-primary">

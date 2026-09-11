@@ -33,7 +33,7 @@ export interface BlogPost {
 export interface Service {
   id: number;
   name: string;
-  type: 'mba' | 'consulting';
+  type: 'mba' | 'consulting' | 'discovery';
   price: number;
   currency: string;
   duration?: string;
