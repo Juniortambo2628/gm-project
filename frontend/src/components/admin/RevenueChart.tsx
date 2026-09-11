@@ -24,7 +24,7 @@ export default function RevenueChart({ revenue }: RevenueChartProps) {
       <BarChart data={revenueChartData}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
         <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-        <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+        <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `\u00a3${value}`} />
         <Tooltip 
           cursor={{fill: 'hsl(var(--primary)/0.05)'}} 
           contentStyle={{ borderRadius: '12px', border: 'none', background: 'hsl(var(--card))', boxShadow: 'var(--shadow)', fontWeight: 'bold' }} 

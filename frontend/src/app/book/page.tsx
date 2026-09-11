@@ -12,6 +12,7 @@ import dynamic from "next/dynamic";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { africanCountries } from "@/lib/data/countries";
 import { createTransaction, createCheckoutSession } from "@/lib/api";
+import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -119,7 +120,7 @@ function BookingPageContent() {
             name: formData.name,
             email: formData.email,
             amount: 0,
-            currency: selectedService?.currency || 'USD',
+            currency: selectedService?.currency || 'GBP',
             service_id: selectedService?.id,
             stripe_checkout_session_id: `calendly_${inviteeUri.split('/').pop()}`,
             status: 'success'
@@ -231,7 +232,7 @@ function BookingPageContent() {
                             <span className="text-emerald-600">Free</span>
                           ) : (
                             <>
-                              {s.currency === 'KES' ? 'KSh ' : '$'}{Number(s.price).toLocaleString()} 
+                               {formatCurrency(Number(s.price), s.currency)}{ ' ' }
                               <span className="text-[10px] opacity-40 font-bold"> / hr</span>
                             </>
                           )}

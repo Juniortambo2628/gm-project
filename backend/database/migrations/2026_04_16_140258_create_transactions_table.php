@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('email');
             $table->decimal('amount', 10, 2);
-            $table->string('currency')->default('USD');
+            $table->string('currency')->default('GBP');
             $table->string('service_name');
             $table->string('paystack_ref');
             $table->string('status')->default('pending');

@@ -16,7 +16,7 @@ class TransactionFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->safeEmail(),
             'amount' => fake()->randomFloat(2, 10, 500),
-            'currency' => 'USD',
+            'currency' => 'GBP',
             'service_id' => Service::factory(),
             'stripe_payment_intent_id' => 'pi_'.fake()->unique()->numerify('##########'),
             'stripe_checkout_session_id' => 'cs_'.fake()->unique()->numerify('##########'),

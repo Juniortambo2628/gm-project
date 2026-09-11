@@ -8,6 +8,7 @@ import { IconBlock } from "@/components/ui/IconBlock";
 import { PackageCard } from "@/components/ui/PackageCard";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { FaqAccordion } from "@/components/FaqAccordion";
+import { formatCurrency } from "@/lib/utils";
 import { CTABanner } from "@/components/CTABanner";
 import { FAQ } from "@/lib/api";
 import { HeroSkeleton, ServiceCardSkeleton } from "@/components/Skeletons";
@@ -73,7 +74,7 @@ export default function ConsultingPrepPage() {
     ...consultingServices.map(s => ({
       name: s.name,
       duration: s.duration || "60 Min",
-      price: s.currency === 'KES' ? `KSh ${Number(s.price).toLocaleString()}` : `$${Number(s.price).toLocaleString()}`,
+      price: formatCurrency(Number(s.price), s.currency),
       features: Array.isArray(s.features) ? s.features : (s.features ? JSON.parse(s.features) : []),
       cta: s.name.toLowerCase().includes('review') ? "Book Review Call" : "Book Mock Interview",
       popular: true

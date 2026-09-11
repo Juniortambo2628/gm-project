@@ -55,7 +55,7 @@ abstract class TestCase extends BaseTestCase
             'name' => 'MBA Admissions Consulting',
             'type' => 'mba',
             'price' => 50000,
-            'currency' => 'USD',
+            'currency' => 'GBP',
             'duration' => '6 weeks',
             'features' => ['Essay Review', 'Interview Prep'],
             'description' => 'Full admissions consulting package',

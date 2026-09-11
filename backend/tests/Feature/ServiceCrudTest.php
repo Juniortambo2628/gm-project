@@ -25,7 +25,7 @@ class ServiceCrudTest extends TestCase
             'name' => 'New Consulting Service',
             'type' => 'consulting',
             'price' => 75000,
-            'currency' => 'USD',
+            'currency' => 'GBP',
             'duration' => '8 weeks',
             'features' => ['Case Prep', 'Mock Interviews'],
             'description' => 'Premium consulting prep',
@@ -76,7 +76,7 @@ class ServiceCrudTest extends TestCase
                 'name' => 'Unauthorized Service',
                 'type' => 'mba',
                 'price' => 10000,
-                'currency' => 'USD',
+                'currency' => 'GBP',
             ]);
 
         $response->assertForbidden();

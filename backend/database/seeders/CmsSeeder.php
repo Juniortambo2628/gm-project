@@ -54,7 +54,7 @@ class CmsSeeder extends Seeder
             'type' => 'mba',
             'duration' => '60 Min',
             'price' => 17,
-            'currency' => 'USD',
+            'currency' => 'GBP',
             'is_active' => true,
             'features' => [
                 'Competitive profile evaluation',
@@ -71,7 +71,7 @@ class CmsSeeder extends Seeder
             'type' => 'consulting',
             'duration' => '60 Min',
             'price' => 19,
-            'currency' => 'USD',
+            'currency' => 'GBP',
             'is_active' => true,
             'features' => [
                 'Mock case simulations',
@@ -87,7 +87,7 @@ class CmsSeeder extends Seeder
             'type' => 'discovery',
             'duration' => '30 Min',
             'price' => 0,
-            'currency' => 'USD',
+            'currency' => 'GBP',
             'is_active' => true,
             'features' => [
                 'Get to know your coaching options',

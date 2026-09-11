@@ -15,7 +15,7 @@ class ServiceFactory extends Factory
             'name' => fake()->unique()->sentence(3),
             'description' => fake()->paragraph(),
             'price' => fake()->randomFloat(2, 0, 500),
-            'currency' => 'USD',
+            'currency' => 'GBP',
             'type' => fake()->randomElement(['mba', 'consulting']),
             'duration' => fake()->randomElement(['30 minutes', '60 minutes', '90 minutes']),
             'is_active' => true,

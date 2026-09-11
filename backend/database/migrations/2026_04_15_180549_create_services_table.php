@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('type'); // mba, consulting
             $table->string('duration')->nullable();
             $table->decimal('price', 8, 2);
-            $table->string('currency')->default('USD');
+            $table->string('currency')->default('GBP');
             $table->json('features')->nullable();
             $table->boolean('is_active')->default(true);
             $table->text('description')->nullable();

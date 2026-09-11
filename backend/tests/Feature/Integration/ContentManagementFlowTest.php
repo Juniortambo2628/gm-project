@@ -21,7 +21,7 @@ class ContentManagementFlowTest extends TestCase
                 'name' => 'New MBA Package',
                 'type' => 'mba',
                 'price' => 75000,
-                'currency' => 'USD',
+                'currency' => 'GBP',
                 'duration' => '6 weeks',
                 'features' => ['Essay Review', 'Interview Prep'],
                 'is_active' => true,

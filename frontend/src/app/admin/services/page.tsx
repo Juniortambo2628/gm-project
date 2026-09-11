@@ -86,7 +86,7 @@ export default function ServicesManagementPage() {
       title="Service Packages"
       description="Manage your MBA Admissions and Consulting Interview packages."
       action={
-        <Button onClick={() => setLocalServices([{ id: 0, name: '', price: 0, type: 'mba', features: [], description: '', is_active: true, duration: '60 Min', currency: 'KES' }, ...localServices])} className="rounded-full px-8 h-12 shadow-lg shadow-primary/20">
+        <Button onClick={() => setLocalServices([{ id: 0, name: '', price: 0, type: 'mba', features: [], description: '', is_active: true, duration: '60 Min', currency: 'GBP' }, ...localServices])} className="rounded-full px-8 h-12 shadow-lg shadow-primary/20">
            <Plus className="mr-2" size={18} /> Add new package
         </Button>
       }
@@ -171,18 +171,19 @@ export default function ServicesManagementPage() {
                       </div>
                       <div className="space-y-3">
                          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Currency</label>
-                         <select 
-                           value={service.currency || 'USD'}
-                           onChange={(e) => {
-                             const updated = [...localServices];
-                             updated[i].currency = e.target.value;
-                             setLocalServices(updated);
-                           }}
-                           className="h-14 w-full bg-muted/30 rounded-2xl px-4 text-xs font-bold border-none outline-none appearance-none"
-                         >
-                            <option value="USD">USD ($)</option>
-                            <option value="KES">KES (KSh)</option>
-                         </select>
+                          <select 
+                            value={service.currency || 'GBP'}
+                            onChange={(e) => {
+                              const updated = [...localServices];
+                              updated[i].currency = e.target.value;
+                              setLocalServices(updated);
+                            }}
+                            className="h-14 w-full bg-muted/30 rounded-2xl px-4 text-xs font-bold border-none outline-none appearance-none"
+                          >
+                             <option value="GBP">GBP (\u00a3)</option>
+                             <option value="USD">USD ($)</option>
+                             <option value="KES">KES (KSh)</option>
+                          </select>
                       </div>
                       <div className="space-y-3">
                          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Category</label>

@@ -6,6 +6,7 @@ import { AdminListPage } from "@/components/admin/AdminListPage";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Booking } from "@/lib/api";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
+import { formatCurrency } from "@/lib/utils";
 
 export default function BookingsPage() {
   const { data, loading } = useAdminFetch<Booking[]>("/cms/orders", {
@@ -37,7 +38,7 @@ export default function BookingsPage() {
 
                <div className="flex-1">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Amount</p>
-                  <p className="text-lg font-black text-primary">${item.amount}</p>
+                   <p className="text-lg font-black text-primary">{formatCurrency(item.amount, item.currency)}</p>
                </div>
 
                <div className="flex-1">

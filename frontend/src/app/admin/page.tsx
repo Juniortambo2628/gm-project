@@ -7,6 +7,7 @@ import axiosInstance from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import dynamic from "next/dynamic";
 import { KPICard } from "@/components/KPICard";
+import { formatCurrency } from "@/lib/utils";
 
 const RevenueChart = dynamic(() => import("@/components/admin/RevenueChart"), { ssr: false, loading: () => <div className="h-[350px] bg-muted/20 rounded-2xl animate-pulse" /> });
 
@@ -86,10 +87,10 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KPICard
           title="Total revenue"
-          value={`$${data?.stats?.total_revenue || 0}`}
+          value={formatCurrency(data?.stats?.total_revenue || 0)}
           description={
             <span className="text-emerald-500 inline-flex items-center">
-              <ArrowUpRight size={12}/> +${data?.stats?.current_month_revenue || 0}
+              <ArrowUpRight size={12}/> +{formatCurrency(data?.stats?.current_month_revenue || 0)}
             </span>
           }
           icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
@@ -145,7 +146,7 @@ export default function AdminDashboard() {
                       <p className="text-sm font-bold leading-none">{t.customer_email}</p>
                       <p className="text-xs text-muted-foreground font-medium">{new Date(t.created_at).toLocaleDateString()}</p>
                     </div>
-                    <div className="font-bold text-primary">${t.amount}</div>
+                    <div className="font-bold text-primary">{formatCurrency(t.amount, t.currency)}</div>
                   </div>
                 )) : (
                   <p className="text-sm text-muted-foreground italic text-center py-4">No transactions yet.</p>

@@ -44,7 +44,7 @@ class TransactionSecurityTest extends TestCase
             'name' => 'Test User',
             'email' => 'test@example.com',
             'amount' => 0.01,
-            'currency' => 'USD',
+            'currency' => 'GBP',
             'service_id' => $this->service->id,
             'stripe_checkout_session_id' => 'cs_fake_session_002',
         ];
