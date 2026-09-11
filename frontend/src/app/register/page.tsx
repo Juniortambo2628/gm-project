@@ -17,6 +17,7 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { login, isAuthenticated, user, isLoading } = useAuth();
@@ -37,7 +38,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const data = await registerApi({ name, email, password });
+      const data = await registerApi({ name, email, password, password_confirmation: passwordConfirmation });
       toast.success("Account created!", {
         description: "Welcome to the consultancy platform."
       });
@@ -152,6 +153,21 @@ export default function RegisterPage() {
                         placeholder="••••••••" 
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        required 
+                        className="h-14 pl-12 bg-card border-border rounded-2xl shadow-sm focus:ring-4 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/30 text-foreground"
+                     />
+                  </div>
+               </div>
+
+               <div className="space-y-2 group">
+                  <label className="text-[13px] font-bold text-muted-foreground ml-1">Confirm password</label>
+                  <div className="relative">
+                     <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                     <Input 
+                        type="password" 
+                        placeholder="••••••••" 
+                        value={passwordConfirmation}
+                        onChange={(e) => setPasswordConfirmation(e.target.value)}
                         required 
                         className="h-14 pl-12 bg-card border-border rounded-2xl shadow-sm focus:ring-4 focus:ring-primary/10 transition-all font-medium placeholder:text-muted-foreground/30 text-foreground"
                      />
