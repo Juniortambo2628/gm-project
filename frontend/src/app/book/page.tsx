@@ -171,12 +171,11 @@ function BookingPageContent() {
         toast.error("Payment error", {
           description: result.message || "Could not initialize payment. Please try again.",
         });
+        setIsRedirecting(false);
       }
-    } catch {
-      toast.error("Payment error", {
-        description: "Could not initialize payment. Please try again.",
-      });
-    } finally {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Could not initialize payment. Please try again.";
+      toast.error("Payment error", { description: message });
       setIsRedirecting(false);
     }
   };
@@ -374,25 +373,37 @@ function BookingPageContent() {
                     </div>
                     
                      <div className="relative h-full">
-                        <InlineWidget 
-                           key={calendlyUrl as string}
-                           url={calendlyUrl as string}
-                           styles={{ height: '100%', width: '100%' }}
-                           prefill={{
-                             email: formData.email,
-                             name: formData.name
-                           }}
-                        />
-                       
-                       {/* Blur Overlay if form not filled */}
-                       {(!formData.name || !formData.email) && (
-                         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-12 text-center space-y-4">
-                            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                               <IconBlock icon={MessageSquare} className="bg-transparent text-primary p-0" />
-                            </div>
-                            <p className="text-sm font-bold text-muted-foreground max-w-[200px]">Enter your details to reveal availability</p>
-                         </div>
-                       )}
+                        {price > 0 && !paymentConfirmed ? (
+                          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-12 text-center space-y-4">
+                             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                <IconBlock icon={CheckCircle2} className="bg-transparent text-primary p-0" />
+                             </div>
+                             <p className="text-sm font-bold text-muted-foreground max-w-[220px]">Complete payment to reveal the scheduling calendar</p>
+                             <p className="text-[10px] text-muted-foreground/60 max-w-[200px]">After payment, you will be redirected back here to select your preferred time slot.</p>
+                          </div>
+                        ) : (
+                          <>
+                            <InlineWidget 
+                               key={calendlyUrl as string}
+                               url={calendlyUrl as string}
+                               styles={{ height: '100%', width: '100%' }}
+                               prefill={{
+                                 email: formData.email,
+                                 name: formData.name
+                               }}
+                            />
+                           
+                           {/* Blur Overlay if form not filled (free services only) */}
+                           {price === 0 && (!formData.name || !formData.email) && (
+                             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-12 text-center space-y-4">
+                                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                   <IconBlock icon={MessageSquare} className="bg-transparent text-primary p-0" />
+                                </div>
+                                <p className="text-sm font-bold text-muted-foreground max-w-[200px]">Enter your details to reveal availability</p>
+                             </div>
+                           )}
+                          </>
+                        )}
                      </div>
                  </div>
                  

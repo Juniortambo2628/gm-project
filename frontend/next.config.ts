@@ -5,6 +5,25 @@ const apiHost = new URL(apiUrl).host;
 const apiProtocol = new URL(apiUrl).protocol.slice(0, -1);
 
 const nextConfig: NextConfig = {
+  headers: async () => [
+    {
+      source: "/(.*)",
+      headers: [
+        {
+          key: "Content-Security-Policy",
+          value: [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' js.stripe.com assets.calendly.com js.calendly.com www.googletagmanager.com www.google-analytics.com",
+            "frame-src 'self' checkout.stripe.com calendly.com *.calendly.com",
+            "style-src 'self' 'unsafe-inline' assets.calendly.com fonts.googleapis.com",
+            "img-src 'self' data: blob: images.unsplash.com *.stripe.com *.calendly.com",
+            "font-src 'self' fonts.gstatic.com",
+            "connect-src 'self' api.gm-coaching.com *.stripe.com",
+          ].join("; "),
+        },
+      ],
+    },
+  ],
   images: {
     remotePatterns: [
       {

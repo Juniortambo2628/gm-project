@@ -29,6 +29,13 @@ class StripePaymentController extends Controller
 
         $service = Service::findOrFail($validated['service_id']);
 
+        if (! $this->stripeService->isConfigured()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Payment system is not configured. Please contact support.',
+            ], 503);
+        }
+
         $amountInPence = (int) ($service->price * 100); // Convert to pence/cents
         $currency = strtolower($service->currency ?? 'gbp');
 

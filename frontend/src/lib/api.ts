@@ -258,8 +258,18 @@ export interface CheckoutSessionResult {
 }
 
 export async function createCheckoutSession(data: CheckoutSessionData): Promise<CheckoutSessionResult> {
-  const res = await axiosInstance.post("/payments/create-checkout", data);
-  return res.data;
+  try {
+    const res = await axiosInstance.post("/payments/create-checkout", data);
+    return res.data;
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'response' in err) {
+      const axiosErr = err as { response?: { data?: CheckoutSessionResult } };
+      if (axiosErr.response?.data) {
+        return axiosErr.response.data;
+      }
+    }
+    throw err;
+  }
 }
 
 // Auth

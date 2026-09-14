@@ -10,12 +10,20 @@ use Stripe\Webhook;
 
 class StripeService
 {
+    private bool $configured;
+
     public function __construct()
     {
         $secret = config('services.stripe.secret');
-        if ($secret) {
+        $this->configured = ! empty($secret);
+        if ($this->configured) {
             Stripe::setApiKey($secret);
         }
+    }
+
+    public function isConfigured(): bool
+    {
+        return $this->configured;
     }
 
     /**
