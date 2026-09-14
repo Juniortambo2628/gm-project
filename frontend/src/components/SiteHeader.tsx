@@ -114,9 +114,9 @@ export function SiteHeader() {
                 <div ref={profileRef} className="relative hidden lg:block animate-fade-in">
                   <button
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
-                    className="flex items-center gap-2 h-11 px-4 rounded-xl border border-primary/30 hover:border-primary text-primary bg-secondary/50 dark:bg-transparent transition-all font-bold text-[13px]"
+                    className="flex items-center gap-2 h-11 px-4 rounded-xl border border-primary/30 hover:border-primary text-primary dark:text-white dark:border-white/30 dark:hover:border-white/60 bg-secondary/50 dark:bg-transparent transition-all font-bold text-[13px]"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-black text-[10px] uppercase border border-primary/20">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 dark:bg-white/10 text-primary dark:text-white flex items-center justify-center font-black text-[10px] uppercase border border-primary/20 dark:border-white/20">
                       {user?.name ? user.name.slice(0, 2) : 'U'}
                     </div>
                     <span className="max-w-[100px] truncate">{user?.name || 'Account'}</span>
