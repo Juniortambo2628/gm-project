@@ -13,10 +13,10 @@ const nextConfig: NextConfig = {
           key: "Content-Security-Policy",
           value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' js.stripe.com assets.calendly.com js.calendly.com www.googletagmanager.com www.google-analytics.com",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' js.stripe.com assets.calendly.com js.calendly.com www.googletagmanager.com www.google-analytics.com vercel.live",
             "frame-src 'self' checkout.stripe.com calendly.com *.calendly.com",
             "style-src 'self' 'unsafe-inline' assets.calendly.com fonts.googleapis.com",
-            "img-src 'self' data: blob: images.unsplash.com *.stripe.com *.calendly.com",
+            "img-src 'self' data: blob: images.unsplash.com *.stripe.com *.calendly.com www.transparenttextures.com api.gm-coaching.com gm-coaching.com",
             "font-src 'self' fonts.gstatic.com",
             "connect-src 'self' api.gm-coaching.com *.stripe.com",
           ].join("; "),
