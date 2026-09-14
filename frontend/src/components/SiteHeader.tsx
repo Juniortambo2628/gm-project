@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Info, BookOpen, GraduationCap, Menu, X, Briefcase, Phone } from "lucide-react";
+import { Info, BookOpen, GraduationCap, Menu, X, Briefcase, Phone, LogOut, User, ChevronDown, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { IconBlock } from "@/components/ui/IconBlock";
@@ -15,10 +15,12 @@ import { useLogoSrc } from "@/hooks/useLogoSrc";
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const { logoSrc, mounted } = useLogoSrc();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -26,6 +28,16 @@ export function SiteHeader() {
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const navItems = [
@@ -99,11 +111,55 @@ export function SiteHeader() {
               <ThemeToggle />
 
               {isAuthenticated ? (
-                <Link href={user?.role === 'admin' ? '/admin' : '/user'} className="hidden lg:block animate-fade-in">
-                  <Button size="xl" variant="outline" className="h-11 px-6 font-bold text-[13px] border-primary/30 hover:border-primary text-primary bg-secondary/50 dark:bg-transparent transition-all">
-                    Dashboard
-                  </Button>
-                </Link>
+                <div ref={profileRef} className="relative hidden lg:block animate-fade-in">
+                  <button
+                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                    className="flex items-center gap-2 h-11 px-4 rounded-xl border border-primary/30 hover:border-primary text-primary bg-secondary/50 dark:bg-transparent transition-all font-bold text-[13px]"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-black text-[10px] uppercase border border-primary/20">
+                      {user?.name ? user.name.slice(0, 2) : 'U'}
+                    </div>
+                    <span className="max-w-[100px] truncate">{user?.name || 'Account'}</span>
+                    <ChevronDown size={14} className={cn("transition-transform", isProfileOpen && "rotate-180")} />
+                  </button>
+
+                  {isProfileOpen && (
+                    <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                      <div className="px-3 py-2.5 border-b border-border mb-1">
+                        <p className="text-xs font-bold text-foreground truncate">{user?.name}</p>
+                        <p className="text-[10px] text-muted-foreground truncate mt-0.5">{user?.email}</p>
+                      </div>
+                      <Link
+                        href={user?.role === 'admin' ? '/admin' : '/user'}
+                        onClick={() => setIsProfileOpen(false)}
+                        className="w-full px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/40 flex items-center gap-2.5 transition-all"
+                      >
+                        <User size={14} />
+                        <span>Dashboard</span>
+                      </Link>
+                      <Link
+                        href={user?.role === 'admin' ? '/admin/cms' : '/user/profile'}
+                        onClick={() => setIsProfileOpen(false)}
+                        className="w-full px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/40 flex items-center gap-2.5 transition-all"
+                      >
+                        <Settings size={14} />
+                        <span>Edit Profile</span>
+                      </Link>
+                      <div className="border-t border-border mt-1 pt-1">
+                        <button
+                          onClick={() => {
+                            setIsProfileOpen(false);
+                            logout();
+                          }}
+                          className="w-full px-3 py-2 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10 flex items-center gap-2.5 transition-all"
+                        >
+                          <LogOut size={14} />
+                          <span>Log out</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <Link href="/login" className="hidden lg:block animate-fade-in">
                   <Button size="xl" variant="outline" className="h-11 px-6 font-bold text-[13px] border-primary/30 hover:border-primary text-primary bg-secondary/50 dark:bg-transparent transition-all">
@@ -150,11 +206,27 @@ export function SiteHeader() {
               <div className="h-px bg-border"></div>
               
               {isAuthenticated ? (
-                <Link href={user?.role === 'admin' ? '/admin' : '/user'} onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full border-primary/30 text-primary rounded-xl h-11 font-bold text-xs bg-secondary/50 shadow-sm">
-                    Dashboard
-                  </Button>
-                </Link>
+                <>
+                  <Link href={user?.role === 'admin' ? '/admin' : '/user'} onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full border-primary/30 text-primary rounded-xl h-11 font-bold text-xs bg-secondary/50 shadow-sm">
+                      Dashboard
+                    </Button>
+                  </Link>
+                  <Link href={user?.role === 'admin' ? '/admin/cms' : '/user/profile'} onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full border-border text-muted-foreground rounded-xl h-11 font-bold text-xs bg-secondary/50 shadow-sm">
+                      Edit Profile
+                    </Button>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full p-3 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10 flex items-center justify-center gap-2 transition-all border border-destructive/20"
+                  >
+                    <LogOut size={14} /> Log out
+                  </button>
+                </>
               ) : (
                 <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button variant="outline" className="w-full border-primary/30 text-primary rounded-xl h-11 font-bold text-xs bg-secondary/50 shadow-sm">
