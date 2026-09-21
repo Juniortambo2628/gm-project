@@ -4,7 +4,7 @@ import Pusher from 'pusher-js';
 declare global {
   interface Window {
     Pusher: typeof Pusher;
-    Echo: Echo<'reverb'> | undefined;
+    Echo: Echo<'pusher'> | undefined;
   }
 }
 
@@ -12,13 +12,10 @@ if (typeof window !== 'undefined') {
   window.Pusher = Pusher;
 
   window.Echo = new Echo({
-    broadcaster: 'reverb',
-    key: process.env.NEXT_PUBLIC_REVERB_APP_KEY,
-    wsHost: process.env.NEXT_PUBLIC_REVERB_HOST,
-    wsPort: process.env.NEXT_PUBLIC_REVERB_PORT ? Number(process.env.NEXT_PUBLIC_REVERB_PORT) : 8080,
-    wssPort: process.env.NEXT_PUBLIC_REVERB_PORT ? Number(process.env.NEXT_PUBLIC_REVERB_PORT) : 8080,
-    forceTLS: (process.env.NEXT_PUBLIC_REVERB_SCHEME ?? 'http') === 'https',
-    enabledTransports: ['ws', 'wss'],
+    broadcaster: 'pusher',
+    key: process.env.NEXT_PUBLIC_PUSHER_APP_KEY,
+    cluster: process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTER || 'mt1',
+    forceTLS: true,
   });
 }
 

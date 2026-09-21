@@ -37,7 +37,7 @@ const iconMap: Record<string, React.ElementType> = {
   stripe: CreditCard,
   smtp: Mail,
   calendly: Calendar,
-  reverb: Wifi,
+  pusher: Wifi,
   s3: Cloud,
   backend_api: Server,
   google_fonts: Globe,

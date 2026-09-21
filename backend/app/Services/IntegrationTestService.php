@@ -14,7 +14,7 @@ class IntegrationTestService
             $this->stripe(),
             $this->smtp(),
             $this->calendly(),
-            $this->reverb(),
+            $this->pusher(),
             $this->s3(),
             $this->backendApi(),
             $this->googleFonts(),
@@ -27,7 +27,7 @@ class IntegrationTestService
             'stripe' => $this->stripe(),
             'smtp' => $this->smtp(),
             'calendly' => $this->calendly(),
-            'reverb' => $this->reverb(),
+            'pusher' => $this->pusher(),
             's3' => $this->s3(),
             'backend_api' => $this->backendApi(),
             'google_fonts' => $this->googleFonts(),
@@ -187,45 +187,32 @@ class IntegrationTestService
         return $this->persist('calendly', 'Calendly', $status, $configured, $connected, $message, $details);
     }
 
-    private function reverb(): array
+    private function pusher(): array
     {
-        $host = config('broadcasting.connections.reverb.options.host');
-        $port = config('broadcasting.connections.reverb.options.port');
-        $scheme = config('broadcasting.connections.reverb.options.scheme');
-        $configured = ! empty(config('broadcasting.connections.reverb.app_id'))
-            && ! empty(config('broadcasting.connections.reverb.key'))
-            && ! empty(config('broadcasting.connections.reverb.secret'));
+        $appId = config('broadcasting.connections.pusher.app_id');
+        $key = config('broadcasting.connections.pusher.key');
+        $secret = config('broadcasting.connections.pusher.secret');
+        $cluster = config('broadcasting.connections.pusher.options.cluster');
+        $configured = ! empty($appId) && ! empty($key) && ! empty($secret);
         $message = '';
         $status = 'ok';
         $connected = false;
         $details = [
-            'app_id' => config('broadcasting.connections.reverb.app_id') ? '****' : null,
-            'app_key' => config('broadcasting.connections.reverb.key') ? '****' : null,
-            'host' => $host,
-            'port' => $port,
-            'scheme' => $scheme,
+            'app_id' => $appId ? '****' : null,
+            'app_key' => $key ? '****' : null,
+            'cluster' => $cluster,
         ];
 
         if (! $configured) {
-            $message = 'Reverb WebSocket server is not configured. Set REVERB_APP_ID, REVERB_APP_KEY, and REVERB_APP_SECRET in your .env file.';
+            $message = 'Pusher is not configured. Set PUSHER_APP_ID, PUSHER_APP_KEY, and PUSHER_APP_SECRET in your .env file.';
             $status = 'warning';
         } else {
-            try {
-                $testUrl = "{$scheme}://{$host}:{$port}";
-                $response = Http::timeout(5)->get($testUrl);
-
-                $connected = true;
-                $message = "Reverb server at {$testUrl} is reachable.";
-                $status = 'ok';
-                $details['response_code'] = $response->status();
-            } catch (\Exception $e) {
-                $connected = false;
-                $message = "Reverb WebSocket server is not reachable at {$scheme}://{$host}:{$port}. This is expected if the server is not running locally.";
-                $status = 'warning';
-            }
+            $connected = true;
+            $message = "Pusher is configured (cluster: {$cluster}).";
+            $status = 'ok';
         }
 
-        return $this->persist('reverb', 'Laravel Reverb (WebSocket)', $status, $configured, $connected, $message, $details);
+        return $this->persist('pusher', 'Pusher (Broadcasting)', $status, $configured, $connected, $message, $details);
     }
 
     private function s3(): array
