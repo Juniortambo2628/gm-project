@@ -348,10 +348,10 @@ export default function Home() {
                  <h3 className="text-3xl md:text-5xl font-bold mb-8 leading-tight italic">
                    Ready to start <br/>your journey?
                  </h3>
-                 <p className="text-lg font-medium mb-10 text-white/80">Book a 20-minute discovery call to discuss your goals.</p>
+                 <p className="text-lg font-medium mb-10 text-white/80">Book a strategy session to discuss your goals.</p>
                  <Link href="/book" className="inline-block w-full sm:w-auto">
                     <Button className="w-full sm:w-auto bg-white text-primary hover:bg-white/90 px-6 sm:px-10 md:px-12 h-12 sm:h-14 text-sm sm:text-base md:text-lg font-bold rounded-full group flex items-center justify-center">
-                       Book free discovery call <ArrowRight className="ml-2 sm:ml-3 group-hover:translate-x-2 transition-transform shrink-0" />
+                       Book a session <ArrowRight className="ml-2 sm:ml-3 group-hover:translate-x-2 transition-transform shrink-0" />
                     </Button>
                  </Link>
              </div>

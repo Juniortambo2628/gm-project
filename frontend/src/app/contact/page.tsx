@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { IconBlock } from "@/components/ui/IconBlock";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
-import { africanCountries } from "@/lib/data/countries";
+import { countries } from "@/lib/data/countries";
 import { createMessage, getErrorMessage } from "@/lib/api";
 
 export default function ContactPage() {
@@ -145,7 +145,7 @@ export default function ContactPage() {
                      onChange={(e) => setFormData({...formData, country: e.target.value})}
                    >
                       <option value="" disabled>Select your country</option>
-                      {africanCountries.map((country, i) => (
+                      {countries.map((country, i) => (
                         <option key={i} value={country.toLowerCase()}>{country}</option>
                       ))}
                    </select>

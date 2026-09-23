@@ -192,23 +192,6 @@ export default function MBAAdmissionsPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              {/* Discovery Call Card */}
-              <PackageCard 
-                name="Discovery Consultation"
-                duration={getSetting('discovery_duration', '20 Min')}
-                price="FREE"
-                priceSubtext="Introductory call"
-                features={[
-                   "Evaluate your GMAT/GRE status",
-                   "Identify target top-tier UK schools",
-                   "Identify African scholarship eligibility",
-                   "Review career narrative starting point"
-                ]}
-                ctaText="Book Free Discovery Call"
-                ctaLink="/book"
-                popular={false}
-              />
-
              {packages.map((pkg, i) => (
                <PackageCard 
                   key={i}
