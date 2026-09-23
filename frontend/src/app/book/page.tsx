@@ -10,7 +10,7 @@ import { useCMSContent } from "@/context/CMSContentContext";
 import { IconBlock } from "@/components/ui/IconBlock";
 import dynamic from "next/dynamic";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { africanCountries } from "@/lib/data/countries";
+import { countries } from "@/lib/data/countries";
 import { createTransaction, createCheckoutSession } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
@@ -84,7 +84,7 @@ function BookingPageContent() {
             description: "Your session is now confirmed. Check your email for details."
           });
           // Clear the session_id from URL
-          window.history.replaceState({}, "", "/book");
+          window.history.replaceState({}, "", "/book/");
         }
       } catch {
         // Ignore polling errors
@@ -302,8 +302,8 @@ function BookingPageContent() {
                            onChange={(e) => setFormData({...formData, location: e.target.value})}
                            required
                          >
-                            <option value="">Select Region</option>
-                            {africanCountries.map(c => <option key={c} value={c}>{c}</option>)}
+                            <option value="">Select country</option>
+                            {countries.map(c => <option key={c} value={c}>{c}</option>)}
                          </select>
                       </div>
                    </div>

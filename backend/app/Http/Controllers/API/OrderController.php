@@ -80,7 +80,7 @@ class OrderController extends Controller
         $appointment = Appointment::create([
             'transaction_id' => $transaction->id,
             'service_id' => $transaction->service_id,
-            'user_id' => $request->user()->id,
+            'user_id' => $request->user()?->id,
             'client_name' => $transaction->name,
             'client_email' => $transaction->email,
             'scheduled_at' => $scheduledAt,
@@ -159,15 +159,35 @@ class OrderController extends Controller
 
     /**
      * List all transactions (Admin).
+     *
+     * Reconciles any lingering pending records against Stripe on the way out,
+     * so that a missed webhook does not leave the dashboard permanently out of
+     * sync with the bookings list.
      */
     public function index(): JsonResponse
     {
+        $this->stripeService->reconcilePendingTransactions(days: 30, limit: 25);
+
         $transactions = Transaction::query()
             ->with('service')
             ->latest()
             ->paginate(15);
 
         return TransactionResource::collection($transactions)->response();
+    }
+
+    /**
+     * Admin action: reconcile every pending Stripe transaction on demand.
+     */
+    public function reconcile(): JsonResponse
+    {
+        $result = $this->stripeService->reconcilePendingTransactions(days: 90, limit: 100);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Checked {$result['checked']} pending transactions, reconciled {$result['reconciled']}.",
+            'data' => $result,
+        ]);
     }
 
     /**

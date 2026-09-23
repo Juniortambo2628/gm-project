@@ -95,6 +95,11 @@ class StripePaymentController extends Controller
 
         $transaction = Transaction::where('stripe_checkout_session_id', $sessionId)->first();
 
+        // Self-heal when the webhook never arrived.
+        if ($transaction && $transaction->status !== 'success') {
+            $this->stripeService->reconcilePendingTransaction($transaction);
+        }
+
         return response()->json([
             'status' => 'success',
             'data' => [

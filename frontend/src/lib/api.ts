@@ -380,6 +380,11 @@ export async function sendTestEmail(email: string, templateKey: string = 'welcom
   return res.data;
 }
 
+export async function reconcilePendingPayments(): Promise<{ message: string; data: { checked: number; reconciled: number } }> {
+  const res = await axiosInstance.post('/cms/orders/reconcile');
+  return res.data;
+}
+
 // Media upload helpers
 export async function getMediaMetadata(path: string): Promise<MediaMetadata> {
   const res = await axiosInstance.post('/cms/upload/metadata', { path });

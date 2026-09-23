@@ -5,6 +5,7 @@ const apiHost = new URL(apiUrl).host;
 const apiProtocol = new URL(apiUrl).protocol.slice(0, -1);
 
 const nextConfig: NextConfig = {
+  trailingSlash: true,
   headers: async () => [
     {
       source: "/(.*)",

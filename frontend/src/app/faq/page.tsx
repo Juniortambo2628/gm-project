@@ -39,8 +39,8 @@ export default function FAQPage() {
 
       <CTABanner
         title={<>Still have <br/><span className="text-white/60">questions?</span></>}
-        description="Book a free discovery call and let's discuss your specific goals."
-        buttonText="Book a free call"
+        description="Book a strategy session and let's discuss your specific goals."
+        buttonText="Book a session"
         buttonHref="/book"
       />
     </PublicLayout>

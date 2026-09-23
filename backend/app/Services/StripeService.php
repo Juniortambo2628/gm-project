@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Transaction;
 use Illuminate\Support\Facades\Log;
 use Stripe\Checkout\Session as CheckoutSession;
 use Stripe\Exception\ApiErrorException;
@@ -123,13 +124,65 @@ class StripeService
         return 60;
     }
 
+    /**
+     * Check Stripe for a single pending Transaction and, if the underlying
+     * checkout session has been paid, promote it to success in the database.
+     *
+     * Returns true when the record was reconciled, false otherwise.
+     */
+    public function reconcilePendingTransaction(Transaction $tx): bool
+    {
+        if (! $this->configured || empty($tx->stripe_checkout_session_id)) {
+            return false;
+        }
+
+        $session = $this->getCheckoutSession($tx->stripe_checkout_session_id);
+        if (! $session || $session->payment_status !== 'paid') {
+            return false;
+        }
+
+        $amountTotal = ($session->amount_total ?? 0) / 100;
+        $tx->update([
+            'status' => 'success',
+            'amount' => $amountTotal > 0 ? $amountTotal : $tx->amount,
+            'currency' => strtoupper($session->currency ?? $tx->currency),
+            'stripe_payment_intent_id' => $session->payment_intent ?? $tx->stripe_payment_intent_id,
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Reconcile every pending transaction from the last $days days.
+     *
+     * Returns [checked, reconciled] counts.
+     */
+    public function reconcilePendingTransactions(int $days = 30, int $limit = 100): array
+    {
+        $pending = Transaction::query()
+            ->where('status', 'pending')
+            ->whereNotNull('stripe_checkout_session_id')
+            ->where('created_at', '>=', now()->subDays($days))
+            ->limit($limit)
+            ->get();
+
+        $reconciled = 0;
+        foreach ($pending as $tx) {
+            if ($this->reconcilePendingTransaction($tx)) {
+                $reconciled++;
+            }
+        }
+
+        return ['checked' => $pending->count(), 'reconciled' => $reconciled];
+    }
+
     private function getSuccessUrl(): string
     {
-        return config('services.stripe.frontend_url', env('FRONTEND_URL', 'http://localhost:3000')).'/book?session_id={CHECKOUT_SESSION_ID}';
+        return config('services.stripe.frontend_url', env('FRONTEND_URL', 'http://localhost:3000')).'/book/?session_id={CHECKOUT_SESSION_ID}';
     }
 
     private function getCancelUrl(): string
     {
-        return config('services.stripe.frontend_url', env('FRONTEND_URL', 'http://localhost:3000')).'/book';
+        return config('services.stripe.frontend_url', env('FRONTEND_URL', 'http://localhost:3000')).'/book/';
     }
 }

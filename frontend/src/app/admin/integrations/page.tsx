@@ -28,6 +28,7 @@ import {
   runIntegrationTest,
   runAllIntegrationTests,
   sendTestEmail,
+  reconcilePendingPayments,
   type IntegrationTestResult,
   getErrorMessage,
 } from "@/lib/api";
@@ -89,6 +90,7 @@ export default function IntegrationsPage() {
   const [testEmailAddress, setTestEmailAddress] = useState("");
   const [testEmailTemplate, setTestEmailTemplate] = useState("welcome");
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
 
   useEffect(() => {
     fetchResults();
@@ -129,6 +131,20 @@ export default function IntegrationsPage() {
       toast.error("Test failed", { description: getErrorMessage(err) });
     } finally {
       setTestingKey(null);
+    }
+  };
+
+  const handleReconcile = async () => {
+    setReconciling(true);
+    try {
+      const result = await reconcilePendingPayments();
+      toast.success(result.message);
+      // Refresh Stripe status card so the webhook warning updates if relevant.
+      await testOne('stripe');
+    } catch (err) {
+      toast.error("Reconcile failed", { description: getErrorMessage(err) });
+    } finally {
+      setReconciling(false);
     }
   };
 
@@ -191,7 +207,7 @@ export default function IntegrationsPage() {
             </div>
           </Card>
 
-          <Card className="rounded-2xl border shadow-sm p-6 bg-card flex items-center">
+          <Card className="rounded-2xl border shadow-sm p-6 bg-card flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
             <Button onClick={testAll} disabled={testingAll} className="rounded-2xl h-14 px-8 font-black">
               {testingAll ? (
                 <RefreshCcw className="animate-spin mr-2" size={20} />
@@ -199,6 +215,20 @@ export default function IntegrationsPage() {
                 <Zap size={20} className="mr-2" />
               )}
               {testingAll ? "Running Tests..." : "Test All Integrations"}
+            </Button>
+            <Button
+              onClick={handleReconcile}
+              disabled={reconciling}
+              variant="outline"
+              className="rounded-2xl h-14 px-6 font-bold"
+              title="Re-check pending Stripe payments and mark them successful if Stripe confirms the payment. Useful when the Stripe webhook has not been set up yet."
+            >
+              {reconciling ? (
+                <RefreshCcw className="animate-spin mr-2" size={18} />
+              ) : (
+                <CreditCard size={18} className="mr-2" />
+              )}
+              {reconciling ? "Reconciling..." : "Reconcile Pending Payments"}
             </Button>
           </Card>
         </div>

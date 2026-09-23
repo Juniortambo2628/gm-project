@@ -81,5 +81,17 @@ Artisan::command('bookings:send-reminders', function () {
     $this->call('appointments:send-reminders');
 })->purpose('Alias for appointments:send-reminders');
 
+Artisan::command('stripe:reconcile {--days=90 : Look back this many days} {--limit=100 : Max records to check}', function () {
+    /** @var \App\Services\StripeService $stripe */
+    $stripe = app(\App\Services\StripeService::class);
+    $days = (int) $this->option('days');
+    $limit = (int) $this->option('limit');
+
+    $this->info("Reconciling pending Stripe transactions from the last {$days} days...");
+    $result = $stripe->reconcilePendingTransactions(days: $days, limit: $limit);
+    $this->info("Checked {$result['checked']} pending transactions, reconciled {$result['reconciled']}.");
+})->purpose('Promote pending Stripe transactions to success by re-checking with Stripe');
+
 Schedule::command('appointments:send-reminders')->hourly();
 Schedule::command('appointments:send-followups')->hourly();
+Schedule::command('stripe:reconcile')->everyFifteenMinutes();
