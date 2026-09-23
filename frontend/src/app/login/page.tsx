@@ -1,9 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Mail, Lock, ArrowRight, ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -15,6 +15,14 @@ import { SafeImage } from "@/components/SafeImage";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner fullScreen />}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -101,19 +109,26 @@ export default function LoginPage() {
   };
 
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, isAuthenticated, user, isLoading } = useAuth();
   const { getSetting } = useSiteSettings();
+
+  // Only trust in-app paths so ?redirect= cannot be used as an open redirect.
+  const rawRedirect = searchParams?.get("redirect") || "";
+  const redirectTo = rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "";
 
   // Auth Guard: Redirect if already logged in
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      if (user?.role === 'admin') {
+      if (redirectTo) {
+        router.push(redirectTo);
+      } else if (user?.role === 'admin') {
         router.push("/admin");
       } else {
         router.push("/user");
       }
     }
-  }, [isAuthenticated, user, isLoading, router]);
+  }, [isAuthenticated, user, isLoading, router, redirectTo]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -513,8 +528,8 @@ export default function LoginPage() {
                        >
                           Return home
                        </Link>
-                       <Link 
-                          href="/register" 
+                       <Link
+                          href={redirectTo ? `/register?redirect=${encodeURIComponent(redirectTo)}` : "/register"}
                           className="px-5 py-2.5 rounded-xl border border-primary/20 hover:border-primary text-primary transition-all text-[13px] font-medium bg-secondary"
                        >
                           Create account

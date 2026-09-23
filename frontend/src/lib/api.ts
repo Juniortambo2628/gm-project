@@ -112,7 +112,15 @@ export interface PasswordData {
 export interface Booking {
   id: number;
   service_id: number;
-  service_name: string;
+  service?: {
+    id: number;
+    name: string;
+    type: 'mba' | 'consulting' | 'discovery';
+    duration: string;
+    price: number;
+    currency: string;
+  };
+  service_name?: string;
   name: string;
   email: string;
   amount: string | number;
@@ -326,7 +334,13 @@ export async function getUserBookings(): Promise<Booking[]> {
 export async function getUserBooking(id: number): Promise<Booking | null> {
   try {
     const res = await axiosInstance.get(`/user/bookings/${id}`);
-    return res.data;
+    // API responses wrap the resource in { data: ... }; unwrap it, but be
+    // defensive in case a caller ever returns the raw object directly.
+    const payload = res.data as { data?: Booking } | Booking;
+    if (payload && typeof payload === 'object' && 'data' in payload && payload.data) {
+      return payload.data as Booking;
+    }
+    return payload as Booking;
   } catch (error: any) {
     if (error.response?.status === 404) return null;
     throw error;

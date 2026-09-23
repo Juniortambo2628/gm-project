@@ -1,9 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Mail, Lock, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -14,25 +14,39 @@ import { SafeImage } from "@/components/SafeImage";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner fullScreen />}>
+      <RegisterPageContent />
+    </Suspense>
+  );
+}
+
+function RegisterPageContent() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, isAuthenticated, user, isLoading } = useAuth();
   const { getSetting } = useSiteSettings();
+
+  const rawRedirect = searchParams?.get("redirect") || "";
+  const redirectTo = rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "";
 
   // Auth Guard: Redirect if already logged in
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      if (user?.role === 'admin') {
+      if (redirectTo) {
+        router.push(redirectTo);
+      } else if (user?.role === 'admin') {
         router.push("/admin");
       } else {
         router.push("/user");
       }
     }
-  }, [isAuthenticated, user, isLoading, router]);
+  }, [isAuthenticated, user, isLoading, router, redirectTo]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,8 +209,8 @@ export default function RegisterPage() {
                   >
                      Return home
                   </Link>
-                  <Link 
-                     href="/login" 
+                  <Link
+                     href={redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login"}
                      className="px-6 py-3 rounded-xl border border-primary/20 hover:border-primary text-primary transition-all text-[13px] font-bold bg-secondary flex items-center gap-2 group"
                   >
                      <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />

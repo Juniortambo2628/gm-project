@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { GraduationCap, Briefcase, MapPin, Phone, MessageSquare, CheckCircle2, Globe, Loader2, PhoneCall } from "lucide-react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { useCMSContent } from "@/context/CMSContentContext";
+import { useAuth } from "@/context/AuthContext";
 import { IconBlock } from "@/components/ui/IconBlock";
 import dynamic from "next/dynamic";
 import { PublicLayout } from "@/components/layout/PublicLayout";
@@ -16,6 +17,8 @@ import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import Link from "next/link";
+import { LogIn } from "lucide-react";
 
 const StripeCheckoutButton = dynamic(() => import("@/components/StripeCheckoutButton"), { 
   ssr: false,
@@ -51,6 +54,7 @@ function BookingPageContent() {
   const sessionId = searchParams.get("session_id");
   const { services } = useCMSContent();
   const { getSetting, getHeroProps } = useSiteSettings();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
@@ -62,6 +66,16 @@ function BookingPageContent() {
     location: "",
     expectations: ""
   });
+
+  // Prefill from the signed-in profile so the checkout email matches the account.
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    setFormData((prev) => ({
+      ...prev,
+      name: prev.name || user.name || "",
+      email: prev.email || user.email || "",
+    }));
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
     setMounted(true);
@@ -146,8 +160,8 @@ function BookingPageContent() {
   }, [formData, price, selectedService]);
 
   if (!mounted) return null;
-  
-  const canPay = !!(formData.email && formData.name && formData.phone);
+
+  const canPay = !!(formData.email && formData.name && formData.phone) && isAuthenticated;
 
   const breadcrumbs = [
     { label: "Booking", path: "/book" },
@@ -320,16 +334,42 @@ function BookingPageContent() {
                   />
                 </div>
 
-                  {price > 0 ? (
-                     <StripeCheckoutButton 
+                  {!authLoading && !isAuthenticated ? (
+                     <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 space-y-4">
+                       <div className="flex items-start gap-3">
+                         <div className="p-2 bg-primary/10 text-primary rounded-lg h-fit">
+                           <LogIn size={18} />
+                         </div>
+                         <div className="flex-1">
+                           <h4 className="font-bold text-sm">Sign in to complete your booking</h4>
+                           <p className="text-xs text-muted-foreground font-medium mt-1 leading-relaxed">
+                             We tie every payment to an account so you can view your booking, reschedule the call, and get reminders. Signing in only takes a moment.
+                           </p>
+                         </div>
+                       </div>
+                       <div className="flex flex-col sm:flex-row gap-3">
+                         <Link href="/login?redirect=%2Fbook%2F" className="flex-1">
+                           <Button className="w-full h-12 rounded-2xl bg-primary text-white font-bold">
+                             Sign in
+                           </Button>
+                         </Link>
+                         <Link href="/register?redirect=%2Fbook%2F" className="flex-1">
+                           <Button variant="outline" className="w-full h-12 rounded-2xl font-bold">
+                             Create account
+                           </Button>
+                         </Link>
+                       </div>
+                     </div>
+                  ) : price > 0 ? (
+                     <StripeCheckoutButton
                         serviceName={selectedService?.name || 'Session'}
                         isLoading={isRedirecting}
                         disabled={!canPay}
                         onClick={handlePaymentClick}
                      />
                   ) : (
-                     <Button 
-                        disabled={true} 
+                     <Button
+                        disabled={true}
                         className="w-full h-16 rounded-2xl bg-emerald-500/10 text-emerald-600 font-bold border border-emerald-500/20"
                      >
                         Free Session — Complete booking on the calendar →
