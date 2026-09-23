@@ -95,6 +95,19 @@ class StripePaymentController extends Controller
 
         $transaction = Transaction::where('stripe_checkout_session_id', $sessionId)->first();
 
+        // Self-heal: if Stripe confirms payment but our DB is still pending
+        // (e.g. the webhook did not reach us), promote the record to success
+        // so analytics stay in sync with reality.
+        if ($transaction && $session->payment_status === 'paid' && $transaction->status !== 'success') {
+            $amountTotal = ($session->amount_total ?? 0) / 100;
+            $transaction->update([
+                'status' => 'success',
+                'amount' => $amountTotal > 0 ? $amountTotal : $transaction->amount,
+                'currency' => strtoupper($session->currency ?? $transaction->currency),
+                'stripe_payment_intent_id' => $session->payment_intent ?? $transaction->stripe_payment_intent_id,
+            ]);
+        }
+
         return response()->json([
             'status' => 'success',
             'data' => [

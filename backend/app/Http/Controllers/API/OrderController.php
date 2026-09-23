@@ -80,7 +80,7 @@ class OrderController extends Controller
         $appointment = Appointment::create([
             'transaction_id' => $transaction->id,
             'service_id' => $transaction->service_id,
-            'user_id' => $request->user()->id,
+            'user_id' => $request->user()?->id,
             'client_name' => $transaction->name,
             'client_email' => $transaction->email,
             'scheduled_at' => $scheduledAt,
@@ -159,9 +159,33 @@ class OrderController extends Controller
 
     /**
      * List all transactions (Admin).
+     *
+     * Reconciles any lingering pending records against Stripe on the way out,
+     * so that a missed webhook does not leave the dashboard permanently out of
+     * sync with the bookings list.
      */
     public function index(): JsonResponse
     {
+        $pending = Transaction::query()
+            ->where('status', 'pending')
+            ->whereNotNull('stripe_checkout_session_id')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->limit(25)
+            ->get();
+
+        foreach ($pending as $tx) {
+            $session = $this->stripeService->getCheckoutSession($tx->stripe_checkout_session_id);
+            if ($session && $session->payment_status === 'paid') {
+                $amountTotal = ($session->amount_total ?? 0) / 100;
+                $tx->update([
+                    'status' => 'success',
+                    'amount' => $amountTotal > 0 ? $amountTotal : $tx->amount,
+                    'currency' => strtoupper($session->currency ?? $tx->currency),
+                    'stripe_payment_intent_id' => $session->payment_intent ?? $tx->stripe_payment_intent_id,
+                ]);
+            }
+        }
+
         $transactions = Transaction::query()
             ->with('service')
             ->latest()

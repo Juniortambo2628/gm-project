@@ -125,11 +125,11 @@ class StripeService
 
     private function getSuccessUrl(): string
     {
-        return config('services.stripe.frontend_url', env('FRONTEND_URL', 'http://localhost:3000')).'/book?session_id={CHECKOUT_SESSION_ID}';
+        return config('services.stripe.frontend_url', env('FRONTEND_URL', 'http://localhost:3000')).'/book/?session_id={CHECKOUT_SESSION_ID}';
     }
 
     private function getCancelUrl(): string
     {
-        return config('services.stripe.frontend_url', env('FRONTEND_URL', 'http://localhost:3000')).'/book';
+        return config('services.stripe.frontend_url', env('FRONTEND_URL', 'http://localhost:3000')).'/book/';
     }
 }

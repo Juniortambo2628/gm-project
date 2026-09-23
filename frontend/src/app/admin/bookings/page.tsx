@@ -26,7 +26,17 @@ export default function BookingsPage() {
                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                      <p className="text-sm font-bold truncate">{item.name}</p>
-                     <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full uppercase">Success</span>
+                     {(() => {
+                        const status = (item.status || 'pending').toLowerCase();
+                        const style = status === 'success'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : status === 'pending'
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-rose-100 text-rose-700';
+                        return (
+                          <span className={`px-2 py-0.5 ${style} text-[10px] font-bold rounded-full uppercase`}>{status}</span>
+                        );
+                     })()}
                   </div>
                   <p className="text-xs text-muted-foreground font-medium truncate">{item.email}</p>
                </div>

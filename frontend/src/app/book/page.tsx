@@ -84,7 +84,7 @@ function BookingPageContent() {
             description: "Your session is now confirmed. Check your email for details."
           });
           // Clear the session_id from URL
-          window.history.replaceState({}, "", "/book");
+          window.history.replaceState({}, "", "/book/");
         }
       } catch {
         // Ignore polling errors
