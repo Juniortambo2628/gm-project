@@ -226,3 +226,32 @@
 .sentence-case {
   text-transform: none;
 }
+
+/*
+ * Tailwind v4 removed the browser default of `cursor: pointer` on interactive
+ * elements. Put it back so buttons and links feel clickable everywhere in the
+ * app, and leave the disabled state as the standard not-allowed cursor.
+ */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  summary,
+  label[for],
+  select:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  select:disabled,
+  input:disabled {
+    cursor: not-allowed;
+  }
+}
