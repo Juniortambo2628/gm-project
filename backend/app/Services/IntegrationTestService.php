@@ -45,13 +45,16 @@ class IntegrationTestService
     {
         $secret = config('services.stripe.secret');
         $publishable = config('services.stripe.publishable');
+        $webhookSecret = config('services.stripe.webhook_secret');
         $configured = ! empty($secret) && ! empty($publishable);
+        $webhookConfigured = ! empty($webhookSecret);
         $message = 'Stripe is configured.';
         $status = 'ok';
         $connected = false;
         $details = [
             'has_publishable_key' => ! empty($publishable),
             'has_secret_key' => ! empty($secret),
+            'has_webhook_secret' => $webhookConfigured,
             'key_prefix' => $publishable ? substr($publishable, 0, 8).'...' : null,
         ];
 
@@ -79,6 +82,14 @@ class IntegrationTestService
                 $message = 'Could not connect to Stripe API: '.$e->getMessage();
                 $details['error'] = $e->getMessage();
             }
+        }
+
+        // Webhook secret is required for payments to auto-confirm in the
+        // dashboard. If it's missing we surface a warning even when the keys
+        // themselves are valid.
+        if ($configured && $connected && ! $webhookConfigured) {
+            $status = 'warning';
+            $message = 'Stripe keys work, but STRIPE_WEBHOOK_SECRET is not set — bookings will stay Pending until reconciled.';
         }
 
         return $this->persist('stripe', 'Stripe', $status, $configured, $connected, $message, $details);

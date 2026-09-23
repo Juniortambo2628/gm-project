@@ -166,25 +166,7 @@ class OrderController extends Controller
      */
     public function index(): JsonResponse
     {
-        $pending = Transaction::query()
-            ->where('status', 'pending')
-            ->whereNotNull('stripe_checkout_session_id')
-            ->where('created_at', '>=', now()->subDays(30))
-            ->limit(25)
-            ->get();
-
-        foreach ($pending as $tx) {
-            $session = $this->stripeService->getCheckoutSession($tx->stripe_checkout_session_id);
-            if ($session && $session->payment_status === 'paid') {
-                $amountTotal = ($session->amount_total ?? 0) / 100;
-                $tx->update([
-                    'status' => 'success',
-                    'amount' => $amountTotal > 0 ? $amountTotal : $tx->amount,
-                    'currency' => strtoupper($session->currency ?? $tx->currency),
-                    'stripe_payment_intent_id' => $session->payment_intent ?? $tx->stripe_payment_intent_id,
-                ]);
-            }
-        }
+        $this->stripeService->reconcilePendingTransactions(days: 30, limit: 25);
 
         $transactions = Transaction::query()
             ->with('service')
@@ -192,6 +174,20 @@ class OrderController extends Controller
             ->paginate(15);
 
         return TransactionResource::collection($transactions)->response();
+    }
+
+    /**
+     * Admin action: reconcile every pending Stripe transaction on demand.
+     */
+    public function reconcile(): JsonResponse
+    {
+        $result = $this->stripeService->reconcilePendingTransactions(days: 90, limit: 100);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Checked {$result['checked']} pending transactions, reconciled {$result['reconciled']}.",
+            'data' => $result,
+        ]);
     }
 
     /**

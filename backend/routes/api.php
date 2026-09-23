@@ -137,6 +137,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Order/Transaction Management
         Route::get('/cms/orders', [OrderController::class, 'index']);
+        Route::post('/cms/orders/reconcile', [OrderController::class, 'reconcile']);
         Route::get('/cms/orders/{id}', [OrderController::class, 'show']);
         Route::put('/cms/orders/{id}/status', [OrderController::class, 'updateStatus']);
 
