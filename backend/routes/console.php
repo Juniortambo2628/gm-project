@@ -2,6 +2,7 @@
 
 use App\Mail\DynamicSystemMail;
 use App\Models\Appointment;
+use App\Services\StripeService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
@@ -82,8 +83,8 @@ Artisan::command('bookings:send-reminders', function () {
 })->purpose('Alias for appointments:send-reminders');
 
 Artisan::command('stripe:reconcile {--days=90 : Look back this many days} {--limit=100 : Max records to check}', function () {
-    /** @var \App\Services\StripeService $stripe */
-    $stripe = app(\App\Services\StripeService::class);
+    /** @var StripeService $stripe */
+    $stripe = app(StripeService::class);
     $days = (int) $this->option('days');
     $limit = (int) $this->option('limit');
 
