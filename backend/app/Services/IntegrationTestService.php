@@ -174,7 +174,8 @@ class IntegrationTestService
             $status = 'warning';
         } else {
             try {
-                $testUrl = $urls['discovery'] ?? reset(array_filter($urls));
+                $configuredUrls = array_filter($urls);
+                $testUrl = $urls['discovery'] ?? reset($configuredUrls);
                 $response = Http::timeout(10)->get($testUrl);
 
                 if ($response->successful()) {
