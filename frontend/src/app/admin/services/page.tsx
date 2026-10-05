@@ -184,7 +184,7 @@ export default function ServicesManagementPage() {
                             }}
                             className="h-14 w-full bg-muted/30 rounded-2xl px-4 text-xs font-bold border-none outline-none appearance-none"
                           >
-                             <option value="GBP">GBP (\u00a3)</option>
+                             <option value="GBP">{'GBP (\u00a3)'}</option>
                              <option value="USD">USD ($)</option>
                              <option value="KES">KES (KSh)</option>
                           </select>
