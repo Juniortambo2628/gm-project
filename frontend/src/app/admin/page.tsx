@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { MessageSquare, DollarSign, Activity, Eye, ArrowUpRight } from "lucide-react";
+import { MessageSquare, DollarSign, Activity, Eye, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import DashboardHero from "@/components/DashboardHero";
 import axiosInstance from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
@@ -13,7 +13,7 @@ const RevenueChart = dynamic(() => import("@/components/admin/RevenueChart"), { 
 
 interface DashboardTransaction {
   id: number;
-  customer_email: string;
+  email: string;
   amount: string | number;
   currency: string;
   created_at: string;
@@ -23,17 +23,25 @@ interface DashboardMessage {
   id: number;
   name: string;
   email: string;
-  message: string;
-  service_interest?: string;
+  content: string;
+  subject?: string;
+}
+
+interface RevenueSeriesPoint {
+  month: string;
+  year?: number;
+  total: number;
 }
 
 interface DashboardData {
   stats?: {
     total_revenue?: number;
     current_month_revenue?: number;
+    previous_month_revenue?: number;
     total_transactions?: number;
     total_messages?: number;
   };
+  revenue_series?: RevenueSeriesPoint[];
   recent_transactions?: DashboardTransaction[];
   recent_messages?: DashboardMessage[];
 }
@@ -77,11 +85,33 @@ export default function AdminDashboard() {
     );
   }
 
+  const currentMonthRevenue = data?.stats?.current_month_revenue || 0;
+  const previousMonthRevenue = data?.stats?.previous_month_revenue || 0;
+  const revenueDelta = currentMonthRevenue - previousMonthRevenue;
+  const revenueTrend = revenueDelta > 0 ? "up" : revenueDelta < 0 ? "down" : "flat";
+
+  const revenueGrowth = (
+    <span
+      className={
+        revenueTrend === "up"
+          ? "text-emerald-500 inline-flex items-center"
+          : revenueTrend === "down"
+          ? "text-red-500 inline-flex items-center"
+          : "text-muted-foreground inline-flex items-center"
+      }
+    >
+      {revenueTrend === "up" && <ArrowUpRight size={12} />}
+      {revenueTrend === "down" && <ArrowDownRight size={12} />}
+      {revenueDelta >= 0 ? "+" : "-"}
+      {formatCurrency(Math.abs(revenueDelta))} vs last month
+    </span>
+  );
+
   return (
     <div className="animate-fade-in space-y-10 pb-20">
-      <DashboardHero 
-        title="Business Analytics" 
-        description="Monitor your consulting revenue, bookings, and recent inquiries." 
+      <DashboardHero
+        title="Business Analytics"
+        description="Monitor your consulting revenue, bookings, and recent inquiries."
       />
 
       {/* KPI Cards */}
@@ -89,11 +119,7 @@ export default function AdminDashboard() {
         <KPICard
           title="Total revenue"
           value={formatCurrency(data?.stats?.total_revenue || 0)}
-          description={
-            <span className="text-emerald-500 inline-flex items-center">
-              <ArrowUpRight size={12}/> +{formatCurrency(data?.stats?.current_month_revenue || 0)}
-            </span>
-          }
+          description={revenueGrowth}
           icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
         />
 
@@ -128,7 +154,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent className="pl-2 relative min-h-[350px]">
             <div className="w-full h-[350px]">
-              <RevenueChart revenue={data?.stats?.current_month_revenue || 0} />
+              <RevenueChart series={data?.revenue_series} />
             </div>
           </CardContent>
         </Card>
@@ -144,7 +170,7 @@ export default function AdminDashboard() {
                 {data?.recent_transactions && data.recent_transactions.length > 0 ? data.recent_transactions.map((t) => (
                   <div key={t.id} className="flex items-center justify-between bg-muted/20 p-4 rounded-xl border border-border">
                     <div className="space-y-1">
-                      <p className="text-sm font-bold leading-none">{t.customer_email}</p>
+                      <p className="text-sm font-bold leading-none">{t.email}</p>
                       <p className="text-xs text-muted-foreground font-medium">{new Date(t.created_at).toLocaleDateString()}</p>
                     </div>
                     <div className="font-bold text-primary">{formatCurrency(t.amount, t.currency)}</div>
@@ -165,12 +191,14 @@ export default function AdminDashboard() {
                   <div key={m.id} className="bg-muted/20 p-4 rounded-xl border border-border">
                     <div className="flex justify-between items-start mb-2">
                        <p className="text-sm font-bold leading-none">{m.name}</p>
-                       <span className="text-[10px] font-bold text-muted-foreground px-2 py-0.5 bg-muted rounded-full">
-                          {m.service_interest}
-                       </span>
+                       {m.subject && (
+                         <span className="text-[10px] font-bold text-muted-foreground px-2 py-0.5 bg-muted rounded-full">
+                            {m.subject}
+                         </span>
+                       )}
                     </div>
                     <p className="text-xs text-muted-foreground font-medium mb-3">{m.email}</p>
-                    <p className="text-sm text-foreground italic border-l-2 border-primary/20 pl-3">&ldquo;{m.message}&rdquo;</p>
+                    <p className="text-sm text-foreground italic border-l-2 border-primary/20 pl-3">&ldquo;{m.content}&rdquo;</p>
                   </div>
                 )) : (
                   <p className="text-sm text-muted-foreground italic text-center py-4">No messages yet.</p>
