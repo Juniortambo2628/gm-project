@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\IntegrationTestResult;
 use App\Models\Setting;
-use App\Models\User;
 use App\Services\IntegrationTestService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
