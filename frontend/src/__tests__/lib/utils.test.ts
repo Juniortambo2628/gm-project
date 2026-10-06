@@ -1,6 +1,40 @@
 import { describe, it, expect } from 'vitest';
-import { cn, getApiErrorMessage } from '@/lib/utils';
+import { cn, getApiErrorMessage, formatCurrency } from '@/lib/utils';
 import { AxiosError } from 'axios';
+
+describe('formatCurrency', () => {
+  it('renders the GBP sterling sign, not a literal escape sequence', () => {
+    const result = formatCurrency(1500, 'GBP');
+    expect(result).toBe('£1,500');
+    expect(result.startsWith('£')).toBe(true);
+    // Guards against the £ escape being emitted verbatim.
+    expect(result).not.toContain('\\u00a3');
+    expect(result).not.toContain('u00a3');
+  });
+
+  it('renders known currency symbols', () => {
+    expect(formatCurrency(100, 'USD')).toBe('$100');
+    expect(formatCurrency(100, 'KES')).toBe('KSh100');
+    expect(formatCurrency(100, 'EUR')).toBe('€100');
+  });
+
+  it('defaults to GBP when no currency is given', () => {
+    expect(formatCurrency(2500)).toBe('£2,500');
+  });
+
+  it('is case-insensitive about the currency code', () => {
+    expect(formatCurrency(100, 'gbp')).toBe('£100');
+  });
+
+  it('falls back to the raw code for unknown currencies', () => {
+    expect(formatCurrency(100, 'JPY')).toBe('JPY100');
+  });
+
+  it('formats thousands separators and accepts string amounts', () => {
+    expect(formatCurrency(1234567, 'USD')).toBe('$1,234,567');
+    expect(formatCurrency('5000', 'GBP')).toBe('£5,000');
+  });
+});
 
 describe('cn', () => {
   it('merges class names', () => {
