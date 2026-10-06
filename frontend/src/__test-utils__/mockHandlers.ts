@@ -145,10 +145,39 @@ export const handlers = [
 
   http.get(`${API_BASE}/cms/dashboard`, () => {
     return HttpResponse.json({
-      total_revenue: 150000,
-      total_orders: 25,
-      total_inquiries: 42,
-      recent_orders: [],
+      stats: {
+        total_messages: 42,
+        total_transactions: 25,
+        total_revenue: 150000,
+        current_month_revenue: 12000,
+        previous_month_revenue: 8000,
+      },
+      revenue_series: [
+        { month: 'May', year: 2026, total: 0 },
+        { month: 'Jun', year: 2026, total: 5000 },
+        { month: 'Jul', year: 2026, total: 7000 },
+        { month: 'Aug', year: 2026, total: 9000 },
+        { month: 'Sep', year: 2026, total: 8000 },
+        { month: 'Oct', year: 2026, total: 12000 },
+      ],
+      recent_transactions: [
+        {
+          id: 1,
+          email: 'client@example.com',
+          amount: 12000,
+          currency: 'GBP',
+          created_at: '2026-10-01T10:00:00Z',
+        },
+      ],
+      recent_messages: [
+        {
+          id: 1,
+          name: 'Jane Applicant',
+          email: 'jane@example.com',
+          subject: 'MBA Coaching',
+          content: 'I would like to learn more about your packages.',
+        },
+      ],
     });
   }),
 ];
