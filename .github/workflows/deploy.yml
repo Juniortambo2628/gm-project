@@ -291,25 +291,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+
       - name: Wait for settle
         run: sleep 15
 
-      - name: Verify API health
-        run: |
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.gm-coaching.com/api/health" 2>/dev/null || echo "000")
-          echo "API: HTTP $HTTP_STATUS"
-          if [ "$HTTP_STATUS" = "200" ]; then
-            echo "✓ API is healthy"
-          else
-            echo "::warning::API returned HTTP $HTTP_STATUS"
-          fi
-
-      - name: Verify frontend (Vercel)
-        run: |
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://gm-coaching.com" 2>/dev/null || echo "000")
-          echo "Frontend (Vercel): HTTP $HTTP_STATUS"
-          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
-            echo "✓ Frontend is live on Vercel"
-          else
-            echo "::warning::Frontend returned HTTP $HTTP_STATUS"
-          fi
+      # Redirects (apex → www, http → https), key pages, API health, the
+      # paid-only service list and the booking endpoints. Fails the run on error.
+      - name: Smoke tests
+        run: bash .github/scripts/smoke-test.sh
