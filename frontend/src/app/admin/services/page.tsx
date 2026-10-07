@@ -102,27 +102,28 @@ export default function ServicesManagementPage() {
                   <Calendar size={24} />
                </div>
                <div>
-                  <h3 className="text-xl font-black italic">Discovery Call Configuration</h3>
-                  <p className="text-white/60 text-xs font-medium">Manage the global settings for your free discovery sessions.</p>
+                  <h3 className="text-xl font-black italic">Booking Calendar Links</h3>
+                  <p className="text-white/60 text-xs font-medium">The Calendly event clients pick their time slot from, per package.</p>
                </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                <div className="space-y-3">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-1">Calendly Event URL</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-1">MBA Coaching Calendly URL</label>
                   <Input 
-                    value={localSettings['discovery_calendly_url'] || ''} 
-                    onChange={(e) => setLocalSettings({...localSettings, discovery_calendly_url: e.target.value})}
+                    value={localSettings['mba_calendly_url'] || ''} 
+                    onChange={(e) => setLocalSettings({...localSettings, mba_calendly_url: e.target.value})}
                     className="h-14 bg-white/10 border-none rounded-2xl font-bold px-6 text-white placeholder:text-white/20" 
                     placeholder="https://calendly.com/..."
                   />
                </div>
                <div className="space-y-3">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-1">Call Duration Label</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-1">Consulting Prep Calendly URL</label>
                   <Input 
-                    value={localSettings['discovery_duration'] || '20 Min'} 
-                    onChange={(e) => setLocalSettings({...localSettings, discovery_duration: e.target.value})}
-                    className="h-14 bg-white/10 border-none rounded-2xl font-bold px-6 text-white" 
+                    value={localSettings['consulting_calendly_url'] || ''} 
+                    onChange={(e) => setLocalSettings({...localSettings, consulting_calendly_url: e.target.value})}
+                    className="h-14 bg-white/10 border-none rounded-2xl font-bold px-6 text-white placeholder:text-white/20" 
+                    placeholder="https://calendly.com/..."
                   />
                </div>
             </div>
@@ -133,7 +134,7 @@ export default function ServicesManagementPage() {
               className="bg-white text-primary hover:bg-white/90 rounded-full px-10 h-14 font-black transition-all active:scale-95"
             >
                {saving ? <RefreshCcw className="animate-spin mr-2" size={18} /> : <Save className="mr-2" size={18} />}
-               Save Discovery Settings
+               Save Calendar Links
             </Button>
          </div>
          <div className="absolute top-0 right-0 p-10 opacity-10 -rotate-12 translate-x-1/4 -translate-y-1/4">
@@ -195,14 +196,13 @@ export default function ServicesManagementPage() {
                            value={service.type}
                            onChange={(e) => {
                              const updated = [...localServices];
-                               updated[i].type = e.target.value as 'mba' | 'consulting' | 'discovery';
+                               updated[i].type = e.target.value as 'mba' | 'consulting';
                              setLocalServices(updated);
                            }}
                            className="h-14 w-full bg-muted/30 rounded-2xl px-4 text-xs font-bold border-none outline-none appearance-none"
                          >
                             <option value="mba">MBA Coaching</option>
                             <option value="consulting">Consulting Prep</option>
-                            <option value="discovery">Discovery Call</option>
                           </select>
                       </div>
                    </div>

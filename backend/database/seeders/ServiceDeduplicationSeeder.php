@@ -8,7 +8,7 @@ use Illuminate\Database\Seeder;
 class ServiceDeduplicationSeeder extends Seeder
 {
     /**
-     * The only 3 services that should exist.
+     * The only services that should exist (the free discovery call was retired).
      */
     private array $allowedServices = [
         'MBA Application Coaching' => [
@@ -42,20 +42,6 @@ class ServiceDeduplicationSeeder extends Seeder
             ],
             'description' => 'Coached by a former McKinsey fellow and Genesis Analytics consultant.',
         ],
-        'Discovery Call' => [
-            'type' => 'discovery',
-            'duration' => '30 Min',
-            'price' => 0,
-            'currency' => 'GBP',
-            'is_active' => true,
-            'features' => [
-                'Get to know your coaching options',
-                'Ask any questions about MBA or consulting prep',
-                'Personalized advice on next steps',
-                'No commitment required',
-            ],
-            'description' => 'A free introductory call to explore how coaching can help you achieve your goals.',
-        ],
     ];
 
     public function run(): void
@@ -66,7 +52,7 @@ class ServiceDeduplicationSeeder extends Seeder
         $deleted = Service::whereNotIn('name', $allowedNames)->delete();
         $this->command?->info("Removed {$deleted} extra/duplicate service(s).");
 
-        // 2. Upsert the 3 allowed services with correct data
+        // 2. Upsert the allowed services with correct data
         foreach ($this->allowedServices as $name => $data) {
             Service::updateOrCreate(['name' => $name], $data);
             $this->command?->info("Ensured service: {$name}");

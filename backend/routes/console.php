@@ -2,7 +2,9 @@
 
 use App\Mail\DynamicSystemMail;
 use App\Models\Appointment;
+use App\Services\CalendlyService;
 use App\Services\StripeService;
+use App\Services\UnpaidBookingReleaser;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
@@ -93,6 +95,18 @@ Artisan::command('stripe:reconcile {--days=90 : Look back this many days} {--lim
     $this->info("Checked {$result['checked']} pending transactions, reconciled {$result['reconciled']}.");
 })->purpose('Promote pending Stripe transactions to success by re-checking with Stripe');
 
+Artisan::command('bookings:release-unpaid', function () {
+    if (! app(CalendlyService::class)->isConfigured()) {
+        $this->warn('CALENDLY_API_TOKEN is not set; unpaid reservations are not being released.');
+
+        return;
+    }
+
+    $result = app(UnpaidBookingReleaser::class)->releaseExpired();
+    $this->info("Checked {$result['checked']} expired reservations: {$result['released']} released, {$result['paid']} found paid, {$result['skipped']} skipped.");
+})->purpose('Cancel Calendly slots that were reserved but not paid for within the hold window');
+
 Schedule::command('appointments:send-reminders')->hourly();
 Schedule::command('appointments:send-followups')->hourly();
 Schedule::command('stripe:reconcile')->everyFifteenMinutes();
+Schedule::command('bookings:release-unpaid')->everyTenMinutes();

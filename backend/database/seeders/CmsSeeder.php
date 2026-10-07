@@ -44,7 +44,6 @@ class CmsSeeder extends Seeder
 
         // 4. Integrations & API configurations (non-sensitive only)
         $this->seedSettings('integrations', [
-            'discovery_calendly_url' => 'https://calendly.com/gathoni-mwai0/gm-discovery-call',
             'mba_calendly_url' => 'https://calendly.com/gathoni-mwai0/30min',
             'consulting_calendly_url' => 'https://calendly.com/gathoni-mwai0/30min',
         ]);
@@ -83,20 +82,6 @@ class CmsSeeder extends Seeder
             'description' => 'Coached by a former McKinsey fellow and Genesis Analytics consultant.',
         ]);
 
-        Service::updateOrCreate(['name' => 'Discovery Call'], [
-            'type' => 'discovery',
-            'duration' => '30 Min',
-            'price' => 0,
-            'currency' => 'GBP',
-            'is_active' => true,
-            'features' => [
-                'Get to know your coaching options',
-                'Ask any questions about MBA or consulting prep',
-                'Personalized advice on next steps',
-                'No commitment required',
-            ],
-            'description' => 'A free introductory call to explore how coaching can help you achieve your goals.',
-        ]);
     }
 
     private function seedSettings(string $group, array $data): void

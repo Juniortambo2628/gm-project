@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Service;
+use App\Models\Transaction;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -56,11 +57,13 @@ class CalendlyWebhookController extends Controller
     private function handleInviteeCreated(array $payload): void
     {
         $data = $payload['payload'] ?? [];
-        $invitee = $data['invitee'] ?? [];
-        $event = $data['event'] ?? [];
+        // Support both the legacy (invitee/event) and v2 (flat invitee + scheduled_event) shapes.
+        $invitee = $data['invitee'] ?? $data;
+        $event = $data['event'] ?? $data['scheduled_event'] ?? [];
 
         $name = $invitee['name'] ?? 'Unknown';
         $email = $invitee['email'] ?? '';
+        $inviteeUri = $invitee['uri'] ?? null;
         $startTime = $event['start_time'] ?? null;
         $endTime = $event['end_time'] ?? null;
 
@@ -70,9 +73,27 @@ class CalendlyWebhookController extends Controller
             return;
         }
 
+        $scheduledAt = Carbon::parse($startTime);
+        $durationMinutes = $endTime
+            ? (int) $scheduledAt->diffInMinutes(Carbon::parse($endTime))
+            : 60;
+
+        // A paid booking whose Stripe webhook arrived first holds a placeholder
+        // appointment keyed by the invitee URI: fill in the real slot.
+        if ($inviteeUri && $existing = Appointment::where('calendly_invitee_uri', $inviteeUri)->first()) {
+            $existing->update([
+                'scheduled_at' => $scheduledAt,
+                'duration_minutes' => $durationMinutes,
+                'status' => 'scheduled',
+            ]);
+            Log::info('Calendly: appointment updated with booked slot', ['email' => $email]);
+
+            return;
+        }
+
         // Check for duplicate (idempotency)
         $existing = Appointment::where('client_email', $email)
-            ->where('scheduled_at', $startTime)
+            ->where('scheduled_at', $scheduledAt)
             ->first();
 
         if ($existing) {
@@ -81,16 +102,18 @@ class CalendlyWebhookController extends Controller
             return;
         }
 
-        // Find the coaching service or default
-        $service = Service::where('name', 'like', '%Coaching%')->first()
+        // Slots are booked before payment, so a matching transaction may already exist.
+        $transaction = $inviteeUri
+            ? Transaction::where('calendly_invitee_uri', $inviteeUri)->first()
+            : null;
+
+        $service = $transaction?->service
+            ?? Service::where('name', 'like', '%Coaching%')->first()
             ?? Service::first();
 
-        $scheduledAt = Carbon::parse($startTime);
-        $durationMinutes = $startTime && $endTime
-            ? (int) Carbon::parse($startTime)->diffInMinutes(Carbon::parse($endTime))
-            : 60;
-
         Appointment::create([
+            'transaction_id' => $transaction?->id,
+            'calendly_invitee_uri' => $inviteeUri,
             'service_id' => $service?->id,
             'client_name' => $name,
             'client_email' => $email,
@@ -100,10 +123,11 @@ class CalendlyWebhookController extends Controller
             'notes' => 'Booked via Calendly',
         ]);
 
+        $paid = $transaction?->status === 'success';
         $this->notificationService->notifyAdmins(
             'booking',
             'New Calendly Booking',
-            "{$name} booked a session via Calendly for {$scheduledAt->format('F d, Y g:i A')}.",
+            "{$name} booked a session via Calendly for {$scheduledAt->format('F d, Y g:i A')}.".($paid ? '' : ' Payment pending.'),
             [
                 'email' => $email,
                 'scheduled_at' => $startTime,
@@ -119,17 +143,20 @@ class CalendlyWebhookController extends Controller
     private function handleInviteeCanceled(array $payload): void
     {
         $data = $payload['payload'] ?? [];
-        $invitee = $data['invitee'] ?? [];
+        $invitee = $data['invitee'] ?? $data;
         $email = $invitee['email'] ?? '';
+        $inviteeUri = $invitee['uri'] ?? null;
 
-        if (! $email) {
-            return;
+        $appointment = $inviteeUri
+            ? Appointment::where('calendly_invitee_uri', $inviteeUri)->where('status', 'scheduled')->first()
+            : null;
+
+        if (! $appointment && $email) {
+            $appointment = Appointment::where('client_email', $email)
+                ->where('status', 'scheduled')
+                ->latest()
+                ->first();
         }
-
-        $appointment = Appointment::where('client_email', $email)
-            ->where('status', 'scheduled')
-            ->latest()
-            ->first();
 
         if ($appointment) {
             $appointment->update(['status' => 'cancelled']);

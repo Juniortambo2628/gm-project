@@ -64,6 +64,14 @@ class StripeWebhookController extends Controller
 
         // Idempotency: if this session was already processed, skip
         $existing = Transaction::where('stripe_checkout_session_id', $sessionId)->first();
+
+        // A retried checkout replaces the session id on the slot reservation; an
+        // earlier session for the same slot still belongs to that reservation.
+        if (! $existing && ! empty($metadata['calendly_invitee_uri'])) {
+            $existing = Transaction::where('calendly_invitee_uri', $metadata['calendly_invitee_uri'])
+                ->where('status', 'pending')
+                ->first();
+        }
         if ($existing && $existing->status === 'success') {
             Log::info('Stripe webhook: transaction already recorded', ['session_id' => $sessionId]);
 
@@ -77,6 +85,8 @@ class StripeWebhookController extends Controller
                 'amount' => $amountTotal,
                 'currency' => $currency,
                 'stripe_payment_intent_id' => $paymentIntentId,
+                'stripe_checkout_session_id' => $sessionId,
+                'calendly_invitee_uri' => $existing->calendly_invitee_uri ?? ($metadata['calendly_invitee_uri'] ?? null),
             ]);
             $transaction = $existing;
         } else {
@@ -88,6 +98,7 @@ class StripeWebhookController extends Controller
                 'service_id' => $serviceId,
                 'stripe_payment_intent_id' => $paymentIntentId,
                 'stripe_checkout_session_id' => $sessionId,
+                'calendly_invitee_uri' => $metadata['calendly_invitee_uri'] ?? null,
                 'status' => 'success',
             ]);
         }
@@ -95,13 +106,16 @@ class StripeWebhookController extends Controller
         $transaction->load('service');
         $serviceName = $transaction->service?->name ?? 'Coaching Service';
 
-        // Create appointment if not already created
-        if (! $transaction->appointment) {
+        // The client picked their Calendly slot before paying; link that booking.
+        // If Calendly's webhook hasn't landed yet, hold a placeholder that the
+        // Calendly webhook will fill in with the real time (matched by invitee URI).
+        if (! Appointment::attachToTransaction($transaction)) {
             $scheduledAt = now()->addDays(2)->setTime(10, 0);
             $durationMinutes = $this->stripeService->parseDurationMinutes($transaction->service?->duration);
 
-            Appointment::create([
+            $appointment = Appointment::create([
                 'transaction_id' => $transaction->id,
+                'calendly_invitee_uri' => $transaction->calendly_invitee_uri,
                 'service_id' => $transaction->service_id,
                 'client_name' => $transaction->name,
                 'client_email' => $transaction->email,
@@ -109,6 +123,7 @@ class StripeWebhookController extends Controller
                 'duration_minutes' => $durationMinutes,
                 'status' => 'scheduled',
             ]);
+            $transaction->setRelation('appointment', $appointment);
         }
 
         // Send emails if not already sent

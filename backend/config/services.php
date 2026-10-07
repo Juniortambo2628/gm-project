@@ -44,6 +44,10 @@ return [
 
     'calendly' => [
         'signing_key' => env('CALENDLY_WEBHOOK_SIGNING_KEY'),
+        // Personal access token (Calendly > Integrations > API & Webhooks).
+        // Needed to release slots that were reserved but never paid for.
+        'api_token' => env('CALENDLY_API_TOKEN'),
+        'unpaid_hold_minutes' => (int) env('CALENDLY_UNPAID_HOLD_MINUTES', 120),
     ],
 
 ];
