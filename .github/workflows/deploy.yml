@@ -146,21 +146,43 @@ jobs:
 
             echo "▸ Extracting deployment package..."
             mkdir -p "$CORE" "$API"
-            cd /tmp/gm-deploy
-            tar xzf deploy-package.tar.gz 2>&1 | tail -3
+            # Stage beside the live app (same filesystem, so the vendor/ swap below is a rename).
+            STAGE=$(dirname "$CORE")/gm-deploy-stage
+            rm -rf "$STAGE" && mkdir -p "$STAGE"
+            tar xzf /tmp/gm-deploy/deploy-package.tar.gz -C "$STAGE" 2>&1 | tail -3
+
+            # Install dependencies before touching the live app. Deleting the live
+            # vendor/ first left the API returning "Failed opening required
+            # vendor/autoload.php" for the whole install, and indefinitely if it failed.
+            echo "▸ Installing composer dependencies (staging)..."
+            cd "$STAGE"
+            composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts 2>&1
+            if [ ! -f "$STAGE/vendor/autoload.php" ]; then
+              echo "::error::Composer install failed - production left on the previous release"
+              echo "  PHP version: $(php -v 2>&1 | head -1)"
+              rm -rf "$STAGE"
+              exit 1
+            fi
 
             echo "▸ Syncing backend files..."
-            cp -rf app "$CORE/"
-            cp -rf bootstrap "$CORE/"
-            cp -rf config "$CORE/"
-            cp -rf database "$CORE/"
-            cp -rf resources "$CORE/"
-            cp -rf routes "$CORE/"
+            cd "$STAGE"
+            cp -rf app bootstrap config database resources routes "$CORE/"
             cp -f artisan composer.json composer.lock "$CORE/"
+
+            echo "▸ Swapping in new vendor/..."
+            rm -rf "$CORE/vendor.old"
+            if [ -d "$CORE/vendor" ]; then mv "$CORE/vendor" "$CORE/vendor.old"; fi
+            mv "$STAGE/vendor" "$CORE/vendor"
+            rm -rf "$CORE/vendor.old"
+            if [ ! -f "$CORE/vendor/autoload.php" ]; then
+              echo "::error::vendor/ swap failed - vendor/autoload.php missing!"
+              exit 1
+            fi
+            echo "  vendor/: EXISTS"
 
             echo "▸ Syncing public entry point..."
             rm -rf "$API/public" 2>/dev/null
-            cp -rf public/. "$API/"
+            cp -rf "$STAGE/public/." "$API/"
 
             echo "▸ Ensuring directories..."
             mkdir -p \
@@ -183,17 +205,6 @@ jobs:
             if ! grep -q "APP_KEY=base64:" "$CORE/.env" 2>/dev/null; then
               echo "::warning::APP_KEY not found in .env"
             fi
-
-            echo "▸ Running composer install..."
-            cd "$CORE"
-            rm -rf vendor
-            composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts 2>&1
-            if [ ! -f "$CORE/vendor/autoload.php" ]; then
-              echo "::error::Composer install failed - vendor/autoload.php missing!"
-              echo "  PHP version: $(php -v 2>&1 | head -1)"
-              exit 1
-            fi
-            echo "  vendor/: EXISTS"
 
             echo "▸ Running artisan commands..."
             cd "$CORE"
@@ -260,7 +271,7 @@ jobs:
             chmod 755 "$CORE/artisan" 2>/dev/null || true
 
             echo "▸ Cleaning up..."
-            rm -rf /tmp/gm-deploy
+            rm -rf /tmp/gm-deploy "$STAGE"
             ls -dt /home/zhpebukm/backups/gm-* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
 
             echo "▸ Verifying API..."
