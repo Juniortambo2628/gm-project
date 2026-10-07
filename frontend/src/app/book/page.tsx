@@ -12,7 +12,7 @@ import { IconBlock } from "@/components/ui/IconBlock";
 import dynamic from "next/dynamic";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { countries } from "@/lib/data/countries";
-import { createTransaction, createCheckoutSession } from "@/lib/api";
+import { createTransaction, createCheckoutSession, reserveBookingSlot } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
@@ -55,6 +55,7 @@ interface ReservedSlot {
   serviceId: number;
   eventUri: string;
   inviteeUri: string;
+  holdExpiresAt?: string;
 }
 
 type BookingFormData = {
@@ -186,15 +187,32 @@ function BookingPageContent() {
 
       // Paid sessions: the slot is reserved first, payment is the last step.
       if (e.data?.event === 'calendly.event_scheduled' && price > 0 && selectedService) {
-        setReservedSlot({
+        const slot: ReservedSlot = {
           serviceId: selectedService.id,
           eventUri: e.data.payload?.event?.uri ?? "",
           inviteeUri: e.data.payload?.invitee?.uri ?? "",
-        });
+        };
+        setReservedSlot(slot);
         toast.success("Time slot reserved", {
           description: "Complete payment to confirm your booking.",
         });
         payButtonRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        if (slot.inviteeUri) {
+          try {
+            const reservation = await reserveBookingSlot({
+              service_id: slot.serviceId,
+              calendly_invitee_uri: slot.inviteeUri,
+              name: formData.name,
+              email: formData.email,
+            });
+            setReservedSlot((prev) =>
+              prev?.inviteeUri === slot.inviteeUri ? { ...prev, holdExpiresAt: reservation.hold_expires_at } : prev
+            );
+          } catch {
+            // Non-blocking: the client can still pay; the slot just won't be auto-released.
+          }
+        }
         return;
       }
 
@@ -261,6 +279,12 @@ function BookingPageContent() {
 
       if (result.data?.checkout_url) {
         window.location.href = result.data.checkout_url;
+      } else if (result.code === "slot_released") {
+        setReservedSlot(null);
+        toast.error("Your reserved slot was released", {
+          description: result.message || "Payment wasn't completed in time. Please pick a new time.",
+        });
+        setIsRedirecting(false);
       } else {
         toast.error("Payment error", {
           description: result.message || "Could not initialize payment. Please try again.",
@@ -519,7 +543,16 @@ function BookingPageContent() {
                                 <IconBlock icon={CalendarCheck} className="bg-transparent text-primary p-0" />
                              </div>
                              <p className="text-sm font-bold text-muted-foreground max-w-[240px]">Time slot reserved — complete payment to confirm</p>
-                             <p className="text-[10px] text-muted-foreground/60 max-w-[240px]">Calendly has emailed you the slot details. Your booking is confirmed once payment goes through.</p>
+                             <p className="text-[10px] text-muted-foreground/60 max-w-[240px]">
+                               Calendly has emailed you the slot details. Your booking is confirmed once payment goes through.
+                               {reservedSlot?.holdExpiresAt && (
+                                 <> We&apos;ll hold this slot until{" "}
+                                   <span className="font-bold">
+                                     {new Date(reservedSlot.holdExpiresAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                                   </span>; after that it&apos;s released if unpaid.
+                                 </>
+                               )}
+                             </p>
                              <button
                                type="button"
                                onClick={() => setReservedSlot(null)}

@@ -3,6 +3,7 @@
 use App\Http\Controllers\API\AppointmentController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\BlogController;
+use App\Http\Controllers\API\BookingReservationController;
 use App\Http\Controllers\API\CalendlyWebhookController;
 use App\Http\Controllers\API\CMSController;
 use App\Http\Controllers\API\ContentController;
@@ -72,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user', [AuthController::class, 'updateProfile']);
     Route::get('/user/bookings', [OrderController::class, 'userBookings']);
     Route::get('/user/bookings/{id}', [OrderController::class, 'showUserBooking']);
+    Route::post('/bookings/reserve', [BookingReservationController::class, 'store'])->middleware('throttle:10,1');
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change-password', [AuthController::class, 'changePassword']);
 

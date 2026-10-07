@@ -64,6 +64,14 @@ class StripeWebhookController extends Controller
 
         // Idempotency: if this session was already processed, skip
         $existing = Transaction::where('stripe_checkout_session_id', $sessionId)->first();
+
+        // A retried checkout replaces the session id on the slot reservation; an
+        // earlier session for the same slot still belongs to that reservation.
+        if (! $existing && ! empty($metadata['calendly_invitee_uri'])) {
+            $existing = Transaction::where('calendly_invitee_uri', $metadata['calendly_invitee_uri'])
+                ->where('status', 'pending')
+                ->first();
+        }
         if ($existing && $existing->status === 'success') {
             Log::info('Stripe webhook: transaction already recorded', ['session_id' => $sessionId]);
 
@@ -77,6 +85,7 @@ class StripeWebhookController extends Controller
                 'amount' => $amountTotal,
                 'currency' => $currency,
                 'stripe_payment_intent_id' => $paymentIntentId,
+                'stripe_checkout_session_id' => $sessionId,
                 'calendly_invitee_uri' => $existing->calendly_invitee_uri ?? ($metadata['calendly_invitee_uri'] ?? null),
             ]);
             $transaction = $existing;

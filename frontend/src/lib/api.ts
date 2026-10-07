@@ -264,7 +264,24 @@ export interface CheckoutSessionResult {
     checkout_url: string;
     session_id: string;
   };
+  code?: string;
   message?: string;
+}
+
+export interface SlotReservationResult {
+  transaction_status: string;
+  hold_expires_at: string;
+}
+
+// Records a Calendly slot picked for a paid session; unpaid slots are released after the hold window.
+export async function reserveBookingSlot(data: {
+  service_id: number;
+  calendly_invitee_uri: string;
+  name?: string;
+  email?: string;
+}): Promise<SlotReservationResult> {
+  const res = await axiosInstance.post("/bookings/reserve", data);
+  return res.data.data;
 }
 
 export async function createCheckoutSession(data: CheckoutSessionData): Promise<CheckoutSessionResult> {

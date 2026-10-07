@@ -37,9 +37,10 @@ class StripeService
         string $customerEmail,
         string $customerName,
         array $metadata = [],
+        ?int $expiresAt = null,
     ): ?CheckoutSession {
         try {
-            $session = CheckoutSession::create([
+            $params = [
                 'payment_method_types' => ['card'],
                 'customer_email' => $customerEmail,
                 'line_items' => [
@@ -61,9 +62,13 @@ class StripeService
                     'customer_name' => $customerName,
                     'customer_email' => $customerEmail,
                 ]),
-            ]);
+            ];
 
-            return $session;
+            if ($expiresAt) {
+                $params['expires_at'] = $expiresAt;
+            }
+
+            return CheckoutSession::create($params);
         } catch (ApiErrorException $e) {
             Log::error('Stripe checkout session creation failed: '.$e->getMessage());
 
