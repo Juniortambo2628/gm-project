@@ -41,7 +41,7 @@ const HERO_BACKGROUNDS = [
   { key: "mba_hero_bg", label: "MBA Admissions Hero", hasPosition: true, hasMobile: true },
   { key: "consulting_hero_bg", label: "Consulting Prep Hero", hasPosition: true, hasMobile: true },
   { key: "testimonials_hero_bg", label: "Testimonials Hero", hasPosition: true, hasMobile: false },
-  { key: "book_hero_bg", label: "Book/Discovery Hero", hasPosition: true, hasMobile: true },
+  { key: "book_hero_bg", label: "Booking Hero", hasPosition: true, hasMobile: true },
   { key: "contact_hero_bg", label: "Contact Hero", hasPosition: true, hasMobile: false },
   { key: "guide_hero_bg", label: "MBA & Consulting Guide Hero", hasPosition: true, hasMobile: true },
   { key: "africa_hero_bg", label: "Africa Story Hero", hasPosition: true, hasMobile: false },
@@ -370,7 +370,6 @@ function ApiKeysModule({ localSettings, setLocalSettings }: ModuleProps) {
   return (
     <div className="max-w-2xl mx-auto w-full space-y-6 bg-muted/5 p-6 md:p-8 rounded-3xl border border-primary/5">
       <h4 className="text-sm font-bold text-primary border-b pb-2 mb-4 flex items-center gap-2"><KeyRound size={16} /> Calendly Integration URLs</h4>
-      <div className="space-y-3"><label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Discovery Call Calendly URL</label><Input value={localSettings["discovery_calendly_url"] || ""} onChange={(e) => setLocalSettings({ ...localSettings, discovery_calendly_url: e.target.value })} className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" placeholder="https://calendly.com/your-id/discovery" /></div>
       <div className="space-y-3"><label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">MBA Strategy Calendly URL</label><Input value={localSettings["mba_calendly_url"] || ""} onChange={(e) => setLocalSettings({ ...localSettings, mba_calendly_url: e.target.value })} className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" placeholder="https://calendly.com/your-id/mba-prep" /></div>
       <div className="space-y-3"><label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Consulting Prep Calendly URL</label><Input value={localSettings["consulting_calendly_url"] || ""} onChange={(e) => setLocalSettings({ ...localSettings, consulting_calendly_url: e.target.value })} className="h-12 rounded-xl bg-background border border-primary/10 px-4 text-sm" placeholder="https://calendly.com/your-id/mock-interview" /></div>
       <div className="p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10">

@@ -147,6 +147,30 @@ class UnpaidBookingReleaseTest extends TestCase
         ])->assertStatus(410)->assertJsonPath('code', 'slot_released');
     }
 
+    public function test_checkout_refused_for_free_service(): void
+    {
+        $service = Service::factory()->create(['price' => 0, 'is_active' => true]);
+
+        $this->postJson('/api/payments/create-checkout', [
+            'service_id' => $service->id,
+            'name' => 'Client',
+            'email' => 'client@example.com',
+        ])->assertStatus(422);
+    }
+
+    public function test_discovery_service_is_retired_by_migration(): void
+    {
+        $discovery = Service::factory()->create(['name' => 'Discovery Call', 'type' => 'discovery', 'price' => 0, 'is_active' => true]);
+        $mba = Service::factory()->create(['type' => 'mba', 'is_active' => true]);
+
+        $migration = require database_path('migrations/2026_10_07_110000_retire_discovery_call_service.php');
+        $migration->up();
+
+        $this->assertFalse((bool) $discovery->fresh()->is_active);
+        $this->assertTrue((bool) $mba->fresh()->is_active);
+        $this->getJson('/api/services')->assertJsonMissing(['name' => 'Discovery Call']);
+    }
+
     public function test_payment_on_earlier_checkout_session_still_settles_reservation(): void
     {
         Config::set('services.stripe.webhook_secret', 'test_webhook_secret_123');

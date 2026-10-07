@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, Briefcase, MapPin, Phone, MessageSquare, CheckCircle2, Globe, Loader2, PhoneCall, CalendarCheck } from "lucide-react";
+import { GraduationCap, Briefcase, MapPin, Phone, MessageSquare, CheckCircle2, Globe, Loader2, CalendarCheck } from "lucide-react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { useCMSContent } from "@/context/CMSContentContext";
 import { useAuth } from "@/context/AuthContext";
@@ -12,7 +12,7 @@ import { IconBlock } from "@/components/ui/IconBlock";
 import dynamic from "next/dynamic";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { countries } from "@/lib/data/countries";
-import { createTransaction, createCheckoutSession, reserveBookingSlot } from "@/lib/api";
+import { createCheckoutSession, reserveBookingSlot } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
@@ -37,8 +37,10 @@ const InlineWidget = dynamic(() => import("react-calendly").then((mod) => mod.In
 const calendlySettingKeyMap: Record<string, string> = {
   mba: 'mba_calendly_url',
   consulting: 'consulting_calendly_url',
-  discovery: 'discovery_calendly_url',
 };
+
+// Fallback booking calendar when a package's Calendly URL isn't set in the CMS.
+const DEFAULT_CALENDLY_URL = "https://calendly.com/gathoni-mwai0/30min";
 
 import type { LucideIcon } from "lucide-react";
 
@@ -46,7 +48,6 @@ import type { LucideIcon } from "lucide-react";
 const serviceIconMap: Record<string, LucideIcon> = {
   mba: GraduationCap,
   consulting: Briefcase,
-  discovery: PhoneCall,
 };
 
 // A Calendly slot the client reserved but hasn't paid for yet. Kept in
@@ -68,7 +69,10 @@ type BookingFormData = {
 
 const PENDING_BOOKING_KEY = "gm_pending_booking";
 
+const subscribeNoop = () => () => {};
+
 function loadPendingBooking(): { slot: ReservedSlot | null; form: Partial<BookingFormData> } | null {
+  if (typeof window === "undefined") return null;
   try {
     const raw = sessionStorage.getItem(PENDING_BOOKING_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -92,53 +96,44 @@ function savePendingBooking(slot: ReservedSlot | null, form: BookingFormData) {
 function BookingPageContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
-  const { services } = useCMSContent();
+  const { services: allServices } = useCMSContent();
+  // Every package is paid (the free discovery call was retired); hide anything misconfigured as free.
+  const services = allServices.filter((s) => Number(s.price) > 0);
   const { getSetting, getHeroProps } = useSiteSettings();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const [mounted, setMounted] = useState(false);
+  // Client-only render (Calendly + sessionStorage); false during SSR/hydration.
+  const mounted = useSyncExternalStore(subscribeNoop, () => true, () => false);
+  // Restore a reserved-but-unpaid slot (e.g. after cancelling on Stripe or signing in).
+  const [pendingBooking] = useState(loadPendingBooking);
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(pendingBooking?.slot?.serviceId ?? null);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
-  const [reservedSlot, setReservedSlot] = useState<ReservedSlot | null>(null);
+  const [reservedSlot, setReservedSlot] = useState<ReservedSlot | null>(pendingBooking?.slot ?? null);
   const payButtonRef = useRef<HTMLDivElement>(null);
-  const [formData, setFormData] = useState<BookingFormData>({
+  const [formData, setFormData] = useState<BookingFormData>(() => ({
     name: "",
     email: "",
     phone: "",
     location: "",
-    expectations: ""
-  });
+    expectations: "",
+    ...pendingBooking?.form,
+  }));
 
-  // Restore a reserved-but-unpaid slot (e.g. after cancelling on Stripe or signing in).
-  useEffect(() => {
-    const pending = loadPendingBooking();
-    if (!pending?.slot) return;
-    setReservedSlot(pending.slot);
-    setSelectedServiceId(pending.slot.serviceId);
-    setFormData((prev) => ({ ...prev, ...pending.form }));
-  }, []);
-
-  useEffect(() => {
-    savePendingBooking(reservedSlot, formData);
-  }, [reservedSlot, formData]);
-
-  // Prefill from the signed-in profile so the checkout email matches the account.
-  useEffect(() => {
-    if (!isAuthenticated || !user) return;
+  // Prefill from the signed-in profile so the checkout email matches the account
+  // (adjusting state during render rather than in an effect).
+  const [prefilledUserId, setPrefilledUserId] = useState<number | string | null>(null);
+  if (isAuthenticated && user && prefilledUserId !== user.id) {
+    setPrefilledUserId(user.id);
     setFormData((prev) => ({
       ...prev,
       name: prev.name || user.name || "",
       email: prev.email || user.email || "",
     }));
-  }, [isAuthenticated, user]);
+  }
 
   useEffect(() => {
-    setMounted(true);
-    if (services.length > 0 && !selectedServiceId) {
-      // Functional update so a service restored from a pending booking isn't overwritten.
-      setSelectedServiceId((prev) => prev ?? services[0].id);
-    }
-  }, [services, selectedServiceId]);
+    savePendingBooking(reservedSlot, formData);
+  }, [reservedSlot, formData]);
 
   // Poll for payment status after redirect
   useEffect(() => {
@@ -176,17 +171,15 @@ function BookingPageContent() {
   const price = selectedService?.price || 0;
 
   // Resolve the correct Calendly URL for the selected service
-  const calendlySettingKey = selectedService
-    ? (calendlySettingKeyMap[selectedService.type] || 'discovery_calendly_url')
-    : 'discovery_calendly_url';
-  const calendlyUrl = getSetting(calendlySettingKey) || "https://calendly.com/gathoni-mwai0/gm-discovery-call";
+  const calendlySettingKey = selectedService ? calendlySettingKeyMap[selectedService.type] : undefined;
+  const calendlyUrl = (calendlySettingKey && getSetting(calendlySettingKey)) || DEFAULT_CALENDLY_URL;
 
   useEffect(() => {
     const handleCalendlyEvent = async (e: MessageEvent) => {
       if (e.origin !== "https://calendly.com") return;
 
-      // Paid sessions: the slot is reserved first, payment is the last step.
-      if (e.data?.event === 'calendly.event_scheduled' && price > 0 && selectedService) {
+      // The slot is reserved first; payment is the last step.
+      if (e.data?.event === 'calendly.event_scheduled' && selectedService) {
         const slot: ReservedSlot = {
           serviceId: selectedService.id,
           eventUri: e.data.payload?.event?.uri ?? "",
@@ -213,51 +206,20 @@ function BookingPageContent() {
             // Non-blocking: the client can still pay; the slot just won't be auto-released.
           }
         }
-        return;
-      }
-
-      if (e.data?.event === 'calendly.event_scheduled' && price === 0) {
-        const inviteeUri = e.data.payload.invitee.uri;
-        
-        try {
-          await createTransaction({
-            name: formData.name,
-            email: formData.email,
-            amount: 0,
-            currency: selectedService?.currency || 'GBP',
-            service_id: selectedService?.id,
-            stripe_checkout_session_id: `calendly_${inviteeUri.split('/').pop()}`,
-            status: 'success'
-          });
-          
-          toast.success("Booking confirmed!", {
-            description: "Your session has been recorded. Check your email for details."
-          });
-          setFormData({ name: "", email: "", phone: "", location: "", expectations: "" });
-        } catch (err) {
-          console.error(err);
-          toast.error("Booking recording error", {
-            description: "Session scheduled on Calendly, but we couldn't log it on our website. Please notify support."
-          });
-        } finally {
-          // recording done
-        }
       }
     };
 
     window.addEventListener('message', handleCalendlyEvent);
     return () => window.removeEventListener('message', handleCalendlyEvent);
-  }, [formData, price, selectedService]);
+  }, [formData, selectedService]);
 
   if (!mounted) return null;
 
   const detailsComplete = !!(formData.email && formData.name && formData.phone) && isAuthenticated;
   const slotReserved = !!reservedSlot && reservedSlot.serviceId === selectedService?.id;
   const canPay = detailsComplete && slotReserved;
-  // Paid sessions show availability once details are in, so clients only pay for a time that works.
-  const calendarLocked = price > 0
-    ? !detailsComplete
-    : (!formData.name || !formData.email);
+  // Availability shows once details are in, so clients only pay for a time that works.
+  const calendarLocked = !detailsComplete;
 
   const breadcrumbs = [
     { label: "Booking", path: "/book" },
@@ -341,20 +303,14 @@ function BookingPageContent() {
                       onClick={() => setSelectedServiceId(s.id)}
                       disabled={!!reservedSlot && reservedSlot.serviceId !== s.id}
                       title={reservedSlot && reservedSlot.serviceId !== s.id ? "You have a reserved slot for another service" : undefined}
-                      className={`p-6 rounded-2xl border-2 transition-all text-left flex items-start gap-4 h-full disabled:opacity-40 disabled:cursor-not-allowed ${selectedServiceId === s.id ? 'bg-primary/5 border-primary ring-4 ring-primary/5' : 'bg-card border-border hover:border-primary/20'}`}
+                      className={`p-6 rounded-2xl border-2 transition-all text-left flex items-start gap-4 h-full disabled:opacity-40 disabled:cursor-not-allowed ${selectedService?.id === s.id ? 'bg-primary/5 border-primary ring-4 ring-primary/5' : 'bg-card border-border hover:border-primary/20'}`}
                     >
-                      <IconBlock icon={ServiceIcon} className={selectedServiceId === s.id ? 'bg-primary text-white' : 'bg-secondary text-primary'} />
+                      <IconBlock icon={ServiceIcon} className={selectedService?.id === s.id ? 'bg-primary text-white' : 'bg-secondary text-primary'} />
                       <div>
                         <p className="font-bold italic">{s.name}</p>
                         <p className="text-2xl font-bold text-primary">
-                          {s.price === 0 ? (
-                            <span className="text-emerald-600">Free</span>
-                          ) : (
-                            <>
-                               {formatCurrency(Number(s.price), s.currency)}{ ' ' }
-                              <span className="text-[10px] opacity-40 font-bold"> / hr</span>
-                            </>
-                          )}
+                          {formatCurrency(Number(s.price), s.currency)}{ ' ' }
+                          <span className="text-[10px] opacity-40 font-bold"> / hr</span>
                         </p>
                       </div>
                     </button>
@@ -466,7 +422,7 @@ function BookingPageContent() {
                          </Link>
                        </div>
                      </div>
-                  ) : price > 0 ? (
+                  ) : (
                      <div ref={payButtonRef}>
                        <StripeCheckoutButton
                           serviceName={selectedService?.name || 'Session'}
@@ -482,13 +438,6 @@ function BookingPageContent() {
                           onClick={handlePaymentClick}
                        />
                      </div>
-                  ) : (
-                     <Button
-                        disabled={true}
-                        className="w-full h-16 rounded-2xl bg-emerald-500/10 text-emerald-600 font-bold border border-emerald-500/20"
-                     >
-                        Free Session — Complete booking on the calendar →
-                     </Button>
                   )}
                 
                 <div className="flex items-center justify-center gap-2 opacity-40 grayscale group-hover:grayscale-0 transition-all">
@@ -529,7 +478,7 @@ function BookingPageContent() {
                     </div>
                     
                      <div className="relative h-full">
-                        {price > 0 && paymentConfirmed ? (
+                        {paymentConfirmed ? (
                           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-12 text-center space-y-4">
                              <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600">
                                 <IconBlock icon={CheckCircle2} className="bg-transparent text-emerald-600 p-0" />
@@ -537,7 +486,7 @@ function BookingPageContent() {
                              <p className="text-sm font-bold text-muted-foreground max-w-[240px]">Your session is booked</p>
                              <p className="text-[10px] text-muted-foreground/60 max-w-[220px]">Your time slot and payment are confirmed. Check your email for the details.</p>
                           </div>
-                        ) : price > 0 && slotReserved ? (
+                        ) : slotReserved ? (
                           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-12 text-center space-y-4">
                              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                                 <IconBlock icon={CalendarCheck} className="bg-transparent text-primary p-0" />
@@ -581,13 +530,11 @@ function BookingPageContent() {
                                    <IconBlock icon={MessageSquare} className="bg-transparent text-primary p-0" />
                                 </div>
                                 <p className="text-sm font-bold text-muted-foreground max-w-[220px]">
-                                  {price > 0 && !isAuthenticated
+                                  {!isAuthenticated
                                     ? "Sign in and enter your details to see availability"
                                     : "Enter your details to reveal availability"}
                                 </p>
-                                {price > 0 && (
-                                  <p className="text-[10px] text-muted-foreground/60 max-w-[220px]">Pick a time that works for you first — payment is the last step.</p>
-                                )}
+                                <p className="text-[10px] text-muted-foreground/60 max-w-[220px]">Pick a time that works for you first — payment is the last step.</p>
                              </div>
                            )}
                           </>

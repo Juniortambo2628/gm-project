@@ -30,8 +30,8 @@ const SECTION_DATA: Record<string, { title: string; desc: string; icon: React.El
     color: "text-blue-500 bg-blue-500/10 border-blue-500/20"
   },
   cta: {
-    title: "Call-to-Action Discovery Call",
-    desc: "Interactive maroon card that prompts users to book their free discovery call.",
+    title: "Call-to-Action Booking",
+    desc: "Interactive maroon card that prompts users to book a strategy session.",
     icon: Target,
     color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20"
   }

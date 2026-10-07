@@ -53,6 +53,13 @@ class StripePaymentController extends Controller
             ], 409);
         }
 
+        if ($service->price <= 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'This service is not available for booking.',
+            ], 422);
+        }
+
         if (! $this->stripeService->isConfigured()) {
             return response()->json([
                 'status' => 'error',

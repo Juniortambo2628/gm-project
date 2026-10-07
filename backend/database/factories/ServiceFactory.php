@@ -31,9 +31,4 @@ class ServiceFactory extends Factory
     {
         return $this->state(fn () => ['type' => 'consulting', 'name' => 'Consulting Interview Prep']);
     }
-
-    public function free(): static
-    {
-        return $this->state(fn () => ['price' => 0, 'name' => 'Discovery Call']);
-    }
 }

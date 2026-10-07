@@ -39,6 +39,24 @@ class ServiceCrudTest extends TestCase
         $this->assertDatabaseHas('services', ['name' => 'New Consulting Service']);
     }
 
+    public function test_free_services_are_rejected(): void
+    {
+        // Every package is paid; the free discovery call was retired.
+        $response = $this->withHeaders($this->jsonHeaders($this->admin))
+            ->postJson('/api/cms/services', [
+                'name' => 'Discovery Call',
+                'type' => 'consulting',
+                'price' => 0,
+                'currency' => 'GBP',
+                'duration' => '30 Min',
+                'features' => [],
+                'description' => 'Free call',
+                'is_active' => true,
+            ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors('price');
+    }
+
     public function test_admin_can_update_service(): void
     {
         $service = Service::factory()->create(['name' => 'Old Name']);

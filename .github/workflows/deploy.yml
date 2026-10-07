@@ -218,6 +218,39 @@ jobs:
             php artisan optimize 2>&1 || true
             php artisan package:discover --ansi 2>&1 || true
 
+            echo "▸ Running database migrations..."
+            cd "$CORE"
+            php artisan migrate --force 2>&1
+            if [ $? -ne 0 ]; then
+              echo "::error::Database migrations failed - backup of the previous release is at $BACKUP"
+              exit 1
+            fi
+
+            echo "▸ Ensuring Laravel scheduler cron..."
+            # Reminders, Stripe reconciliation and releasing unpaid Calendly slots all
+            # run from the scheduler, which needs this one-minute cron entry.
+            PHP_BIN=$(command -v php || echo /usr/local/bin/php)
+            CRON_LINE="* * * * * cd $CORE && $PHP_BIN artisan schedule:run >> /dev/null 2>&1"
+            if crontab -l 2>/dev/null | grep -F "$CORE" | grep -q "artisan schedule:run"; then
+              echo "  ✓ Scheduler cron already installed"
+            else
+              CRON_TMP=$(mktemp)
+              crontab -l 2>/dev/null > "$CRON_TMP" || true
+              echo "$CRON_LINE" >> "$CRON_TMP"
+              crontab "$CRON_TMP"
+              rm -f "$CRON_TMP"
+              if crontab -l 2>/dev/null | grep -F "$CORE" | grep -q "artisan schedule:run"; then
+                echo "  ✓ Scheduler cron installed: $CRON_LINE"
+              else
+                echo "::warning::Could not install the scheduler cron. Add it in cPanel > Cron Jobs: $CRON_LINE"
+              fi
+            fi
+            php artisan schedule:list 2>&1 || true
+
+            if ! grep -q "^CALENDLY_API_TOKEN=..*" "$CORE/.env" 2>/dev/null; then
+              echo "::warning::CALENDLY_API_TOKEN is not set in PROD_ENV_CONTENT - unpaid booking slots will not be released"
+            fi
+
             echo "▸ Setting up storage symlink..."
             ln -sfn "$CORE/storage/app/public" "$API/storage"
 
