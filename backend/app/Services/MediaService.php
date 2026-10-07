@@ -197,7 +197,9 @@ class MediaService
                 'width' => $image->width(),
                 'height' => $image->height(),
             ];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // Throwable, not Exception: a TypeError from the image library (as on
+            // 2026-09-04) should fall back to GD rather than fail the upload.
             Log::warning('Intervention Image compression failed, falling back to GD: '.$e->getMessage());
 
             return $this->compressImageFallback($sourcePath, $mimeType);

@@ -39,7 +39,15 @@ return [
 
         'smtp' => [
             'transport' => 'smtp',
-            'scheme' => env('MAIL_SCHEME', env('MAIL_ENCRYPTION') === 'ssl' ? 'smtps' : 'tcp'),
+            // Symfony Mailer only accepts "smtp" (plain/STARTTLS, e.g. port 587) or
+            // "smtps" (implicit TLS, port 465). Older values like "tcp"/"tls" made
+            // every email fail with 'The "tcp" scheme is not supported'.
+            'scheme' => match (strtolower((string) env('MAIL_SCHEME'))) {
+                'smtps', 'ssl' => 'smtps',
+                'smtp', 'tcp', 'tls', 'starttls' => 'smtp',
+                default => (strtolower((string) env('MAIL_ENCRYPTION')) === 'ssl' || (int) env('MAIL_PORT', 2525) === 465)
+                    ? 'smtps' : 'smtp',
+            },
             'url' => env('MAIL_URL'),
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
