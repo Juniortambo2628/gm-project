@@ -164,6 +164,39 @@ jobs:
               exit 1
             fi
 
+            # Validate the production .env before anything live changes: an invalid
+            # file makes every request fail once the config cache is cleared.
+            # Only the offending key is reported, never values.
+            echo "▸ Validating production .env..."
+            cat > "$STAGE/validate-env.php" <<'PHP'
+            <?php
+            require $argv[1];
+            $content = file_get_contents($argv[2]);
+            try {
+                Dotenv\Dotenv::parse($content);
+                exit(0);
+            } catch (Throwable $e) {
+                // Name the first bad key without echoing any value (it may be a secret).
+                foreach (preg_split('/\R/', $content) as $n => $line) {
+                    try { Dotenv\Dotenv::parse($line); } catch (Throwable $_) {
+                        $key = trim(strtok($line, '='));
+                        fwrite(STDERR, "  invalid .env line ".($n + 1).": {$key}=...\n");
+                        exit(1);
+                    }
+                }
+                fwrite(STDERR, "  .env could not be parsed\n");
+                exit(1);
+            }
+            PHP
+            if [ -f /tmp/gm-deploy/deploy-env-file ]; then
+              if ! php "$STAGE/validate-env.php" "$STAGE/vendor/autoload.php" /tmp/gm-deploy/deploy-env-file; then
+                echo "::error::PROD_ENV_CONTENT is not a valid .env file - production left unchanged. Quote values that contain spaces, e.g. APP_NAME=\"GM Coaching\"."
+                rm -rf "$STAGE"
+                exit 1
+              fi
+              echo "  ✓ .env parses"
+            fi
+
             echo "▸ Syncing backend files..."
             cd "$STAGE"
             cp -rf app bootstrap config database resources routes "$CORE/"
