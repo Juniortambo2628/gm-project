@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Transaction;
+use App\Services\CalendlyService;
 use App\Services\MailDeliveryService;
 use App\Services\NotificationService;
 use App\Services\StripeService;
@@ -17,7 +18,8 @@ class StripeWebhookController extends Controller
     public function __construct(
         protected NotificationService $notificationService,
         protected MailDeliveryService $mailDeliveryService,
-        protected StripeService $stripeService
+        protected StripeService $stripeService,
+        protected CalendlyService $calendlyService
     ) {}
 
     /**
@@ -107,11 +109,17 @@ class StripeWebhookController extends Controller
         $serviceName = $transaction->service?->name ?? 'Coaching Service';
 
         // The client picked their Calendly slot before paying; link that booking.
-        // If Calendly's webhook hasn't landed yet, hold a placeholder that the
-        // Calendly webhook will fill in with the real time (matched by invitee URI).
+        // Otherwise create it with the slot looked up from Calendly's API (no webhook on
+        // the free plan). Only if that lookup fails is a placeholder time used; the
+        // Calendly webhook or bookings:sync-calendly fills in the real one later.
         if (! Appointment::attachToTransaction($transaction)) {
-            $scheduledAt = now()->addDays(2)->setTime(10, 0);
-            $durationMinutes = $this->stripeService->parseDurationMinutes($transaction->service?->duration);
+            $slot = $transaction->calendly_invitee_uri && $this->calendlyService->isConfigured()
+                ? $this->calendlyService->getBookedSlot($transaction->calendly_invitee_uri)
+                : null;
+            $scheduledAt = $slot['start'] ?? now()->addDays(2)->setTime(10, 0);
+            $durationMinutes = $slot
+                ? (int) $slot['start']->diffInMinutes($slot['end'])
+                : $this->stripeService->parseDurationMinutes($transaction->service?->duration);
 
             $appointment = Appointment::create([
                 'transaction_id' => $transaction->id,

@@ -2,6 +2,7 @@
 
 use App\Mail\DynamicSystemMail;
 use App\Models\Appointment;
+use App\Services\CalendlyBookingSync;
 use App\Services\CalendlyService;
 use App\Services\StripeService;
 use App\Services\UnpaidBookingReleaser;
@@ -106,7 +107,19 @@ Artisan::command('bookings:release-unpaid', function () {
     $this->info("Checked {$result['checked']} expired reservations: {$result['released']} released, {$result['paid']} found paid, {$result['skipped']} skipped.");
 })->purpose('Cancel Calendly slots that were reserved but not paid for within the hold window');
 
+Artisan::command('bookings:sync-calendly', function () {
+    if (! app(CalendlyService::class)->isConfigured()) {
+        $this->warn('CALENDLY_API_TOKEN is not set; bookings are not being synced with Calendly.');
+
+        return;
+    }
+
+    $result = app(CalendlyBookingSync::class)->syncUpcoming();
+    $this->info("Checked {$result['checked']} upcoming bookings: {$result['updated']} time(s) updated, {$result['cancelled']} cancelled.");
+})->purpose('Sync upcoming bookings with Calendly (times, cancellations) without a webhook');
+
 Schedule::command('appointments:send-reminders')->hourly();
 Schedule::command('appointments:send-followups')->hourly();
 Schedule::command('stripe:reconcile')->everyFifteenMinutes();
 Schedule::command('bookings:release-unpaid')->everyTenMinutes();
+Schedule::command('bookings:sync-calendly')->everyFifteenMinutes();
