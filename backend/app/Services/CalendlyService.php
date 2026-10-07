@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -30,6 +31,36 @@ class CalendlyService
             return $response->successful() ? ($response->json('resource') ?? null) : null;
         } catch (\Throwable $e) {
             Log::warning('Calendly invitee lookup failed: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * The booked slot for an invitee: ['start' => Carbon, 'end' => Carbon, 'status' => 'active'|'canceled'].
+     * Without a Calendly webhook (paid plans only) this is how the site learns the time.
+     */
+    public function getBookedSlot(string $inviteeUri): ?array
+    {
+        $eventUri = $this->eventUriFromInviteeUri($inviteeUri);
+        if (! $eventUri) {
+            return null;
+        }
+
+        try {
+            $response = $this->client()->get($eventUri);
+            $event = $response->successful() ? $response->json('resource') : null;
+            if (empty($event['start_time']) || empty($event['end_time'])) {
+                return null;
+            }
+
+            return [
+                'start' => Carbon::parse($event['start_time']),
+                'end' => Carbon::parse($event['end_time']),
+                'status' => $event['status'] ?? 'active',
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('Calendly event lookup failed: '.$e->getMessage());
 
             return null;
         }
