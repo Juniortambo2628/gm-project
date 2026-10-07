@@ -254,6 +254,8 @@ export interface CheckoutSessionData {
   service_id: number;
   name: string;
   email: string;
+  calendly_invitee_uri?: string;
+  calendly_event_uri?: string;
 }
 
 export interface CheckoutSessionResult {

@@ -13,6 +13,7 @@ class Appointment extends Model
 
     protected $fillable = [
         'transaction_id',
+        'calendly_invitee_uri',
         'service_id',
         'user_id',
         'client_name',
@@ -47,6 +48,47 @@ class Appointment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Link a paid transaction to the Calendly slot the client picked before paying.
+     *
+     * Matches on the Calendly invitee URI first; falls back to the client's most
+     * recent unpaid upcoming booking made in the last day.
+     */
+    public static function attachToTransaction(Transaction $transaction): ?self
+    {
+        if ($transaction->appointment) {
+            return $transaction->appointment;
+        }
+
+        $appointment = null;
+
+        if ($transaction->calendly_invitee_uri) {
+            $appointment = self::where('calendly_invitee_uri', $transaction->calendly_invitee_uri)
+                ->whereNull('transaction_id')
+                ->first();
+        }
+
+        $appointment ??= self::where('client_email', $transaction->email)
+            ->whereNull('transaction_id')
+            ->where('status', 'scheduled')
+            ->where('scheduled_at', '>', now())
+            ->where('created_at', '>=', now()->subDay())
+            ->latest()
+            ->first();
+
+        if (! $appointment) {
+            return null;
+        }
+
+        $appointment->update([
+            'transaction_id' => $transaction->id,
+            'service_id' => $transaction->service_id ?? $appointment->service_id,
+        ]);
+        $transaction->setRelation('appointment', $appointment);
+
+        return $appointment;
     }
 
     public function markReminderSent(): void

@@ -18,6 +18,7 @@ class Transaction extends Model
         'service_id',
         'stripe_payment_intent_id',
         'stripe_checkout_session_id',
+        'calendly_invitee_uri',
         'status',
         'email_sent_at',
     ];

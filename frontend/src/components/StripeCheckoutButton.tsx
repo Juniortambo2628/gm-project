@@ -7,6 +7,8 @@ interface StripeCheckoutButtonProps {
     serviceName: string;
     isLoading: boolean;
     disabled?: boolean;
+    /** Shown instead of the pay label while the button is disabled, e.g. to say what's missing. */
+    disabledLabel?: string;
     onClick: () => void;
 }
 
@@ -14,6 +16,7 @@ export default function StripeCheckoutButton({
     serviceName, 
     isLoading, 
     disabled,
+    disabledLabel,
     onClick,
 }: StripeCheckoutButtonProps) {
     return (
@@ -28,6 +31,8 @@ export default function StripeCheckoutButton({
         >
             {isLoading ? (
                 <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Redirecting to payment...</>
+            ) : disabled && disabledLabel ? (
+                <>{disabledLabel}</>
             ) : (
                 <>
                     <CreditCard className="mr-3 group-hover:scale-110 transition-transform" size={20} />

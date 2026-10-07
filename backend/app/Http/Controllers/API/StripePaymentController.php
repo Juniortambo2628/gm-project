@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\Service;
 use App\Models\Transaction;
 use App\Services\StripeService;
@@ -17,7 +18,8 @@ class StripePaymentController extends Controller
 
     /**
      * Create a Stripe Checkout Session.
-     * Called by the frontend when the user clicks "Confirm & Pay".
+     * Called by the frontend when the user clicks "Confirm & Pay", after they
+     * have already reserved a slot on Calendly.
      */
     public function createCheckoutSession(Request $request): JsonResponse
     {
@@ -25,6 +27,8 @@ class StripePaymentController extends Controller
             'service_id' => 'required|exists:services,id',
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
+            'calendly_invitee_uri' => 'nullable|string|max:255|starts_with:https://api.calendly.com/',
+            'calendly_event_uri' => 'nullable|string|max:255|starts_with:https://api.calendly.com/',
         ]);
 
         $service = Service::findOrFail($validated['service_id']);
@@ -45,10 +49,12 @@ class StripePaymentController extends Controller
             currency: $currency,
             customerEmail: $validated['email'],
             customerName: $validated['name'],
-            metadata: [
+            metadata: array_filter([
                 'service_id' => (string) $service->id,
                 'service_name' => $service->name,
-            ]
+                'calendly_invitee_uri' => $validated['calendly_invitee_uri'] ?? null,
+                'calendly_event_uri' => $validated['calendly_event_uri'] ?? null,
+            ])
         );
 
         if (! $session) {
@@ -66,6 +72,7 @@ class StripePaymentController extends Controller
             'currency' => strtoupper($currency),
             'service_id' => $service->id,
             'stripe_checkout_session_id' => $session->id,
+            'calendly_invitee_uri' => $validated['calendly_invitee_uri'] ?? null,
             'status' => 'pending',
         ]);
 
@@ -97,7 +104,9 @@ class StripePaymentController extends Controller
 
         // Self-heal when the webhook never arrived.
         if ($transaction && $transaction->status !== 'success') {
-            $this->stripeService->reconcilePendingTransaction($transaction);
+            if ($this->stripeService->reconcilePendingTransaction($transaction)) {
+                Appointment::attachToTransaction($transaction);
+            }
         }
 
         return response()->json([

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, Briefcase, MapPin, Phone, MessageSquare, CheckCircle2, Globe, Loader2, PhoneCall } from "lucide-react";
+import { GraduationCap, Briefcase, MapPin, Phone, MessageSquare, CheckCircle2, Globe, Loader2, PhoneCall, CalendarCheck } from "lucide-react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { useCMSContent } from "@/context/CMSContentContext";
 import { useAuth } from "@/context/AuthContext";
@@ -49,6 +49,45 @@ const serviceIconMap: Record<string, LucideIcon> = {
   discovery: PhoneCall,
 };
 
+// A Calendly slot the client reserved but hasn't paid for yet. Kept in
+// sessionStorage so it survives the Stripe redirect (cancel or return) and sign-in.
+interface ReservedSlot {
+  serviceId: number;
+  eventUri: string;
+  inviteeUri: string;
+}
+
+type BookingFormData = {
+  name: string;
+  email: string;
+  phone: string;
+  location: string;
+  expectations: string;
+};
+
+const PENDING_BOOKING_KEY = "gm_pending_booking";
+
+function loadPendingBooking(): { slot: ReservedSlot | null; form: Partial<BookingFormData> } | null {
+  try {
+    const raw = sessionStorage.getItem(PENDING_BOOKING_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function savePendingBooking(slot: ReservedSlot | null, form: BookingFormData) {
+  try {
+    if (slot) {
+      sessionStorage.setItem(PENDING_BOOKING_KEY, JSON.stringify({ slot, form }));
+    } else {
+      sessionStorage.removeItem(PENDING_BOOKING_KEY);
+    }
+  } catch {
+    // Storage unavailable (private mode etc.) — the reservation just won't survive a reload.
+  }
+}
+
 function BookingPageContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
@@ -59,13 +98,28 @@ function BookingPageContent() {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
-  const [formData, setFormData] = useState({
+  const [reservedSlot, setReservedSlot] = useState<ReservedSlot | null>(null);
+  const payButtonRef = useRef<HTMLDivElement>(null);
+  const [formData, setFormData] = useState<BookingFormData>({
     name: "",
     email: "",
     phone: "",
     location: "",
     expectations: ""
   });
+
+  // Restore a reserved-but-unpaid slot (e.g. after cancelling on Stripe or signing in).
+  useEffect(() => {
+    const pending = loadPendingBooking();
+    if (!pending?.slot) return;
+    setReservedSlot(pending.slot);
+    setSelectedServiceId(pending.slot.serviceId);
+    setFormData((prev) => ({ ...prev, ...pending.form }));
+  }, []);
+
+  useEffect(() => {
+    savePendingBooking(reservedSlot, formData);
+  }, [reservedSlot, formData]);
 
   // Prefill from the signed-in profile so the checkout email matches the account.
   useEffect(() => {
@@ -80,7 +134,8 @@ function BookingPageContent() {
   useEffect(() => {
     setMounted(true);
     if (services.length > 0 && !selectedServiceId) {
-      setSelectedServiceId(services[0].id);
+      // Functional update so a service restored from a pending booking isn't overwritten.
+      setSelectedServiceId((prev) => prev ?? services[0].id);
     }
   }, [services, selectedServiceId]);
 
@@ -94,6 +149,7 @@ function BookingPageContent() {
         const data = await res.json();
         if (data.data?.transaction_status === "success") {
           setPaymentConfirmed(true);
+          setReservedSlot(null);
           toast.success("Payment successful!", {
             description: "Your session is now confirmed. Check your email for details."
           });
@@ -126,7 +182,23 @@ function BookingPageContent() {
 
   useEffect(() => {
     const handleCalendlyEvent = async (e: MessageEvent) => {
-      if (e.data.event === 'calendly.event_scheduled' && price === 0) {
+      if (e.origin !== "https://calendly.com") return;
+
+      // Paid sessions: the slot is reserved first, payment is the last step.
+      if (e.data?.event === 'calendly.event_scheduled' && price > 0 && selectedService) {
+        setReservedSlot({
+          serviceId: selectedService.id,
+          eventUri: e.data.payload?.event?.uri ?? "",
+          inviteeUri: e.data.payload?.invitee?.uri ?? "",
+        });
+        toast.success("Time slot reserved", {
+          description: "Complete payment to confirm your booking.",
+        });
+        payButtonRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+
+      if (e.data?.event === 'calendly.event_scheduled' && price === 0) {
         const inviteeUri = e.data.payload.invitee.uri;
         
         try {
@@ -161,7 +233,13 @@ function BookingPageContent() {
 
   if (!mounted) return null;
 
-  const canPay = !!(formData.email && formData.name && formData.phone) && isAuthenticated;
+  const detailsComplete = !!(formData.email && formData.name && formData.phone) && isAuthenticated;
+  const slotReserved = !!reservedSlot && reservedSlot.serviceId === selectedService?.id;
+  const canPay = detailsComplete && slotReserved;
+  // Paid sessions show availability once details are in, so clients only pay for a time that works.
+  const calendarLocked = price > 0
+    ? !detailsComplete
+    : (!formData.name || !formData.email);
 
   const breadcrumbs = [
     { label: "Booking", path: "/book" },
@@ -177,6 +255,8 @@ function BookingPageContent() {
         service_id: selectedService.id,
         name: formData.name,
         email: formData.email,
+        calendly_invitee_uri: reservedSlot?.inviteeUri || undefined,
+        calendly_event_uri: reservedSlot?.eventUri || undefined,
       });
 
       if (result.data?.checkout_url) {
@@ -198,7 +278,7 @@ function BookingPageContent() {
     <PublicLayout
       hero={{
         title: getSetting('book_hero_title', "Secure your session"),
-        subtitle: getSetting('book_hero_subtitle', "Choose your pathway and book a time that works for you. Payments are processed securely via Stripe."),
+        subtitle: getSetting('book_hero_subtitle', "Choose your pathway, pick a time that works for you, then pay securely via Stripe."),
         badge: "Booking system",
         breadcrumbs,
         ...getHeroProps('book_hero_bg')
@@ -220,7 +300,7 @@ function BookingPageContent() {
                     <div>
                       <h4 className="font-bold text-emerald-900 dark:text-emerald-400 text-sm italic">Payment confirmed!</h4>
                       <p className="text-xs text-emerald-800/60 dark:text-emerald-400/60 font-medium leading-relaxed mt-1">
-                        Your payment has been processed successfully. Check your email for booking details and your Zoom link.
+                        Your session is booked. Check your email for booking details and your Zoom link.
                       </p>
                     </div>
                   </div>
@@ -235,7 +315,9 @@ function BookingPageContent() {
                     <button 
                       key={s.id}
                       onClick={() => setSelectedServiceId(s.id)}
-                      className={`p-6 rounded-2xl border-2 transition-all text-left flex items-start gap-4 h-full ${selectedServiceId === s.id ? 'bg-primary/5 border-primary ring-4 ring-primary/5' : 'bg-card border-border hover:border-primary/20'}`}
+                      disabled={!!reservedSlot && reservedSlot.serviceId !== s.id}
+                      title={reservedSlot && reservedSlot.serviceId !== s.id ? "You have a reserved slot for another service" : undefined}
+                      className={`p-6 rounded-2xl border-2 transition-all text-left flex items-start gap-4 h-full disabled:opacity-40 disabled:cursor-not-allowed ${selectedServiceId === s.id ? 'bg-primary/5 border-primary ring-4 ring-primary/5' : 'bg-card border-border hover:border-primary/20'}`}
                     >
                       <IconBlock icon={ServiceIcon} className={selectedServiceId === s.id ? 'bg-primary text-white' : 'bg-secondary text-primary'} />
                       <div>
@@ -361,12 +443,21 @@ function BookingPageContent() {
                        </div>
                      </div>
                   ) : price > 0 ? (
-                     <StripeCheckoutButton
-                        serviceName={selectedService?.name || 'Session'}
-                        isLoading={isRedirecting}
-                        disabled={!canPay}
-                        onClick={handlePaymentClick}
-                     />
+                     <div ref={payButtonRef}>
+                       <StripeCheckoutButton
+                          serviceName={selectedService?.name || 'Session'}
+                          isLoading={isRedirecting}
+                          disabled={!canPay}
+                          disabledLabel={
+                            !detailsComplete
+                              ? "Enter your details, then pick a time slot"
+                              : !slotReserved
+                                ? "Pick a time slot on the calendar to continue"
+                                : undefined
+                          }
+                          onClick={handlePaymentClick}
+                       />
+                     </div>
                   ) : (
                      <Button
                         disabled={true}
@@ -390,7 +481,7 @@ function BookingPageContent() {
                   <div>
                     <h4 className="font-bold text-blue-900 dark:text-blue-400 text-sm italic">Automated flow</h4>
                     <p className="text-xs text-blue-800/60 dark:text-blue-400/60 font-medium leading-relaxed mt-1">
-                      After successful payment, you will receive an automated confirmation with your Zoom link and preparation notes.
+                      Pick your time slot first — payment is the last step. Once paid, you will receive an automated confirmation with your Zoom link and preparation notes.
                     </p>
                   </div>
                 </div>
@@ -405,21 +496,38 @@ function BookingPageContent() {
                        <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-2">
                           <Globe size={12} /> Timezone detect: Auto
                        </span>
+                       {/* Progress: details → time slot → payment */}
                        <div className="flex gap-1">
                           <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                          <div className="w-2 h-2 rounded-full bg-[#470f0b]/20" />
-                          <div className="w-2 h-2 rounded-full bg-[#470f0b]/20" />
+                          <div className={`w-2 h-2 rounded-full ${slotReserved || paymentConfirmed ? 'bg-emerald-500' : 'bg-[#470f0b]/20'}`} />
+                          <div className={`w-2 h-2 rounded-full ${paymentConfirmed ? 'bg-emerald-500' : 'bg-[#470f0b]/20'}`} />
                        </div>
                     </div>
                     
                      <div className="relative h-full">
-                        {price > 0 && !paymentConfirmed ? (
-                          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-12 text-center space-y-4">
-                             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                <IconBlock icon={CheckCircle2} className="bg-transparent text-primary p-0" />
+                        {price > 0 && paymentConfirmed ? (
+                          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-12 text-center space-y-4">
+                             <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                                <IconBlock icon={CheckCircle2} className="bg-transparent text-emerald-600 p-0" />
                              </div>
-                             <p className="text-sm font-bold text-muted-foreground max-w-[220px]">Complete payment to reveal the scheduling calendar</p>
-                             <p className="text-[10px] text-muted-foreground/60 max-w-[200px]">After payment, you will be redirected back here to select your preferred time slot.</p>
+                             <p className="text-sm font-bold text-muted-foreground max-w-[240px]">Your session is booked</p>
+                             <p className="text-[10px] text-muted-foreground/60 max-w-[220px]">Your time slot and payment are confirmed. Check your email for the details.</p>
+                          </div>
+                        ) : price > 0 && slotReserved ? (
+                          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-12 text-center space-y-4">
+                             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                <IconBlock icon={CalendarCheck} className="bg-transparent text-primary p-0" />
+                             </div>
+                             <p className="text-sm font-bold text-muted-foreground max-w-[240px]">Time slot reserved — complete payment to confirm</p>
+                             <p className="text-[10px] text-muted-foreground/60 max-w-[240px]">Calendly has emailed you the slot details. Your booking is confirmed once payment goes through.</p>
+                             <button
+                               type="button"
+                               onClick={() => setReservedSlot(null)}
+                               className="text-[10px] font-bold text-primary underline underline-offset-4"
+                             >
+                               Pick a different time
+                             </button>
+                             <p className="text-[10px] text-muted-foreground/50 max-w-[240px]">If you pick again, use the cancel link in your Calendly email to release the earlier slot.</p>
                           </div>
                         ) : (
                           <>
@@ -433,13 +541,20 @@ function BookingPageContent() {
                                }}
                             />
                            
-                           {/* Blur Overlay if form not filled (free services only) */}
-                           {price === 0 && (!formData.name || !formData.email) && (
+                           {/* Blur overlay until the details needed for booking are filled in */}
+                           {calendarLocked && (
                              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-12 text-center space-y-4">
                                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                                    <IconBlock icon={MessageSquare} className="bg-transparent text-primary p-0" />
                                 </div>
-                                <p className="text-sm font-bold text-muted-foreground max-w-[200px]">Enter your details to reveal availability</p>
+                                <p className="text-sm font-bold text-muted-foreground max-w-[220px]">
+                                  {price > 0 && !isAuthenticated
+                                    ? "Sign in and enter your details to see availability"
+                                    : "Enter your details to reveal availability"}
+                                </p>
+                                {price > 0 && (
+                                  <p className="text-[10px] text-muted-foreground/60 max-w-[220px]">Pick a time that works for you first — payment is the last step.</p>
+                                )}
                              </div>
                            )}
                           </>
