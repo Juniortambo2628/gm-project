@@ -166,7 +166,7 @@ export default function MBAAdmissionsPage() {
       {/* Scholarship Box (Major Differentiator) */}
       <section className="py-20 bg-background px-6">
          <div className="max-w-5xl mx-auto p-10 md:p-16 bg-[#470f0b] text-white rounded-3xl text-center shadow-2xl relative overflow-hidden group">
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
+            <div className="absolute inset-0 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
             <Award className="mx-auto mb-6 text-white group-hover:scale-110 transition-transform relative z-10" size={48} />
             <h2 className="text-3xl md:text-5xl font-bold mb-8 italic leading-none relative z-10">
               Scholarship focused <br/><span className="text-white/60">African opportunities</span>

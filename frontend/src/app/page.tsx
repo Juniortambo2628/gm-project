@@ -344,7 +344,7 @@ export default function Home() {
         return (
           <section key="cta" className="py-20 relative z-10 px-6">
              <div className="max-w-4xl mx-auto rounded-3xl bg-primary text-white p-10 md:p-16 text-center shadow-2xl relative overflow-hidden animate-fade-in">
-                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+                <div className="absolute inset-0 pointer-events-none opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
                  <h3 className="text-3xl md:text-5xl font-bold mb-8 leading-tight italic">
                    Ready to start <br/>your journey?
                  </h3>
