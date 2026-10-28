@@ -10,7 +10,7 @@ import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Message } from "@/lib/api";
 import { useAdminPaginatedList } from "@/hooks/useAdminPaginatedList";
-import { AdminListControls, AdminPagination } from "@/components/admin/AdminListControls";
+import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import Link from "next/link";
 
 export default function InquiriesPage() {
@@ -31,7 +31,7 @@ export default function InquiriesPage() {
 
   return (
     <AdminListPage title="Client Inquiries" description="Manage messages from your website contact form." isLoading={loading}>
-      <AdminListControls search={search} onSearchChange={setSearch} placeholder="Search by client, email, or subject" filters={[{ key: "read", label: "Read status", options: [{ value: "", label: "All inquiries" }, { value: "false", label: "Unread" }, { value: "true", label: "Read" }] }]} values={filters} onFilterChange={setFilter} dateRange total={meta.total} />
+      <AdminListToolbar search={search} onSearchChange={setSearch} placeholder="Search by client, email, or subject" filters={[{ key: "read", label: "Read status", options: [{ value: "", label: "All inquiries" }, { value: "false", label: "Unread" }, { value: "true", label: "Read" }] }]} values={filters} onFilterChange={setFilter} dateRange total={meta.total} page={page} lastPage={meta.last_page} onPageChange={setPage} />
       <div className="grid grid-cols-1 gap-6">
         {inquiries.length > 0 ? inquiries.map((item) => (
           <Card key={item.id} className="rounded-3xl border shadow-sm hover:border-primary/20 transition-all overflow-hidden">
@@ -73,7 +73,6 @@ export default function InquiriesPage() {
           <EmptyState title="No messages found yet." />
         )}
       </div>
-      <AdminPagination page={page} lastPage={meta.last_page} onPageChange={setPage} />
 
       <ConfirmDeleteDialog
         isOpen={deleteTarget !== null}

@@ -1,5 +1,5 @@
 "use client";
-import { LogOut, Settings, BarChart3, MessageSquare, Globe, FileText, DollarSign, HelpCircle, Bell, CheckCheck, User, ShieldAlert, Clock, ExternalLink, Mail, Zap, CalendarDays, UsersRound, History, type LucideIcon } from "lucide-react";
+import { LogOut, Settings, BarChart3, MessageSquare, Globe, FileText, DollarSign, HelpCircle, Bell, CheckCheck, User, ShieldAlert, Clock, ExternalLink, Mail, Zap, CalendarDays, UsersRound, History, Menu, X, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
@@ -41,6 +41,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const fetchNotifications = async () => {
     try {
@@ -149,7 +150,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex h-screen bg-background font-sans transition-colors" suppressHydrationWarning>
       {/* Sidebar */}
-      <aside className="w-80 bg-card flex flex-col border-r z-20">
+      {isSidebarOpen && <button type="button" aria-label="Close navigation menu" className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-80 flex-col border-r bg-card transition-transform duration-200 md:static md:z-20 md:translate-x-0 md:shrink-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="p-8">
           <Link href="/" className="flex items-center gap-3 group">
               <div className="flex items-center gap-3">
@@ -185,6 +187,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       <Link
                         key={item.path}
                         href={item.path}
+                        onClick={() => setIsSidebarOpen(false)}
                         className={`p-3 rounded-xl text-left font-medium flex items-center gap-3 transition-all duration-300 ${pathname === item.path ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/10' : 'hover:bg-muted text-muted-foreground hover:text-foreground'}`}
                       >
                          <ItemIcon size={18} className={pathname === item.path ? 'text-primary-foreground' : 'text-muted-foreground'} />
@@ -199,6 +202,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     return (
                       <Link
                         href={section.path}
+                        onClick={() => setIsSidebarOpen(false)}
                         className={`p-3 rounded-xl text-left font-medium flex items-center gap-3 transition-all duration-300 ${pathname === section.path ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/10' : 'hover:bg-muted text-muted-foreground hover:text-foreground'}`}
                       >
                          <SectionIcon size={18} className={pathname === section.path ? 'text-primary-foreground' : 'text-muted-foreground'} />
@@ -225,10 +229,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background transition-colors">
-        <header className="h-20 flex-shrink-0 border-b flex items-center justify-between px-10 bg-card/50 z-30 relative">
-           <div>
+        <header className="relative z-30 flex h-20 flex-shrink-0 items-center justify-between border-b bg-card/50 px-4 md:px-10">
+           <div className="flex min-w-0 items-center gap-3">
+               <Button type="button" variant="ghost" size="icon" aria-label={isSidebarOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={isSidebarOpen} className="shrink-0 md:hidden" onClick={() => setIsSidebarOpen((open) => !open)}>{isSidebarOpen ? <X size={19} /> : <Menu size={19} />}</Button>
+               <div className="min-w-0">
                <h2 className="text-lg font-bold">Welcome back, {user?.name || 'Admin'}</h2>
-               <p className="text-xs text-muted-foreground font-medium">Manage your consultancy platform.</p>
+               <p className="hidden text-xs font-medium text-muted-foreground sm:block">Manage your consultancy platform.</p>
+               </div>
            </div>
 
            {/* Actions bar */}

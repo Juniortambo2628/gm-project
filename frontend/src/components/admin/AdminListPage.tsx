@@ -20,7 +20,7 @@ export function AdminListPage({
   action,
 }: AdminListPageProps) {
   return (
-    <div className="animate-fade-in space-y-10 pb-20">
+    <div className="animate-fade-in space-y-10 pb-48">
       <DashboardHero title={title} description={description} action={action} />
 
       {isLoading ? (

@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/button";
 import axiosInstance from "@/lib/axios";
 import { useAdminPaginatedList } from "@/hooks/useAdminPaginatedList";
-import { AdminListControls, AdminPagination } from "@/components/admin/AdminListControls";
+import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import Link from "next/link";
 
@@ -53,7 +53,7 @@ export default function AdminAppointmentsPage() {
 
   return (
     <AdminListPage title="Appointments & Documents" description="Review client appointments and securely download their shared documents." isLoading={loading}>
-      <AdminListControls search={search} onSearchChange={setSearch} placeholder="Search by client name or email" filters={[{ key: "status", label: "Appointment", options: [{ value: "", label: "All statuses" }, { value: "scheduled", label: "Scheduled" }, { value: "completed", label: "Completed" }, { value: "cancelled", label: "Cancelled" }] }, { key: "documents", label: "Documents", options: [{ value: "", label: "All appointments" }, { value: "uploaded", label: "Has documents" }, { value: "missing", label: "No documents" }] }]} values={filters} onFilterChange={setFilter} dateRange total={meta.total} />
+      <AdminListToolbar search={search} onSearchChange={setSearch} placeholder="Search by client name or email" filters={[{ key: "status", label: "Appointment", options: [{ value: "", label: "All statuses" }, { value: "scheduled", label: "Scheduled" }, { value: "completed", label: "Completed" }, { value: "cancelled", label: "Cancelled" }] }, { key: "documents", label: "Documents", options: [{ value: "", label: "All appointments" }, { value: "uploaded", label: "Has documents" }, { value: "missing", label: "No documents" }] }]} values={filters} onFilterChange={setFilter} dateRange total={meta.total} page={page} lastPage={meta.last_page} onPageChange={setPage} />
       <div className="space-y-4">
         {appointments.map((appointment) => (
           <Card key={appointment.id} className="rounded-2xl border shadow-sm">
@@ -80,7 +80,6 @@ export default function AdminAppointmentsPage() {
         ))}
         {!loading && appointments.length === 0 && <EmptyState icon={<FileText size={30} />} title="No appointments found" description="Appointments and client documents will appear here." />}
       </div>
-      <AdminPagination page={page} lastPage={meta.last_page} onPageChange={setPage} />
       <ConfirmDeleteDialog isOpen={deleteTarget !== null} onClose={() => setDeleteTarget(null)} onConfirm={deleteDocument} title="Delete client document" description={deleteTarget ? `Permanently delete ${deleteTarget.name}? This cannot be undone.` : "This cannot be undone."} />
     </AdminListPage>
   );

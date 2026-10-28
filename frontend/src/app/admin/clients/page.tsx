@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight, BriefcaseBusiness, UserRound } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdminListPage } from "@/components/admin/AdminListPage";
-import { AdminListControls, AdminPagination } from "@/components/admin/AdminListControls";
+import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useAdminPaginatedList } from "@/hooks/useAdminPaginatedList";
 
@@ -22,7 +22,7 @@ export default function AdminClientsPage() {
 
   return (
     <AdminListPage title="Client Records" description="A combined view of client accounts, bookings, inquiries, and email history." isLoading={loading}>
-      <AdminListControls search={search} onSearchChange={setSearch} placeholder="Search clients by name or email" total={meta.total} onFilterChange={() => {}} />
+      <AdminListToolbar search={search} onSearchChange={setSearch} placeholder="Search clients by name or email" total={meta.total} page={page} lastPage={meta.last_page} onPageChange={setPage} />
       <div className="space-y-3">
         {data.map((client) => <Card key={`${client.source_type}-${client.source_id}`} className="rounded-2xl border shadow-sm">
           <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -35,7 +35,6 @@ export default function AdminClientsPage() {
         </Card>)}
         {!loading && data.length === 0 && <EmptyState icon={<BriefcaseBusiness size={28} />} title="No client records found" description="Try another name or email, or check back after client activity." />}
       </div>
-      <AdminPagination page={page} lastPage={meta.last_page} onPageChange={setPage} />
     </AdminListPage>
   );
 }
