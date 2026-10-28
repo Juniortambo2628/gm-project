@@ -393,7 +393,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
            </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto w-full custom-scrollbar relative">
+        <div id="admin-scroll-container" className="flex-1 overflow-y-auto w-full custom-scrollbar relative">
            <div className="p-10 min-h-[calc(100vh-80px)">
               <ErrorBoundary>
                 {children}
@@ -401,7 +401,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
            
            {/* Footer */}
-           <SiteFooter />
+           <div id="admin-site-footer"><SiteFooter /></div>
         </div>
       </main>
     </div>
