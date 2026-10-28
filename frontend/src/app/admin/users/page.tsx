@@ -9,7 +9,6 @@ import {
   Trash2, 
   Calendar, 
   Mail, 
-  Search 
 } from "lucide-react";
 import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
@@ -18,7 +17,8 @@ import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getErrorMessage } from "@/lib/api";
-import { useAdminFetch } from "@/hooks/useAdminFetch";
+import { useAdminPaginatedList } from "@/hooks/useAdminPaginatedList";
+import { AdminListControls, AdminPagination } from "@/components/admin/AdminListControls";
 
 interface UserRecord {
   id: number;
@@ -30,10 +30,7 @@ interface UserRecord {
 
 export default function UserManagementPage() {
   const { user: currentUser } = useAuth();
-  const { data: users, loading, refetch } = useAdminFetch<UserRecord[]>("/cms/users", {
-    errorMessage: "Failed to load user list",
-  });
-  const [searchQuery, setSearchQuery] = useState("");
+  const { data: users, loading, refetch, search, setSearch, filters, setFilter, page, setPage, meta } = useAdminPaginatedList<UserRecord>("/cms/users", "Failed to load user list");
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   const changeUserRole = async (id: number, currentRole: string) => {
@@ -70,7 +67,7 @@ export default function UserManagementPage() {
 
     try {
       await axiosInstance.delete(`/cms/users/${id}`);
-      toast.success("User account successfully deleted");
+      toast.success("Account deactivated");
       refetch();
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -79,47 +76,18 @@ export default function UserManagementPage() {
     }
   };
 
-  const filteredUsers = users.filter((user) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      user.name.toLowerCase().includes(query) ||
-      user.email.toLowerCase().includes(query) ||
-      user.role.toLowerCase().includes(query)
-    );
-  });
-
   return (
     <AdminListPage
       title="User & Privilege Control"
       description="Monitor registered participant accounts and promote staff to administrative roles."
       isLoading={loading}
     >
-      {/* Filter and stats row */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border rounded-2xl p-4 shadow-sm mb-4">
-        <div className="relative flex-1 max-w-md">
-          <Search size={16} className="absolute left-4 top-3.5 text-muted-foreground" />
-          <input 
-            type="text" 
-            placeholder="Search users by name, email, or role..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-11 pl-11 pr-4 bg-secondary/30 hover:bg-secondary/50 focus:bg-background border border-border/50 rounded-xl text-xs font-bold text-foreground placeholder-muted-foreground outline-none transition-all focus:ring-1 focus:ring-primary focus:border-primary"
-          />
-        </div>
-
-        <div className="flex items-center gap-6 text-xs font-bold text-muted-foreground px-2">
-          <span>Total: <span className="text-foreground">{users.length}</span></span>
-          <span className="h-4 w-px bg-border"></span>
-          <span>Admins: <span className="text-primary">{users.filter(u => u.role === 'admin').length}</span></span>
-          <span className="h-4 w-px bg-border"></span>
-          <span>Participants: <span className="text-foreground">{users.filter(u => u.role !== 'admin').length}</span></span>
-        </div>
-      </div>
+      <AdminListControls search={search} onSearchChange={setSearch} placeholder="Search accounts by name or email" filters={[{ key: "role", label: "Role", options: [{ value: "", label: "All roles" }, { value: "admin", label: "Administrator" }, { value: "participant", label: "Participant" }] }]} values={filters} onFilterChange={setFilter} dateRange total={meta.total} />
 
       {/* Grid listing */}
       <div className="grid grid-cols-1 gap-4">
-        {filteredUsers.length > 0 ? (
-          filteredUsers.map((item) => (
+        {users.length > 0 ? (
+          users.map((item) => (
             <Card 
               key={item.id} 
               className={`rounded-2xl border shadow-sm transition-all overflow-hidden bg-card duration-200 ${
@@ -201,7 +169,7 @@ export default function UserManagementPage() {
                     onClick={() => setDeleteTarget(item.id)} 
                     disabled={item.id === currentUser?.id}
                     variant="ghost" 
-                    title="Delete Account"
+                    title="Deactivate account"
                     className={`h-10 w-10 p-0 rounded-xl flex items-center justify-center text-destructive hover:bg-destructive/10 ${
                       item.id === currentUser?.id ? "opacity-50 cursor-not-allowed" : ""
                     }`}
@@ -214,16 +182,17 @@ export default function UserManagementPage() {
             </Card>
           ))
         ) : (
-          <EmptyState title="No accounts matching search criteria." />
+          <EmptyState title="No accounts match these filters." />
         )}
       </div>
+      <AdminPagination page={page} lastPage={meta.last_page} onPageChange={setPage} />
 
       <ConfirmDeleteDialog
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => { if (deleteTarget) deleteUser(deleteTarget); }}
-        title="Delete user account"
-        description="Are you sure you want to permanently delete this user account? This action cannot be undone."
+        title="Deactivate user account"
+        description="Deactivate this account? Its linked payments and client history will remain available to administrators."
       />
     </AdminListPage>
   );

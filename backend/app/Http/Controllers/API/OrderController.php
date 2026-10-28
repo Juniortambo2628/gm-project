@@ -153,10 +153,23 @@ class OrderController extends Controller
         $booking = Transaction::query()
             ->where('email', $request->user()->email)
             ->where('id', $id)
-            ->with('service')
+            ->with(['service', 'appointment.documents'])
             ->firstOrFail();
 
         return (new TransactionResource($booking))->response();
+    }
+
+    public function documentUploadLink(Request $request, $id, AppointmentDocumentUploadLink $uploadLinks): JsonResponse
+    {
+        $booking = Transaction::query()
+            ->where('email', $request->user()->email)
+            ->where('id', $id)
+            ->where('status', 'success')
+            ->with('appointment')
+            ->firstOrFail();
+        abort_unless($booking->appointment, 404);
+
+        return response()->json(['url' => $uploadLinks->for($booking->appointment)]);
     }
 
     /**
@@ -166,14 +179,25 @@ class OrderController extends Controller
      * so that a missed webhook does not leave the dashboard permanently out of
      * sync with the bookings list.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $this->stripeService->reconcilePendingTransactions(days: 30, limit: 25);
+        $query = Transaction::query()->with(['service', 'appointment'])->latest();
+        if ($search = trim((string) $request->query('q'))) {
+            $query->where(fn ($builder) => $builder->where('name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('stripe_payment_intent_id', 'like', "%{$search}%"));
+        }
+        if ($status = $request->query('status')) {
+            $query->where('status', $status);
+        }
+        if ($from = $request->query('from')) {
+            $query->whereDate('created_at', '>=', $from);
+        }
+        if ($to = $request->query('to')) {
+            $query->whereDate('created_at', '<=', $to);
+        }
 
-        $transactions = Transaction::query()
-            ->with('service')
-            ->latest()
-            ->paginate(15);
+        $transactions = $query->paginate(15);
 
         return TransactionResource::collection($transactions)->response();
     }

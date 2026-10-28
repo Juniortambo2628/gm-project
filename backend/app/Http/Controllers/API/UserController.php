@@ -23,6 +23,27 @@ class UserController extends BaseCrudController
 
     protected ?int $perPage = 15;
 
+    public function index(): JsonResponse
+    {
+        $request = request();
+        $query = User::query()->latest();
+        if ($search = trim((string) $request->query('q'))) {
+            $query->where(fn ($builder) => $builder->where('name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%"));
+        }
+        if ($role = $request->query('role')) {
+            $query->where('role', $role);
+        }
+        if ($from = $request->query('from')) {
+            $query->whereDate('created_at', '>=', $from);
+        }
+        if ($to = $request->query('to')) {
+            $query->whereDate('created_at', '<=', $to);
+        }
+
+        return UserResource::collection($query->paginate(15))->response();
+    }
+
     /**
      * Hash the password before saving. On update, drop empty passwords.
      */
@@ -82,7 +103,7 @@ class UserController extends BaseCrudController
 
         return response()->json([
             'status' => 'success',
-            'message' => 'User account deleted successfully.',
+            'message' => 'User account deactivated. Linked business history remains available.',
         ]);
     }
 }

@@ -4,9 +4,9 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { getUserBooking, Booking, getErrorMessage } from "@/lib/api";
+import { getUserBooking, getUserDocumentUploadUrl, Booking, getErrorMessage } from "@/lib/api";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Package, CreditCard, Calendar, CheckCircle, Globe } from "lucide-react";
+import { Loader2, ArrowLeft, Package, CreditCard, Calendar, CheckCircle, Globe, FileUp, FileText } from "lucide-react";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
@@ -37,6 +37,7 @@ export default function OrderDetailPage() {
   const { getSetting } = useSiteSettings();
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
+  const [gettingUploadLink, setGettingUploadLink] = useState(false);
 
   const id = Number(params.id);
 
@@ -73,6 +74,17 @@ export default function OrderDetailPage() {
   const paid = booking?.status === 'success';
   const settingKey = booking?.service?.type ? calendlySettingKeyMap[booking.service.type] : undefined;
   const calendlyUrl = settingKey ? getSetting(settingKey) : undefined;
+
+  const openDocumentUpload = async () => {
+    setGettingUploadLink(true);
+    try {
+      const url = await getUserDocumentUploadUrl(id);
+      window.location.assign(url);
+    } catch (err) {
+      toast.error("Could not create an upload link", { description: getErrorMessage(err) });
+      setGettingUploadLink(false);
+    }
+  };
 
   return (
     <PublicLayout>
@@ -187,6 +199,14 @@ export default function OrderDetailPage() {
                 </CardContent>
               </Card>
             ) : null}
+
+            {paid && booking.appointment && <Card className="rounded-3xl border shadow-sm">
+              <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><FileUp className="text-primary" size={20} /> Appointment documents</CardTitle><p className="text-sm text-muted-foreground">Upload preparation materials or return here to add more later.</p></CardHeader>
+              <CardContent className="space-y-4">
+                <Button type="button" onClick={openDocumentUpload} disabled={gettingUploadLink} className="min-h-11 rounded-xl">{gettingUploadLink ? <Loader2 className="mr-2 animate-spin" size={16} /> : <FileUp className="mr-2" size={16} />}Upload or manage documents</Button>
+                {booking.appointment.documents?.length ? <ul className="space-y-2 border-t pt-4"><li className="text-sm font-semibold">Received ({booking.appointment.documents.length})</li>{booking.appointment.documents.map((file) => <li key={file.id} className="flex items-center gap-2 text-sm text-muted-foreground"><FileText size={15} />{file.name}<span className="text-xs">· {(file.size_bytes / 1048576).toFixed(1)} MB</span></li>)}</ul> : <p className="text-sm text-muted-foreground">No documents shared yet.</p>}
+              </CardContent>
+            </Card>}
           </div>
         )}
       </main>

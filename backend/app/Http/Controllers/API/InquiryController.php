@@ -22,6 +22,28 @@ class InquiryController extends BaseCrudController
 
     protected ?int $perPage = 15;
 
+    public function index(): JsonResponse
+    {
+        $request = request();
+        $query = Message::query()->latest();
+        if ($search = trim((string) $request->query('q'))) {
+            $query->where(fn ($builder) => $builder->where('name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('subject', 'like', "%{$search}%"));
+        }
+        if ($request->has('read') && $request->query('read') !== '') {
+            $query->where('is_read', filter_var($request->query('read'), FILTER_VALIDATE_BOOLEAN));
+        }
+        if ($from = $request->query('from')) {
+            $query->whereDate('created_at', '>=', $from);
+        }
+        if ($to = $request->query('to')) {
+            $query->whereDate('created_at', '<=', $to);
+        }
+
+        return MessageResource::collection($query->paginate(15))->response();
+    }
+
     public function __construct(
         protected NotificationService $notificationService,
         protected MailDeliveryService $mailDeliveryService

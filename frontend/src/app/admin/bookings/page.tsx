@@ -1,20 +1,37 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { CreditCard, ExternalLink, Activity } from "lucide-react";
+import { CreditCard, ExternalLink, Activity, RefreshCcw } from "lucide-react";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Booking } from "@/lib/api";
-import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { formatCurrency } from "@/lib/utils";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { reconcilePendingPayments } from "@/lib/api";
+import { toast } from "sonner";
+import { useAdminPaginatedList } from "@/hooks/useAdminPaginatedList";
+import { AdminListControls, AdminPagination } from "@/components/admin/AdminListControls";
 
 export default function BookingsPage() {
-  const { data, loading } = useAdminFetch<Booking[]>("/cms/orders", {
-    errorMessage: "Failed to fetch bookings",
-  });
+  const [reconciling, setReconciling] = useState(false);
+  const { data, loading, search, setSearch, filters, setFilter, page, setPage, meta } = useAdminPaginatedList<Booking>("/cms/orders", "Failed to fetch bookings");
+
+  const reconcile = async () => {
+    setReconciling(true);
+    try {
+      const result = await reconcilePendingPayments();
+      toast.success(result.message);
+    } catch {
+      toast.error("Could not reconcile pending payments");
+    } finally {
+      setReconciling(false);
+    }
+  };
 
   return (
-    <AdminListPage title="Bookings & Payments" description="Monitor successful registrations and consulting payments." isLoading={loading}>
+    <AdminListPage title="Bookings & Payments" description="Monitor payment and appointment status. Reconciliation runs when you request it." action={<Button onClick={reconcile} disabled={reconciling} variant="outline">{reconciling ? <RefreshCcw className="mr-2 animate-spin" size={15} /> : <RefreshCcw className="mr-2" size={15} />}Reconcile pending payments</Button>} isLoading={loading}>
+      <AdminListControls search={search} onSearchChange={setSearch} placeholder="Search by client, email, or payment reference" filters={[{ key: "status", label: "Payment status", options: [{ value: "", label: "All payments" }, { value: "success", label: "Paid" }, { value: "pending", label: "Pending" }, { value: "failed", label: "Failed" }] }]} values={filters} onFilterChange={setFilter} dateRange total={meta.total} />
       <div className="grid grid-cols-1 gap-4">
         {data.length > 0 ? data.map((item) => (
           <Card key={item.id} className="rounded-2xl border shadow-sm hover:border-primary/20 transition-all overflow-hidden bg-card">
@@ -39,6 +56,8 @@ export default function BookingsPage() {
                      })()}
                   </div>
                   <p className="text-xs text-muted-foreground font-medium truncate">{item.email}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Appointment: <span className="capitalize">{item.appointment?.status ?? "Not scheduled"}</span> · Confirmation: {item.email_sent_at ? "sent" : "pending"}</p>
+                  <Link href={`/admin/clients/payment/${item.id}`} className="mt-2 inline-flex text-xs font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Open client history</Link>
                </div>
 
                <div className="flex-1">
@@ -68,6 +87,7 @@ export default function BookingsPage() {
           />
         )}
       </div>
+      <AdminPagination page={page} lastPage={meta.last_page} onPageChange={setPage} />
     </AdminListPage>
   );
 }
