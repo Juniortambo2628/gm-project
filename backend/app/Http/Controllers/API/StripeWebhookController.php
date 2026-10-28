@@ -179,6 +179,9 @@ class StripeWebhookController extends Controller
             'time' => $scheduledAt->format('g:i A (T)'),
             'duration' => $durationMinutes.' minutes',
             'amount' => $transaction->currency.' '.number_format($transaction->amount, 2),
+            'documents_url' => $appointment
+                ? app(\App\Services\AppointmentDocumentUploadLink::class)->for($appointment)
+                : '',
         ]);
     }
 }

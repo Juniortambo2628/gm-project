@@ -22,6 +22,13 @@ class AppointmentResource extends JsonResource
             'reminder_sent_at' => $this->reminder_sent_at?->toISOString(),
             'followup_sent_at' => $this->followup_sent_at?->toISOString(),
             'notes' => $this->notes,
+            'documents' => $this->whenLoaded('documents', fn () => $this->documents->map(fn ($document) => [
+                'id' => $document->id,
+                'name' => $document->original_name,
+                'mime_type' => $document->mime_type,
+                'size_bytes' => $document->size_bytes,
+                'created_at' => $document->created_at?->toISOString(),
+            ])),
             'service' => new ServiceResource($this->whenLoaded('service')),
             'transaction' => new TransactionResource($this->whenLoaded('transaction')),
             'created_at' => $this->created_at?->toISOString(),

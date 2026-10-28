@@ -16,14 +16,15 @@ class AppointmentController extends BaseCrudController
     public function index(): JsonResponse
     {
         $this->perPage = 15;
+        $items = Appointment::query()->with(['service', 'documents'])->latest()->paginate($this->perPage);
 
-        return parent::index();
+        return AppointmentResource::collection($items)->response();
     }
 
     public function show($id): JsonResponse
     {
         $appointment = Appointment::query()
-            ->with(['service', 'transaction'])
+            ->with(['service', 'transaction', 'documents'])
             ->findOrFail($id);
 
         return (new AppointmentResource($appointment))->response();
@@ -42,7 +43,7 @@ class AppointmentController extends BaseCrudController
 
         $appointment->update($data);
 
-        return (new AppointmentResource($appointment->fresh(['service', 'transaction'])))->response();
+        return (new AppointmentResource($appointment->fresh(['service', 'transaction', 'documents'])))->response();
     }
 
     public function destroy($id): JsonResponse

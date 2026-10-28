@@ -42,6 +42,11 @@ class DynamicSystemMail extends Mailable
             $content = str_replace('{'.$key.'}', (string) $value, $content);
         }
 
+        if ($templateKey === 'booking_success' && ! empty($placeholders['documents_url'])) {
+            $documentsUrl = htmlspecialchars((string) $placeholders['documents_url'], ENT_QUOTES, 'UTF-8');
+            $content .= '<p style="margin-top:28px">Have documents to share before your session? <a href="'.$documentsUrl.'" style="color:#dc2626;font-weight:700">Upload them securely here</a>.</p>';
+        }
+
         $this->mailSubject = $subject;
         $this->htmlContent = $this->wrapInPremiumLayout($subject, $content);
     }
