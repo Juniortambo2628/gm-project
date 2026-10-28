@@ -65,11 +65,11 @@ class AppointmentDocumentUploadTest extends TestCase
         ]);
         Storage::disk('local')->put($document->path, 'private');
 
-        $this->get("/api/cms/appointment-documents/{$document->id}/download")->assertUnauthorized();
+        $this->getJson("/api/cms/appointment-documents/{$document->id}/download")->assertUnauthorized();
 
         $admin = User::factory()->create(['role' => 'admin']);
         $this->actingAs($admin)
-            ->get("/api/cms/appointment-documents/{$document->id}/download")
+            ->getJson("/api/cms/appointment-documents/{$document->id}/download")
             ->assertOk();
     }
 }
