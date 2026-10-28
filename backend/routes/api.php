@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\AppointmentController;
+use App\Http\Controllers\API\AppointmentDocumentController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\BlogController;
 use App\Http\Controllers\API\BookingReservationController;
@@ -55,6 +56,10 @@ Route::post('/messages', [InquiryController::class, 'store'])->middleware('throt
 Route::post('/transactions', [OrderController::class, 'store'])->middleware('throttle:10,1');
 Route::post('/payments/create-checkout', [StripePaymentController::class, 'createCheckoutSession'])->middleware('throttle:10,1');
 Route::get('/payments/status/{sessionId}', [StripePaymentController::class, 'status']);
+
+Route::post('/appointments/{appointment}/documents', [AppointmentDocumentController::class, 'store'])
+    ->middleware(['signed', 'throttle:10,1'])
+    ->name('appointments.documents.upload');
 
 // Stripe webhook (called by Stripe servers, not by users)
 Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle'])
@@ -156,6 +161,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/cms/appointments/{id}', [AppointmentController::class, 'show']);
         Route::put('/cms/appointments/{id}', [AppointmentController::class, 'update']);
         Route::delete('/cms/appointments/{id}', [AppointmentController::class, 'destroy']);
+        Route::get('/cms/appointment-documents/{document}/download', [AppointmentDocumentController::class, 'download']);
 
         // Mail Log (read-only audit trail)
         Route::get('/cms/mail-logs', [MailLogController::class, 'index']);

@@ -1,5 +1,5 @@
 "use client";
-import { LogOut, Settings, BarChart3, MessageSquare, Globe, FileText, DollarSign, HelpCircle, Bell, CheckCheck, User, ShieldAlert, Clock, ExternalLink, Mail, Zap, type LucideIcon } from "lucide-react";
+import { LogOut, Settings, BarChart3, MessageSquare, Globe, FileText, DollarSign, HelpCircle, Bell, CheckCheck, User, ShieldAlert, Clock, ExternalLink, Mail, Zap, CalendarDays, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
@@ -121,6 +121,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       items: [
         { name: "Service packages", path: "/admin/services", icon: Settings },
         { name: "Bookings & Payments", path: "/admin/bookings", icon: DollarSign },
+        { name: "Appointments & Documents", path: "/admin/appointments", icon: CalendarDays },
       ]
     },
     {
