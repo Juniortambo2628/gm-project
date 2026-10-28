@@ -2,12 +2,14 @@
 
 use App\Http\Controllers\API\AppointmentController;
 use App\Http\Controllers\API\AppointmentDocumentController;
+use App\Http\Controllers\API\AuditLogController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\BlogController;
 use App\Http\Controllers\API\BookingReservationController;
 use App\Http\Controllers\API\CalendlyWebhookController;
 use App\Http\Controllers\API\CMSController;
 use App\Http\Controllers\API\ContentController;
+use App\Http\Controllers\API\ClientController;
 use App\Http\Controllers\API\DashboardController;
 use App\Http\Controllers\API\FaqController;
 use App\Http\Controllers\API\InquiryController;
@@ -60,6 +62,9 @@ Route::get('/payments/status/{sessionId}', [StripePaymentController::class, 'sta
 Route::post('/appointments/{appointment}/documents', [AppointmentDocumentController::class, 'store'])
     ->middleware(['signed', 'throttle:10,1'])
     ->name('appointments.documents.upload');
+Route::get('/appointments/{appointment}/documents', [AppointmentDocumentController::class, 'status'])
+    ->middleware(['signed', 'throttle:30,1'])
+    ->name('appointments.documents.status');
 
 // Stripe webhook (called by Stripe servers, not by users)
 Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle'])
@@ -78,12 +83,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user', [AuthController::class, 'updateProfile']);
     Route::get('/user/bookings', [OrderController::class, 'userBookings']);
     Route::get('/user/bookings/{id}', [OrderController::class, 'showUserBooking']);
+    Route::get('/user/bookings/{id}/document-upload-link', [OrderController::class, 'documentUploadLink']);
     Route::post('/bookings/reserve', [BookingReservationController::class, 'store'])->middleware('throttle:10,1');
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change-password', [AuthController::class, 'changePassword']);
 
     // Admin endpoints
-    Route::middleware('admin')->group(function () {
+    Route::middleware(['admin', 'admin.audit'])->group(function () {
         // CMS Management
         Route::post('/cms/settings', [CMSController::class, 'updateSettings']);
         Route::post('/cms/upload', [CMSController::class, 'uploadFile']);
@@ -115,6 +121,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Dashboard Analytics
         Route::get('/cms/dashboard', [DashboardController::class, 'index']);
+        Route::get('/cms/clients', [ClientController::class, 'index']);
+        Route::get('/cms/clients/{sourceType}/{sourceId}', [ClientController::class, 'show']);
+        Route::get('/cms/audit-logs', [AuditLogController::class, 'index']);
 
         // Integration Testing
         Route::get('/cms/integrations', [IntegrationTestController::class, 'index']);
@@ -162,6 +171,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/cms/appointments/{id}', [AppointmentController::class, 'update']);
         Route::delete('/cms/appointments/{id}', [AppointmentController::class, 'destroy']);
         Route::get('/cms/appointment-documents/{document}/download', [AppointmentDocumentController::class, 'download']);
+        Route::delete('/cms/appointment-documents/{document}', [AppointmentDocumentController::class, 'destroy']);
 
         // Mail Log (read-only audit trail)
         Route::get('/cms/mail-logs', [MailLogController::class, 'index']);

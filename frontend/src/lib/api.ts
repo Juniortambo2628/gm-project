@@ -128,6 +128,13 @@ export interface Booking {
   stripe_payment_intent_id: string;
   stripe_checkout_session_id: string;
   status: string;
+  email_sent_at?: string | null;
+  appointment?: {
+    id: number;
+    scheduled_at: string;
+    status: string;
+    documents?: Array<{ id: number; name: string; size_bytes: number; created_at: string }>;
+  } | null;
   created_at: string;
 }
 
@@ -364,6 +371,11 @@ export async function getUserBooking(id: number): Promise<Booking | null> {
     if (error.response?.status === 404) return null;
     throw error;
   }
+}
+
+export async function getUserDocumentUploadUrl(id: number): Promise<string> {
+  const res = await axiosInstance.get(`/user/bookings/${id}/document-upload-link`);
+  return res.data.url as string;
 }
 
 // Mail templates

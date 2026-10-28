@@ -1,7 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { MessageSquare, DollarSign, Activity, Eye, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { MessageSquare, DollarSign, Activity, Eye, ArrowUpRight, ArrowDownRight, AlertTriangle, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
 import DashboardHero from "@/components/DashboardHero";
 import axiosInstance from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
@@ -17,6 +18,7 @@ interface DashboardTransaction {
   amount: string | number;
   currency: string;
   created_at: string;
+  appointment?: { status: string; scheduled_at: string } | null;
 }
 
 interface DashboardMessage {
@@ -44,6 +46,7 @@ interface DashboardData {
   revenue_series?: RevenueSeriesPoint[];
   recent_transactions?: DashboardTransaction[];
   recent_messages?: DashboardMessage[];
+  action_items?: { pending_payments: number; failed_emails: number; unhealthy_integrations: number; upcoming_appointments: number };
 }
 
 export default function AdminDashboard() {
@@ -114,6 +117,18 @@ export default function AdminDashboard() {
         description="Monitor your consulting revenue, bookings, and recent inquiries."
       />
 
+      <Card className="rounded-2xl border shadow-sm">
+        <CardHeader><CardTitle className="flex items-center gap-2 text-base">{(data?.action_items?.pending_payments ?? 0) + (data?.action_items?.failed_emails ?? 0) + (data?.action_items?.unhealthy_integrations ?? 0) > 0 ? <AlertTriangle className="text-amber-600" size={18} /> : <CheckCircle2 className="text-emerald-600" size={18} />} Operational status</CardTitle><CardDescription>Items that may need follow-up today.</CardDescription></CardHeader>
+        <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: "Pending payments", count: data?.action_items?.pending_payments ?? 0, href: "/admin/bookings" },
+            { label: "Failed emails · 7 days", count: data?.action_items?.failed_emails ?? 0, href: "/admin/email-logs" },
+            { label: "Integration warnings", count: data?.action_items?.unhealthy_integrations ?? 0, href: "/admin/integrations" },
+            { label: "Sessions · next 7 days", count: data?.action_items?.upcoming_appointments ?? 0, href: "/admin/appointments" },
+          ].map((item) => <Link key={item.label} href={item.href} className="rounded-xl border bg-muted/20 p-4 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="text-sm text-muted-foreground">{item.label}</span><span className="mt-1 block text-2xl font-bold">{item.count}</span></Link>)}
+        </CardContent>
+      </Card>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KPICard
@@ -171,7 +186,7 @@ export default function AdminDashboard() {
                   <div key={t.id} className="flex items-center justify-between bg-muted/20 p-4 rounded-xl border border-border">
                     <div className="space-y-1">
                       <p className="text-sm font-bold leading-none">{t.email}</p>
-                      <p className="text-xs text-muted-foreground font-medium">{new Date(t.created_at).toLocaleDateString()}</p>
+                      <p className="text-xs text-muted-foreground font-medium">{new Date(t.created_at).toLocaleDateString()} · Appointment: {t.appointment?.status ?? "not linked"}</p>
                     </div>
                     <div className="font-bold text-primary">{formatCurrency(t.amount, t.currency)}</div>
                   </div>

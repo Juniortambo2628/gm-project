@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { IconBlock } from "@/components/ui/IconBlock";
 import dynamic from "next/dynamic";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { FormFeedback } from "@/components/ui/FormFeedback";
 import { countries } from "@/lib/data/countries";
 import { createCheckoutSession, reserveBookingSlot } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
@@ -108,6 +109,7 @@ function BookingPageContent() {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(pendingBooking?.slot?.serviceId ?? null);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
   const [reservedSlot, setReservedSlot] = useState<ReservedSlot | null>(pendingBooking?.slot ?? null);
   const payButtonRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState<BookingFormData>(() => ({
@@ -229,6 +231,7 @@ function BookingPageContent() {
   const handlePaymentClick = async () => {
     if (!selectedService || price <= 0) return;
 
+    setPaymentError("");
     setIsRedirecting(true);
     try {
       const result = await createCheckoutSession({
@@ -243,11 +246,13 @@ function BookingPageContent() {
         window.location.href = result.data.checkout_url;
       } else if (result.code === "slot_released") {
         setReservedSlot(null);
+        setPaymentError(result.message || "Your reserved slot was released. Choose a new time to continue.");
         toast.error("Your reserved slot was released", {
           description: result.message || "Payment wasn't completed in time. Please pick a new time.",
         });
         setIsRedirecting(false);
       } else {
+        setPaymentError(result.message || "We could not start checkout. Please try again.");
         toast.error("Payment error", {
           description: result.message || "Could not initialize payment. Please try again.",
         });
@@ -255,6 +260,7 @@ function BookingPageContent() {
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Could not initialize payment. Please try again.";
+      setPaymentError(message);
       toast.error("Payment error", { description: message });
       setIsRedirecting(false);
     }
@@ -440,6 +446,7 @@ function BookingPageContent() {
                      </div>
                   )}
                 
+                {paymentError && <FormFeedback type="error" message={paymentError} />}
                 <div className="flex items-center justify-center gap-2 opacity-40 grayscale group-hover:grayscale-0 transition-all">
                    <p className="text-[10px] font-bold">Secured by</p>
                    <span className="font-bold text-xs">Stripe</span>

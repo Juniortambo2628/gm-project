@@ -35,6 +35,7 @@ class AppointmentDocumentUploadTest extends TestCase
         $document = AppointmentDocument::firstOrFail();
         Storage::disk('local')->assertExists($document->path);
         Storage::disk('public')->assertMissing($document->path);
+        $this->get($url)->assertOk()->assertJsonPath('uploaded', 1);
     }
 
     public function test_unsigned_or_expired_link_cannot_upload_documents(): void

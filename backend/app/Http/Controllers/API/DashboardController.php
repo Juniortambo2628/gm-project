@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\MessageResource;
 use App\Http\Resources\TransactionResource;
 use App\Models\Message;
+use App\Models\Appointment;
+use App\Models\IntegrationTestResult;
+use App\Models\MailLog;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -28,7 +31,7 @@ class DashboardController extends Controller
 
         $recentTransactions = Transaction::query()
             ->where('status', 'success')
-            ->with('service')
+            ->with(['service', 'appointment'])
             ->latest()
             ->take(5)
             ->get();
@@ -47,6 +50,12 @@ class DashboardController extends Controller
             'revenue_series' => $this->revenueSeries(),
             'recent_messages' => MessageResource::collection($recentMessages),
             'recent_transactions' => TransactionResource::collection($recentTransactions),
+            'action_items' => [
+                'pending_payments' => Transaction::query()->where('status', 'pending')->count(),
+                'failed_emails' => MailLog::query()->where('status', 'failed')->where('created_at', '>=', now()->subDays(7))->count(),
+                'unhealthy_integrations' => IntegrationTestResult::query()->whereIn('status', ['warning', 'error'])->count(),
+                'upcoming_appointments' => Appointment::query()->where('status', 'scheduled')->whereBetween('scheduled_at', [now(), now()->addDays(7)])->count(),
+            ],
         ]);
     }
 

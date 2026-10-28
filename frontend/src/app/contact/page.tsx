@@ -10,10 +10,12 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { countries } from "@/lib/data/countries";
 import { createMessage, getErrorMessage } from "@/lib/api";
+import { FormFeedback } from "@/components/ui/FormFeedback";
 
 export default function ContactPage() {
   const { getSetting, getHeroProps } = useSiteSettings();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -25,14 +27,17 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setFeedback(null);
 
     try {
       await createMessage(formData);
       toast.success("Message Sent", {
         description: "Thank you for reaching out. I'll get back to you shortly.",
       });
+      setFeedback({ type: "success", message: "Your message was sent. We’ll reply using the email address you provided." });
       setFormData({ name: "", email: "", country: "", subject: "", content: "" });
     } catch (error) {
+      setFeedback({ type: "error", message: getErrorMessage(error) });
       toast.error("Error", {
         description: getErrorMessage(error),
       });
@@ -111,11 +116,13 @@ export default function ContactPage() {
 
           {/* Contact Form */}
           <div className="bg-card border-2 border-border p-8 md:p-12 rounded-3xl shadow-2xl relative">
-             <form className="space-y-8" onSubmit={handleSubmit}>
+             <form className="space-y-8" onSubmit={handleSubmit} aria-busy={isSubmitting}>
+                {feedback && <FormFeedback type={feedback.type} message={feedback.message} />}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-muted-foreground ml-4">Name</label>
+                      <label htmlFor="contact-name" className="text-sm font-bold text-muted-foreground ml-4">Name</label>
                       <input 
+                        id="contact-name"
                         type="text" 
                         required
                         className="w-full h-14 bg-secondary/50 border-none rounded-2xl px-6 font-medium focus:ring-2 focus:ring-primary/20 transition-all outline-none" 
@@ -125,8 +132,9 @@ export default function ContactPage() {
                       />
                    </div>
                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-muted-foreground ml-4">Email</label>
+                      <label htmlFor="contact-email" className="text-sm font-bold text-muted-foreground ml-4">Email</label>
                       <input 
+                        id="contact-email"
                         type="email" 
                         required
                         className="w-full h-14 bg-secondary/50 border-none rounded-2xl px-6 font-medium focus:ring-2 focus:ring-primary/20 transition-all outline-none" 
@@ -138,8 +146,9 @@ export default function ContactPage() {
                 </div>
 
                 <div className="space-y-2">
-                   <label className="text-sm font-bold text-muted-foreground ml-4">Country</label>
+                   <label htmlFor="contact-country" className="text-sm font-bold text-muted-foreground ml-4">Country</label>
                    <select 
+                     id="contact-country"
                      className="w-full h-14 bg-secondary/50 border-none rounded-2xl px-6 font-medium focus:ring-2 focus:ring-primary/20 transition-all outline-none appearance-none"
                      value={formData.country}
                      onChange={(e) => setFormData({...formData, country: e.target.value})}
@@ -152,8 +161,9 @@ export default function ContactPage() {
                 </div>
 
                 <div className="space-y-2">
-                   <label className="text-sm font-bold text-muted-foreground ml-4">Subject</label>
+                   <label htmlFor="contact-subject" className="text-sm font-bold text-muted-foreground ml-4">Subject</label>
                    <input 
+                      id="contact-subject"
                       type="text" 
                       className="w-full h-12 bg-secondary/50 border-none rounded-2xl px-6 font-medium focus:ring-2 focus:ring-primary/20 transition-all outline-none" 
                       placeholder="Inquiry about MBA Coaching" 
@@ -163,8 +173,9 @@ export default function ContactPage() {
                 </div>
 
                 <div className="space-y-2">
-                   <label className="text-xs font-bold text-muted-foreground ml-4">Message</label>
+                   <label htmlFor="contact-message" className="text-xs font-bold text-muted-foreground ml-4">Message</label>
                    <textarea 
+                      id="contact-message"
                       rows={6} 
                       required
                       className="w-full bg-secondary/50 border-none rounded-2xl p-6 font-medium focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none" 

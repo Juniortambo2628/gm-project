@@ -9,18 +9,18 @@ import { AdminListPage } from "@/components/admin/AdminListPage";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Message } from "@/lib/api";
-import { useAdminFetch } from "@/hooks/useAdminFetch";
+import { useAdminPaginatedList } from "@/hooks/useAdminPaginatedList";
+import { AdminListControls, AdminPagination } from "@/components/admin/AdminListControls";
+import Link from "next/link";
 
 export default function InquiriesPage() {
-  const { data: inquiries, loading, refetch } = useAdminFetch<Message[]>("/cms/inquiries", {
-    errorMessage: "Failed to fetch inquiries",
-  });
+  const { data: inquiries, loading, refetch, search, setSearch, filters, setFilter, page, setPage, meta } = useAdminPaginatedList<Message>("/cms/inquiries", "Failed to fetch inquiries");
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   const deleteInquiry = async (id: number) => {
     try {
       await axiosInstance.delete(`/cms/inquiries/${id}`);
-      toast.success("Inquiry deleted");
+      toast.success("Inquiry archived");
       refetch();
     } catch {
       toast.error("Failed to delete");
@@ -31,6 +31,7 @@ export default function InquiriesPage() {
 
   return (
     <AdminListPage title="Client Inquiries" description="Manage messages from your website contact form." isLoading={loading}>
+      <AdminListControls search={search} onSearchChange={setSearch} placeholder="Search by client, email, or subject" filters={[{ key: "read", label: "Read status", options: [{ value: "", label: "All inquiries" }, { value: "false", label: "Unread" }, { value: "true", label: "Read" }] }]} values={filters} onFilterChange={setFilter} dateRange total={meta.total} />
       <div className="grid grid-cols-1 gap-6">
         {inquiries.length > 0 ? inquiries.map((item) => (
           <Card key={item.id} className="rounded-3xl border shadow-sm hover:border-primary/20 transition-all overflow-hidden">
@@ -42,7 +43,8 @@ export default function InquiriesPage() {
                      </div>
                      <div>
                         <h3 className="text-lg font-bold">{item.name}</h3>
-                        <p className="text-xs text-muted-foreground font-medium">{item.email}</p>
+                  <p className="text-xs text-muted-foreground font-medium">{item.email}</p>
+                  <Link href={`/admin/clients/inquiry/${item.id}`} className="mt-1 inline-flex text-xs font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Open client history</Link>
                      </div>
                   </div>
                   
@@ -62,7 +64,7 @@ export default function InquiriesPage() {
                      <Mail size={16} /> Reply
                   </a>
                   <Button onClick={() => setDeleteTarget(item.id)} variant="ghost" className="w-full h-11 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50 text-[12px] font-bold">
-                     <Trash2 size={16} className="mr-2" /> Delete
+                     <Trash2 size={16} className="mr-2" /> Archive
                   </Button>
                </div>
             </div>
@@ -71,13 +73,14 @@ export default function InquiriesPage() {
           <EmptyState title="No messages found yet." />
         )}
       </div>
+      <AdminPagination page={page} lastPage={meta.last_page} onPageChange={setPage} />
 
       <ConfirmDeleteDialog
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => { if (deleteTarget) deleteInquiry(deleteTarget); }}
-        title="Delete inquiry"
-        description="Are you sure you want to delete this inquiry? This action cannot be undone."
+        title="Archive inquiry"
+        description="Archive this inquiry from the active inbox? It will remain available in the client history."
       />
     </AdminListPage>
   );

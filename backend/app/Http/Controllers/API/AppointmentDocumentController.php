@@ -12,6 +12,20 @@ use Illuminate\Support\Str;
 
 class AppointmentDocumentController extends Controller
 {
+    public function status(Appointment $appointment): JsonResponse
+    {
+        return response()->json([
+            'uploaded' => $appointment->documents()->count(),
+            'limit' => 10,
+            'documents' => $appointment->documents()->latest()->get()->map(fn (AppointmentDocument $document) => [
+                'id' => $document->id,
+                'name' => $document->original_name,
+                'size_bytes' => $document->size_bytes,
+                'created_at' => $document->created_at?->toISOString(),
+            ]),
+        ]);
+    }
+
     public function store(Request $request, Appointment $appointment): JsonResponse
     {
         $request->validate([
@@ -47,5 +61,13 @@ class AppointmentDocumentController extends Controller
             'Content-Type' => $document->mime_type,
             'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    public function destroy(AppointmentDocument $document): JsonResponse
+    {
+        Storage::disk('local')->delete($document->path);
+        $document->delete();
+
+        return response()->json(['message' => 'Document deleted.']);
     }
 }

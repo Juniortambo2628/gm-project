@@ -1,5 +1,5 @@
 "use client";
-import { LogOut, Settings, BarChart3, MessageSquare, Globe, FileText, DollarSign, HelpCircle, Bell, CheckCheck, User, ShieldAlert, Clock, ExternalLink, Mail, Zap, CalendarDays, type LucideIcon } from "lucide-react";
+import { LogOut, Settings, BarChart3, MessageSquare, Globe, FileText, DollarSign, HelpCircle, Bell, CheckCheck, User, ShieldAlert, Clock, ExternalLink, Mail, Zap, CalendarDays, UsersRound, History, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
@@ -112,7 +112,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       category: "Interactions",
       items: [
         { name: "Client inquiries", path: "/admin/inquiries", icon: MessageSquare },
+        { name: "Client records", path: "/admin/clients", icon: UsersRound },
         { name: "Blog posts", path: "/admin/blog", icon: FileText },
+        { name: "Email delivery log", path: "/admin/email-logs", icon: Mail },
       ]
     },
     {
@@ -132,6 +134,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { name: "FAQs & Proof", path: "/admin/content", icon: HelpCircle },
         { name: "Email Templates", path: "/admin/emails", icon: Mail },
         { name: "User Accounts", path: "/admin/users", icon: User },
+        { name: "Audit trail", path: "/admin/audit", icon: History },
       ]
     },
     {

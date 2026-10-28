@@ -18,16 +18,22 @@ class MailLogController extends BaseCrudController
 
         $query = MailLog::query();
 
-        if ($request = request()) {
-            if ($recipient = $request->input('recipient')) {
-                $query->where('recipient', 'like', "%{$recipient}%");
-            }
-            if ($templateKey = $request->input('template_key')) {
-                $query->where('template_key', $templateKey);
-            }
-            if ($status = $request->input('status')) {
-                $query->where('status', $status);
-            }
+        $request = request();
+        if ($search = trim((string) $request->query('q'))) {
+            $query->where(fn ($builder) => $builder->where('recipient', 'like', "%{$search}%")
+                ->orWhere('subject', 'like', "%{$search}%"));
+        }
+        if ($templateKey = $request->query('template_key')) {
+            $query->where('template_key', $templateKey);
+        }
+        if ($status = $request->query('status')) {
+            $query->where('status', $status);
+        }
+        if ($from = $request->query('from')) {
+            $query->whereDate('created_at', '>=', $from);
+        }
+        if ($to = $request->query('to')) {
+            $query->whereDate('created_at', '<=', $to);
         }
 
         $items = $query->latest()->paginate($this->perPage);
