@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Transaction;
+use App\Services\AppointmentDocumentUploadLink;
 use App\Services\CalendlyService;
 use App\Services\MailDeliveryService;
 use App\Services\NotificationService;
@@ -180,7 +181,7 @@ class StripeWebhookController extends Controller
             'duration' => $durationMinutes.' minutes',
             'amount' => $transaction->currency.' '.number_format($transaction->amount, 2),
             'documents_url' => $appointment
-                ? app(\App\Services\AppointmentDocumentUploadLink::class)->for($appointment)
+                ? app(AppointmentDocumentUploadLink::class)->for($appointment)
                 : '',
         ]);
     }

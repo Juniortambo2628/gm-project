@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateOrderStatusRequest;
 use App\Http\Resources\TransactionResource;
 use App\Models\Appointment;
 use App\Models\Transaction;
+use App\Services\AppointmentDocumentUploadLink;
 use App\Services\MailDeliveryService;
 use App\Services\NotificationService;
 use App\Services\StripeService;
@@ -105,7 +106,7 @@ class OrderController extends Controller
             'time' => $scheduledAt->format('g:i A (T)'),
             'duration' => $durationMinutes.' minutes',
             'amount' => $transaction->currency.' '.number_format($transaction->amount, 2),
-            'documents_url' => app(\App\Services\AppointmentDocumentUploadLink::class)->for($appointment),
+            'documents_url' => app(AppointmentDocumentUploadLink::class)->for($appointment),
         ]);
 
         $transaction->update(['email_sent_at' => now()]);
