@@ -53,7 +53,14 @@ class ClientController
             return $client;
         });
 
-        return response()->json($page);
+        return response()->json([
+            'data' => $page->items(),
+            'meta' => [
+                'current_page' => $page->currentPage(),
+                'last_page' => $page->lastPage(),
+                'total' => $page->total(),
+            ],
+        ]);
     }
 
     public function show(string $sourceType, int $sourceId): JsonResponse

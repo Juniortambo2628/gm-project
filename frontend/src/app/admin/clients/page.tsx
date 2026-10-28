@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, BriefcaseBusiness, Mail, UserRound } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, UserRound } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdminListPage } from "@/components/admin/AdminListPage";
 import { AdminListControls, AdminPagination } from "@/components/admin/AdminListControls";
