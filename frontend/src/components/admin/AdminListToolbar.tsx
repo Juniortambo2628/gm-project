@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -33,10 +33,24 @@ export function AdminListToolbar({
   onPageChange: (page: number) => void;
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [footerVisible, setFooterVisible] = useState(false);
   const hasFilters = filters.length > 0 || dateRange;
 
+  useEffect(() => {
+    const root = document.getElementById("admin-scroll-container");
+    const footer = document.getElementById("admin-site-footer");
+    if (!root || !footer) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      setFooterVisible(entry.isIntersecting);
+    }, { root, threshold: 0 });
+
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <section aria-label="Search and filter list" className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 rounded-2xl border border-border/80 bg-card/95 p-3 shadow-2xl backdrop-blur-xl md:inset-x-auto md:bottom-5 md:left-[calc(20rem+1.5rem)] md:right-6 md:p-4">
+    <section aria-label="Search and filter list" aria-hidden={footerVisible} inert={footerVisible} className={`fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 rounded-2xl border border-white/20 bg-card/60 p-3 shadow-2xl shadow-black/20 ring-1 ring-white/10 backdrop-blur-2xl supports-[backdrop-filter]:bg-card/50 before:pointer-events-none before:absolute before:inset-x-4 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent transition-[opacity,transform] duration-300 md:inset-x-auto md:bottom-5 md:left-[calc(20rem+1.5rem)] md:right-6 md:p-4 ${footerVisible ? "pointer-events-none translate-y-3 opacity-0" : "translate-y-0 opacity-100"}`}>
       <div className="flex items-end gap-2">
         <div className="relative min-w-0 flex-1">
           <label htmlFor="admin-list-search" className="sr-only">Search</label>
