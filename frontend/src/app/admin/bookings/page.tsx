@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { reconcilePendingPayments } from "@/lib/api";
 import { toast } from "sonner";
 import { useAdminPaginatedList } from "@/hooks/useAdminPaginatedList";
-import { AdminListControls, AdminPagination } from "@/components/admin/AdminListControls";
+import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 
 export default function BookingsPage() {
   const [reconciling, setReconciling] = useState(false);
@@ -31,7 +31,7 @@ export default function BookingsPage() {
 
   return (
     <AdminListPage title="Bookings & Payments" description="Monitor payment and appointment status. Reconciliation runs when you request it." action={<Button onClick={reconcile} disabled={reconciling} variant="outline">{reconciling ? <RefreshCcw className="mr-2 animate-spin" size={15} /> : <RefreshCcw className="mr-2" size={15} />}Reconcile pending payments</Button>} isLoading={loading}>
-      <AdminListControls search={search} onSearchChange={setSearch} placeholder="Search by client, email, or payment reference" filters={[{ key: "status", label: "Payment status", options: [{ value: "", label: "All payments" }, { value: "success", label: "Paid" }, { value: "pending", label: "Pending" }, { value: "failed", label: "Failed" }] }]} values={filters} onFilterChange={setFilter} dateRange total={meta.total} />
+      <AdminListToolbar search={search} onSearchChange={setSearch} placeholder="Search by client, email, or payment reference" filters={[{ key: "status", label: "Payment status", options: [{ value: "", label: "All payments" }, { value: "success", label: "Paid" }, { value: "pending", label: "Pending" }, { value: "failed", label: "Failed" }] }]} values={filters} onFilterChange={setFilter} dateRange total={meta.total} page={page} lastPage={meta.last_page} onPageChange={setPage} />
       <div className="grid grid-cols-1 gap-4">
         {data.length > 0 ? data.map((item) => (
           <Card key={item.id} className="rounded-2xl border shadow-sm hover:border-primary/20 transition-all overflow-hidden bg-card">
@@ -87,7 +87,6 @@ export default function BookingsPage() {
           />
         )}
       </div>
-      <AdminPagination page={page} lastPage={meta.last_page} onPageChange={setPage} />
     </AdminListPage>
   );
 }

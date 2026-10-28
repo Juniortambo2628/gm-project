@@ -18,7 +18,7 @@ import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getErrorMessage } from "@/lib/api";
 import { useAdminPaginatedList } from "@/hooks/useAdminPaginatedList";
-import { AdminListControls, AdminPagination } from "@/components/admin/AdminListControls";
+import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 
 interface UserRecord {
   id: number;
@@ -82,7 +82,7 @@ export default function UserManagementPage() {
       description="Monitor registered participant accounts and promote staff to administrative roles."
       isLoading={loading}
     >
-      <AdminListControls search={search} onSearchChange={setSearch} placeholder="Search accounts by name or email" filters={[{ key: "role", label: "Role", options: [{ value: "", label: "All roles" }, { value: "admin", label: "Administrator" }, { value: "participant", label: "Participant" }] }]} values={filters} onFilterChange={setFilter} dateRange total={meta.total} />
+      <AdminListToolbar search={search} onSearchChange={setSearch} placeholder="Search accounts by name or email" filters={[{ key: "role", label: "Role", options: [{ value: "", label: "All roles" }, { value: "admin", label: "Administrator" }, { value: "participant", label: "Participant" }] }]} values={filters} onFilterChange={setFilter} dateRange total={meta.total} page={page} lastPage={meta.last_page} onPageChange={setPage} />
 
       {/* Grid listing */}
       <div className="grid grid-cols-1 gap-4">
@@ -185,7 +185,6 @@ export default function UserManagementPage() {
           <EmptyState title="No accounts match these filters." />
         )}
       </div>
-      <AdminPagination page={page} lastPage={meta.last_page} onPageChange={setPage} />
 
       <ConfirmDeleteDialog
         isOpen={deleteTarget !== null}
